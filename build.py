@@ -652,8 +652,8 @@ def render(d, team_id):
         ideas = '<p class="ok">No urgent transfers – your squad looks healthy.</p>'
 
     nxt = d["next_event"]
-    deadline = (f'<p class="deadline">GW{nxt["id"]} deadline: <time data-iso="{esc(nxt["deadline_time"])}">'
-                f'{esc(nxt["deadline_time"])}</time></p>') if nxt else ""
+    deadline = (f'<div class="deadline">⏰ GW{nxt["id"]} deadline: <time data-iso="{esc(nxt["deadline_time"])}">'
+                f'{esc(nxt["deadline_time"])}</time> <span class="countdown" data-until="{esc(nxt["deadline_time"])}"></span></div>') if nxt else ""
     chip = f' · Chip: {esc(d["chip"])}' if d["chip"] else ""
     updated = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     manager = f'{entry.get("player_first_name", "")} {entry.get("player_last_name", "")}'.strip()
@@ -682,7 +682,8 @@ header p {{ margin:4px 0 0; opacity:.85; }}
 main {{ max-width:1100px; margin:0 auto; padding:16px; }}
 .summary {{ display:flex; gap:8px; flex-wrap:wrap; margin:12px 0 0; }}
 .pill {{ background:rgba(255,255,255,.15); border-radius:99px; padding:3px 10px; font-size:.85rem; }}
-.deadline {{ font-weight:600; }}
+.deadline {{ background:#00ff87; color:#1b1d22; font-weight:700; text-align:center; padding:10px 16px; font-size:1rem; }}
+.countdown {{ font-weight:400; white-space:nowrap; }}
 h2 {{ font-size:1.05rem; margin:24px 0 10px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }}
 h4 {{ margin:14px 0 4px; font-size:.95rem; }}
 .grid {{ display:grid; gap:10px; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); }}
@@ -753,6 +754,7 @@ footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 1
 </style>
 </head>
 <body>
+{deadline}
 <header>
   <h1>{esc(entry.get('name', 'My FPL Team'))}</h1>
   <p>{esc(manager)} · GW{d['current_gw']} squad{chip}{f' · Overall rank {rank:,}' if rank else ''}</p>
@@ -765,7 +767,6 @@ footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 1
 </header>
 <main>
   {live_html(d, team_id)}
-  {deadline}
   <div class="cols">
     <section><h2>Captain picks</h2><div class="box">{captains_html(d)}</div></section>
     <section><h2>Price watch</h2><div class="box">{prices_html(d)}</div></section>
@@ -790,6 +791,16 @@ document.querySelectorAll('time[data-iso]').forEach(function (t) {{
   if (!isNaN(d)) t.textContent = d.toLocaleString(undefined, {{weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}});
 }});
 {"setTimeout(function () { location.reload(); }, 5 * 60 * 1000);" if d["live"] and d["live"]["playing"] else ""}
+document.querySelectorAll('.countdown[data-until]').forEach(function (c) {{
+  function tick() {{
+    var ms = new Date(c.dataset.until) - new Date();
+    if (isNaN(ms)) return;
+    if (ms <= 0) {{ c.textContent = '(passed)'; return; }}
+    var d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60;
+    c.textContent = '(' + (d ? d + 'd ' : '') + (d || h ? h + 'h ' : '') + m + 'm to go)';
+  }}
+  tick(); setInterval(tick, 30000);
+}});
 document.querySelectorAll('.league').forEach(function (lg) {{
   var sel = lg.querySelector('.h2h-select');
   if (!sel) return;
