@@ -486,6 +486,42 @@ def prices_html(d):
     return "".join(rows)
 
 
+def duo_html(d):
+    """Captain picks and price watch side by side: a header row then three rows each."""
+    caps = []
+    for i, c in enumerate(d["captains"][:3]):
+        p = c["s"]["p"]
+        fx = ", ".join(f'{o} ({"H" if h else "A"})' for _, games in c["games"] for o, h, _ in games)
+        caps.append(f'<div class="dcell" title="{esc(p["web_name"])} v {esc(fx)} · {esc(", ".join(c["why"]))}">'
+                    f'<span class="tag">{["C", "V", "3rd"][i]}</span><strong>{esc(p["web_name"])}</strong>'
+                    f'<span class="val">{float(p["ep_next"] or 0):.1f}<small>xP</small></span></div>')
+
+    moving = sorted((s for s in d["squad"] if price_label(s["price"])), key=lambda s: -abs(s["price"]["net"]))
+    prices = []
+    for i, s in enumerate(moving[:3]):
+        pr = s["price"]
+        direction = pr["likely"] or ("rise" if pr["change"] > 0 else "fall")
+        change = (f'<span class="price {"rise" if pr["change"] > 0 else "fall"}">{"+" if pr["change"] > 0 else "−"}'
+                  f'{abs(pr["change"]) / 10:.1f}</span>') if pr["change"] else ""
+        tip = (f'{s["p"]["web_name"]} {money(s["p"]["now_cost"])} · {price_label(pr)} · '
+               f'net transfers {pr["net"]:+,}')
+        if i == 2 and len(moving) > 3:
+            tip += " · also: " + ", ".join(f'{m["p"]["web_name"]} ({price_label(m["price"])})' for m in moving[3:])
+        prices.append(f'<div class="dcell" title="{esc(tip)}"><span class="price {direction}">{"▲" if direction == "rise" else "▼"}</span>'
+                      f'<strong>{esc(s["p"]["web_name"])}</strong><span class="val">{change}</span></div>')
+    if not prices:
+        prices.append('<div class="dcell meta">No moves expected</div>')
+    if not caps:
+        caps.append('<div class="dcell meta">No fit starters</div>')
+
+    cells = ['<div class="dhead">Captain</div>',
+             f'<div class="dhead">Price watch{f" <span class=meta>+{len(moving) - 3}</span>" if len(moving) > 3 else ""}</div>']
+    for i in range(3):
+        cells.append(caps[i] if i < len(caps) else '<div class="dcell"></div>')
+        cells.append(prices[i] if i < len(prices) else '<div class="dcell"></div>')
+    return f'<div class="box duo">{"".join(cells)}</div>'
+
+
 def leagues_html(d, team_id):
     if not d["leagues"]:
         return ""
@@ -893,6 +929,15 @@ table.compact th:nth-child(3) {{ text-align:left; }}
 .cgrid {{ display:inline-grid; grid-template-columns:repeat(2, 1.4em); gap:1px; vertical-align:middle; }}
 .cgrid i {{ font-style:normal; font-size:.55rem; font-weight:700; line-height:1.3; text-align:center; border-radius:2px; background:var(--line); min-height:1.3em; }}
 .cgrid i:empty {{ background:transparent; outline:1px dashed var(--line); outline-offset:-1px; }}
+.duo {{ display:grid; grid-template-columns:1fr 1fr; column-gap:12px; padding:8px 12px; margin-top:16px; }}
+.dhead {{ font-size:.72rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; padding-bottom:2px; border-bottom:1px solid var(--line); }}
+.dcell {{ display:flex; align-items:center; gap:5px; min-width:0; padding:5px 0; border-bottom:1px solid var(--line); font-size:.85rem; }}
+.duo .dcell:nth-last-child(-n+2) {{ border-bottom:0; }}
+.dcell strong {{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }}
+.dcell .val {{ margin-left:auto; white-space:nowrap; font-weight:600; }}
+.dcell .val small {{ font-weight:400; color:var(--muted); margin-left:1px; font-size:.7rem; }}
+.dcell .tag {{ flex:none; font-size:.65rem; padding:1px 4px; }}
+.dcell .price {{ margin:0; flex:none; }}
 footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 16px 40px; }}
 </style>
 </head>
@@ -907,10 +952,7 @@ footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 1
 </header>
 <main>
   {live_html(d, team_id)}
-  <div class="cols">
-    <section><h2>Captain picks</h2><div class="box">{captains_html(d)}</div></section>
-    <section><h2>Price watch</h2><div class="box">{prices_html(d)}</div></section>
-  </div>
+  {duo_html(d)}
   <h2>Chip planner</h2>
   <div class="box chips">{chips_html(d)}</div>
   <h2>Transfer ideas</h2>
