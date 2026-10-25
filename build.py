@@ -23,6 +23,7 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
+import chips
 import email_digest
 
 DEFAULT_TEAM_ID = 2612117
@@ -321,8 +322,17 @@ def build(source, team_id):
         options.sort(key=lambda o: o[0], reverse=True)
         ideas.append({"out": s, "budget": budget, "options": options[:REPLACEMENTS_PER_SELL]})
 
+    try:
+        history = source.get(f"entry/{team_id}/history/")
+    except LookupError:
+        history = {}
+    flagged = sum(1 for s in squad if s["flag"] != "green")
+    chip_plan = chips.plan(squad, players, fixtures, first_ahead, len(events),
+                           chips.available_chips(boot, history, first_ahead), flagged) if next_event else []
+
     return {
         "entry": entry, "teams": teams, "players": players, "squad": squad, "ideas": ideas,
+        "chip_plan": chip_plan,
         "bank": bank, "current_gw": current_gw, "next_event": next_event,
         "past_gws": past_gws, "chip": picks_data.get("active_chip"),
         "captains": captain_picks(squad),
@@ -463,6 +473,38 @@ def leagues_html(d, team_id):
     return "".join(out)
 
 
+def chips_html(d):
+    if not d["chip_plan"]:
+        return '<p class="ok">No chips left to plan right now.</p>'
+    targets = {"bboost": f"bench scores {chips.BB_TARGET}+",
+               "3xc": f"captain scores {chips.TC_TARGET}+",
+               "freehit": f"{chips.FH_TARGET}+ pts more than your team"}
+    out = []
+    for c in d["chip_plan"]:
+        if c["name"] == "wildcard":
+            why = f' <span class="meta">({esc(", ".join(c["problems"]))} need replacing)</span>' if c["problems"] else ""
+            out.append(f'<div class="chip"><h3>Wildcard <span class="meta">use by GW{c["stop"]}</span></h3>'
+                       f'<p><strong>{esc(c["verdict"])}</strong>{why}</p></div>')
+            continue
+        b = c["best"]
+        rows = "".join(
+            f'<tr class="{"best" if r["best"] else ""}"><td>GW{r["gw"]}</td>'
+            f'<td><div class="bar"><span style="width:{r["chance"] * 100:.0f}%"></span></div></td>'
+            f'<td>{r["chance"] * 100:.0f}%</td><td>{r["ev"]:.1f}</td><td class="meta">{esc(r["note"])}</td></tr>'
+            for r in c["rows"])
+        more = f" Window closes GW{c['stop']}." if c["stop"] > c["end"] else ""
+        if b["chance"] < chips.HOLD_BELOW:
+            verdict = f"<strong>Hold it</strong> – no strong week in the next {len(c['rows'])} gameweeks."
+        else:
+            verdict = f"Best week: <strong>GW{b['gw']}</strong> – {b['chance'] * 100:.0f}% chance {targets[c['name']]}."
+        out.append(f"""<div class="chip"><h3>{esc(c['label'])} <span class="meta">use by GW{c['stop']}</span></h3>
+          <p>{verdict}{more}</p>
+          <div class="tablewrap"><table class="chiptable">
+            <thead><tr><th>GW</th><th></th><th>Chance</th><th>Exp. pts</th><th></th></tr></thead>
+            <tbody>{rows}</tbody></table></div></div>""")
+    return "".join(out)
+
+
 def render(d, team_id):
     entry, teams = d["entry"], d["teams"]
     counts = {"red": 0, "amber": 0, "green": 0}
@@ -573,6 +615,14 @@ table {{ width:100%; border-collapse:collapse; font-size:.9rem; }}
 th, td {{ text-align:left; padding:6px; border-bottom:1px solid var(--line); vertical-align:top; }}
 th:nth-child(n+3), td:nth-child(n+3) {{ text-align:right; }}
 tr.me td {{ background:var(--hl); font-weight:600; }}
+.chip + .chip {{ border-top:1px solid var(--line); margin-top:14px; padding-top:14px; }}
+.chip h3 {{ margin:0 0 4px; font-size:1rem; }}
+.chip p {{ margin:0 0 6px; }}
+.chiptable td:nth-child(2) {{ width:35%; }}
+.chiptable td:last-child {{ text-align:left; }}
+.chiptable tr.best td {{ background:var(--hl); font-weight:600; }}
+.bar {{ background:var(--line); border-radius:4px; height:8px; overflow:hidden; min-width:60px; }}
+.bar span {{ display:block; height:100%; background:var(--accent); }}
 footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 16px 40px; }}
 </style>
 </head>
@@ -593,6 +643,8 @@ footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 1
     <section><h2>Captain picks</h2><div class="box">{captains_html(d)}</div></section>
     <section><h2>Price watch</h2><div class="box">{prices_html(d)}</div></section>
   </div>
+  <h2>Chip planner</h2>
+  <div class="box chips">{chips_html(d)}</div>
   <h2>Transfer ideas</h2>
   <div class="box">{ideas}</div>
   {''.join(sections)}
@@ -601,7 +653,9 @@ footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 1
 <footer>
   Data from the official Fantasy Premier League site. Updated <time data-iso="{updated}">{updated}</time>.<br>
   Fixture colours: dark green = easiest … dark red = hardest. Lowercase opponent = away.<br>
-  Price predictions are estimates from this gameweek's transfers.
+  Price predictions are estimates from this gameweek's transfers.<br>
+  Chip chances are estimates from a simple simulation of your current squad – transfers, rotation and
+  double gameweeks announced later will change them.
 </footer>
 <script>
 document.querySelectorAll('time[data-iso]').forEach(function (t) {{

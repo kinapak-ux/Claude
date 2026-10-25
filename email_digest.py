@@ -13,6 +13,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from zoneinfo import ZoneInfo
 
+import chips
+
 UK = ZoneInfo("Europe/London")
 PAGE_URL = os.environ.get("PAGE_URL", "https://kinapak-ux.github.io/Claude/")
 
@@ -78,6 +80,21 @@ def compose(d, team_id):
         rows = "".join(f'<li>{"▲" if s["price"]["likely"] == "rise" else "▼"} {esc(s["p"]["web_name"])} '
                        f'likely to {s["price"]["likely"]}</li>' for s in moving)
         parts.append(f"<h3 {h2}>Price watch</h3><ul>{rows}</ul>")
+
+    plan = [c for c in d.get("chip_plan", []) if c.get("best") or c.get("verdict")]
+    if plan:
+        rows = []
+        for c in plan:
+            if c.get("verdict"):
+                rows.append(f'<li>Wildcard: {esc(c["verdict"])}</li>')
+                continue
+            b = c["best"]
+            star = " ⭐ <strong>this week</strong>" if nxt and b["gw"] == nxt["id"] else ""
+            if b["chance"] < chips.HOLD_BELOW:
+                rows.append(f'<li>{esc(c["label"])}: hold – no strong week yet</li>')
+            else:
+                rows.append(f'<li>{esc(c["label"])}: best GW{b["gw"]} – {b["chance"] * 100:.0f}% chance{star}</li>')
+        parts.append(f"<h3 {h2}>Chip planner</h3><ul>{''.join(rows)}</ul>")
 
     if d["leagues"]:
         rows = []
