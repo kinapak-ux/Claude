@@ -615,31 +615,29 @@ def live_html(d, team_id):
 
 
 def chips_html(d):
+    """One line per chip: its best week or two, or 'hold'."""
     if not d["chip_plan"]:
         return '<p class="ok">No chips left to plan right now.</p>'
-    out = []
+    rows = []
     for c in d["chip_plan"]:
         if c["name"] == "wildcard":
-            why = f' <span class="meta">· {esc(", ".join(c["problems"]))} need replacing</span>' if c["problems"] else ""
-            out.append(f'<div class="chip"><div><strong>Wildcard</strong> {esc(c["verdict"])}{why}'
-                       f' <span class="meta">· by GW{c["stop"]}</span></div></div>')
+            why = ", ".join(c["problems"])
+            rows.append(f'<div class="crow" title="{esc(why + " need replacing" if why else "")}"><strong>Wildcard</strong>'
+                        f'<span class="val">{esc(c["verdict"])}</span></div>')
             continue
-        b = c["best"]
-        if b["chance"] < chips.HOLD_BELOW:
-            verdict = "Hold – no strong week yet"
+        top = sorted(c["rows"], key=lambda r: (r["chance"], r["ev"]), reverse=True)[:2]
+        top = [r for r in top if r["chance"] >= chips.HOLD_BELOW]
+        if top:
+            weeks = " · ".join(
+                f'<span class="wk{" best" if i == 0 else ""}" title="{r["ev"]:.1f} expected pts{" – " + esc(r["note"]) if r["note"] else ""}">'
+                f'GW{r["gw"]} {r["chance"] * 100:.0f}%</span>' for i, r in enumerate(top))
         else:
-            verdict = f"Best <strong>GW{b['gw']}</strong> · {b['chance'] * 100:.0f}%"
-        cells = "".join(
-            f'<span class="cell{" best" if r["best"] and b["chance"] >= chips.HOLD_BELOW else ""}{" hot" if r["chance"] >= 0.35 else ""}" '
-            f'style="--c:{min(r["chance"] * 1.5, 1):.2f}" '
-            f'title="GW{r["gw"]}: {r["chance"] * 100:.0f}% chance, {r["ev"]:.1f} expected pts{" – " + esc(r["note"]) if r["note"] else ""}">'
-            f'<small>{r["gw"]}</small>{r["chance"] * 100:.0f}</span>'
-            for r in c["rows"])
-        out.append(f'<div class="chip"><div><strong>{esc(c["label"])}</strong> {verdict}'
-                   f' <span class="meta">· by GW{c["stop"]}</span></div><div class="cells">{cells}</div></div>')
-    targets = (f"% chance it pays off by gameweek: Bench Boost = bench scores {chips.BB_TARGET}+, "
-               f"Triple Captain = captain scores {chips.TC_TARGET}+, Free Hit = {chips.FH_TARGET}+ more than your team.")
-    return "".join(out) + f'<p class="meta legend">{targets}</p>'
+            weeks = '<span class="meta">Hold – no strong week yet</span>'
+        rows.append(f'<div class="crow" title="Use by GW{c["stop"]}"><strong>{esc(c["label"])}</strong>'
+                    f'<span class="val">{weeks}</span></div>')
+    key = (f"Chance it pays off: Bench Boost {chips.BB_TARGET}+ bench pts, Triple Captain "
+           f"{chips.TC_TARGET}+ captain pts, Free Hit {chips.FH_TARGET}+ more than your team.")
+    return "".join(rows) + f'<p class="meta legend">{key}</p>'
 
 
 def ordinal(n):
@@ -785,13 +783,7 @@ table {{ width:100%; border-collapse:collapse; font-size:.9rem; }}
 th, td {{ text-align:left; padding:6px; border-bottom:1px solid var(--line); vertical-align:top; }}
 th:nth-child(n+3), td:nth-child(n+3) {{ text-align:right; }}
 tr.me td {{ background:var(--hl); font-weight:600; }}
-.chip + .chip {{ border-top:1px solid var(--line); margin-top:8px; padding-top:8px; }}
-.cells {{ display:flex; gap:3px; margin-top:4px; }}
-.cell {{ flex:1; text-align:center; font-size:.75rem; font-weight:600; border-radius:5px; padding:2px 0;
-  background:color-mix(in srgb, #00c46a calc(var(--c) * 100%), var(--line)); color:var(--text); }}
-.cell.hot {{ color:#0b2d0e; }}
-.cell small {{ display:block; font-size:.6rem; font-weight:400; opacity:.75; }}
-.cell.best {{ outline:2px solid var(--text); outline-offset:-2px; }}
+.wk.best {{ color:var(--green); }}
 .legend {{ margin:8px 0 0; font-size:.72rem; }}
 .crow {{ display:flex; align-items:center; gap:6px; padding:4px 0; border-bottom:1px solid var(--line); font-size:.9rem; }}
 .crow:last-child {{ border-bottom:0; }}
