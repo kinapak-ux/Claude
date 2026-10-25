@@ -787,7 +787,7 @@ def render(d, team_id):
                              f'<span class="out">{esc(out["p"]["web_name"])}</span><span class="arrow">→</span>{target}</div>')
         ideas = "".join(idea_rows)
     else:
-        ideas = '<p class="ok">No urgent transfers – your squad looks healthy.</p>'
+        ideas = '<div class="crow meta">No urgent transfers – squad looks healthy</div>'
 
     nxt = d["next_event"]
     deadline = (f'<div class="deadline">⏰ GW{nxt["id"]} deadline <time data-iso="{esc(nxt["deadline_time"])}">'
@@ -907,6 +907,9 @@ table.compact td.cap {{ text-align:left; color:var(--muted); font-size:.75rem; }
 table.live-t th, table.live-t td {{ padding:5px 3px; }}
 table.compact td.cap b {{ color:var(--text); }}
 table.compact th:nth-child(3) {{ text-align:left; }}
+.tbox {{ padding:8px 12px; margin-top:16px; }}
+.tbox .dhead .meta {{ text-transform:none; letter-spacing:0; font-weight:400; }}
+.tbox .crow {{ font-size:.85rem; padding:5px 0 5px 7px; }}
 .crow.idea {{ border-left:3px solid var(--green); padding-left:7px; margin-left:-10px; }}
 .crow.idea.flag-amber {{ border-left-color:var(--amber); }} .crow.idea.flag-red {{ border-left-color:var(--red); }}
 .crow.idea .out {{ color:var(--muted); text-decoration:line-through; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }}
@@ -959,8 +962,7 @@ footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 1
   {live_html(d, team_id)}
   {duo_html(d)}
   {chips_html(d)}
-  <h2>Transfer ideas</h2>
-  <div class="box">{ideas}</div>
+  <div class="box tbox"><div class="dhead">Transfer ideas <span class="meta">sell → buy</span></div>{ideas}</div>
   {squad_html(d)}
   {leagues_html(d, team_id)}
 </main>
