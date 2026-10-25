@@ -890,7 +890,7 @@ header .up, header .down {{ font-size:.8rem; font-weight:700; margin-left:2px; }
 .squad {{ padding:8px 12px; margin-top:16px; }}
 .squad .dhead {{ border:0; padding:0; }}
 .prow.posfirst {{ border-top:2px solid var(--muted); }}
-.prow {{ display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:2px 8px; align-items:center;
+.prow {{ display:grid; grid-template-columns:minmax(0,1fr) 112px 96px; gap:2px 6px; align-items:center;
   padding:4px 0 4px 9px; border-bottom:1px solid var(--line); border-left:3px solid var(--green); margin-left:-12px; }}
 .prow.flag-amber {{ border-left-color:var(--amber); }} .prow.flag-red {{ border-left-color:var(--red); }}
 .prow.head {{ border:0; padding-top:2px; padding-bottom:0; }}
@@ -899,7 +899,11 @@ header .up, header .down {{ font-size:.8rem; font-weight:700; margin-left:2px; }
 .prow .name .badge, .prow .name .bench {{ flex:none; }}
 .prow .name .meta {{ font-size:.75rem; }}
 .prow .strip {{ margin:0; gap:2px; flex-wrap:nowrap; }}
-.prow .pts, .prow .fx {{ min-width:20px; font-size:.7rem; padding:1px 3px; }}
+.prow .pts, .prow .fx {{ font-size:.7rem; padding:1px 0; text-align:center; }}
+.prow .pts {{ flex:0 0 21px; min-width:0; }}
+.squad .dhead {{ white-space:nowrap; }}
+.prow .fx {{ flex:1 1 0; min-width:0; overflow:hidden; }}
+.prow.head .lbl {{ text-align:left; }}
 .prow .fx small {{ display:none; }}
 .prow .note {{ grid-column:1 / -1; font-size:.75rem; color:var(--muted); line-height:1.25; }}
 .squad .badge {{ margin-left:3px; }} .squad .bench {{ margin-left:3px; padding:0 3px; font-size:.65rem; }}
