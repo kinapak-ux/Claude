@@ -25,6 +25,7 @@ WC_FLAGGED = 4          # Wildcard: suggest it when this many players need repla
 
 FDR_MULTIPLIER = {1: 1.3, 2: 1.15, 3: 1.0, 4: 0.85, 5: 0.7}
 CHIP_NAMES = {"bboost": "Bench Boost", "3xc": "Triple Captain", "freehit": "Free Hit", "wildcard": "Wildcard"}
+CHIP_SHORT = {"bboost": "BB", "3xc": "TC", "freehit": "FH", "wildcard": "WC", "manager": "AM"}
 
 
 def available_chips(boot, history, next_gw):

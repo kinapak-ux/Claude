@@ -260,7 +260,11 @@ def mini_leagues(source, entry, team_id, gw, squad):
             picks = resp["picks"]
             rivals += 1
             squads[r["entry"]] = picks
-            meta[r["entry"]] = {"chip": resp.get("active_chip"),
+            try:
+                hist = source.get(f"entry/{r['entry']}/history/")
+            except LookupError:
+                hist = {}
+            meta[r["entry"]] = {"chip": resp.get("active_chip"), "history": hist,
                                 "hit": (resp.get("entry_history") or {}).get("event_transfers_cost", 0)}
             for pk in picks:
                 if pk["multiplier"] > 0:
@@ -350,6 +354,10 @@ def build(source, team_id):
     leagues = mini_leagues(source, entry, team_id, current_gw, squad)
     my_meta = {"chip": picks_data.get("active_chip"),
                "hit": (picks_data.get("entry_history") or {}).get("event_transfers_cost", 0)}
+    for lg in leagues:
+        lg["meta"][team_id] = {**my_meta, "history": history}
+        for m in lg["meta"].values():
+            m["left"] = [c["name"] for c in chips.available_chips(boot, m.get("history"), first_ahead)]
     try:
         live_data = live.build_live(source, events, players, picks_data["picks"], my_meta, team_id, leagues)
     except Exception as exc:  # live scores are a bonus: never let them break the page
@@ -490,7 +498,7 @@ def leagues_html(d, team_id):
             move = r["last_rank"] - r["rank"] if r.get("last_rank") else 0
             arrow = f'<span class="up">▲{move}</span>' if move > 0 else (f'<span class="down">▼{-move}</span>' if move < 0 else "")
             rows.append(f'<tr class="{"me" if r["entry"] == team_id else ""}" data-entry="{r["entry"]}"><td>{r["rank"]}{arrow}</td>'
-                        f'<td class="team" title="{esc(r["player_name"])}">{esc(r["entry_name"])}</td>'
+                        f'<td class="team" title="{esc(r["player_name"])}">{chip_badge(lg, r["entry"])}{esc(r["entry_name"])}</td>'
                         f'<td>{r["event_total"]}</td><td>{r["total"]}</td><td>{r["total"] - leader or ""}</td></tr>')
         n = max(lg["rivals"], 1)
         targets = "".join(
@@ -518,6 +526,20 @@ def leagues_html(d, team_id):
           </div>
         </details>""")
     return "".join(out)
+
+
+def chip_badge(lg, entry_id):
+    """'BB' / 'TC' / 'FH' / 'WC' badge when that manager is playing a chip this gameweek."""
+    name = (lg.get("meta", {}).get(entry_id) or {}).get("chip")
+    if not name:
+        return ""
+    label = chips.CHIP_NAMES.get(name, name)
+    return f'<span class="chipbadge" title="Playing {esc(label)} this gameweek">{esc(chips.CHIP_SHORT.get(name, name))}</span>'
+
+
+def chips_left(lg, entry_id):
+    left = (lg.get("meta", {}).get(entry_id) or {}).get("left", [])
+    return " ".join(chips.CHIP_SHORT.get(n, n) for n in left) or "none"
 
 
 def h2h_html(d, lg, team_id):
@@ -562,6 +584,7 @@ def h2h_html(d, lg, team_id):
         panels.append(f"""
           <div class="h2h-panel" data-entry="{r['entry']}"{"" if r["entry"] == default else " hidden"}>
             <p class="meta" title="Expected points next GW if neither team changes">You're {standing} · next GW xP you {c['exp_me']:.0f}, them {c['exp_them']:.0f}</p>
+            <p class="meta" title="Chips still available this half of the season">{chip_badge(lg, r["entry"]) + " this GW · " if chip_badge(lg, r["entry"]) else ""}Chips left: them <b>{chips_left(lg, r["entry"])}</b> · you <b>{chips_left(lg, team_id)}</b></p>
             <div class="groups">
               {group("You", c["mine"], lambda el: chip(el, ("", c["a"][el])))}
               {group("Both", c["both"], lambda el: chip(el, ("you", c["a"][el]), ("them", c["b"][el])))}
@@ -600,7 +623,7 @@ def live_html(d, team_id):
             arrow = f'<span class="up">▲{move}</span>' if move > 0 else (f'<span class="down">▼{-move}</span>' if move < 0 else "")
             cap = players[r["live"]["captain"]]["web_name"] if r["live"]["captain"] else "–"
             rows.append(f'<tr class="{"me" if r["entry"] == team_id else ""}"><td>{r["live_rank"]}{arrow}</td>'
-                        f'<td class="team" title="{esc(r["player_name"])}">{esc(r["entry_name"])}</td>'
+                        f'<td class="team" title="{esc(r["player_name"])}">{chip_badge(t, r["entry"])}{esc(r["entry_name"])}</td>'
                         f'<td class="cap">{esc(cap)} <b>{r["live"]["captain_pts"]}</b></td>'
                         f'<td>{r["live"]["pts"]}</td><td>{r["live_total"]}</td><td>{r["live"]["left"]}</td></tr>')
         tables.append(f"""<h4>{esc(t['name'])} – live</h4>
@@ -851,6 +874,7 @@ table.compact th:nth-child(3) {{ text-align:left; }}
 .pchip.off {{ opacity:.5; }}
 .h2h-panel p {{ margin:6px 0 0; }}
 .summary-groups {{ border-top:1px solid var(--line); margin-top:10px; padding-top:8px; }}
+.chipbadge {{ background:#00ff87; color:#1b1d22; font-size:.65rem; font-weight:800; border-radius:4px; padding:1px 4px; margin-right:5px; vertical-align:1px; }}
 footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 16px 40px; }}
 </style>
 </head>

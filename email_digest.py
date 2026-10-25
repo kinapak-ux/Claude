@@ -122,6 +122,12 @@ def compose(d, team_id):
                 bits = [f"owns {', '.join(theirs)} (you don't)" if theirs else "no starters you don't own"]
                 if cap:
                     bits.append(f"captained {cap}")
+                played = (lg["meta"].get(r["entry"]) or {}).get("chip")
+                if played:
+                    bits.append(f"played {chips.CHIP_NAMES.get(played, played)}")
+                left = (lg["meta"].get(r["entry"]) or {}).get("left")
+                if left is not None:
+                    bits.append("chips left: " + (", ".join(chips.CHIP_SHORT.get(n, n) for n in left) or "none"))
                 rows.append(f'<li>{esc(r["entry_name"])} ({r["rank"]}{_suffix(r["rank"])}): {standing} – {esc("; ".join(bits))}</li>')
         if rows:
             parts.append(f"<h3 {h2}>Mini-leagues</h3><ul>{''.join(rows)}</ul>")

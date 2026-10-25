@@ -129,7 +129,7 @@ def build_live(source, events, players, my_picks, my_meta, team_id, leagues):
         rows.sort(key=lambda x: -x["live_total"])
         for i, row in enumerate(rows):
             row["live_rank"] = i + 1
-        tables.append({"name": lg["name"], "rows": rows})
+        tables.append({"name": lg["name"], "rows": rows, "meta": lg["meta"]})
 
     return {"gw": current["id"], "pts": pts, "status": status, "me": me, "tables": tables,
             "playing": any(s == "playing" for s in status.values()),
