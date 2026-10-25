@@ -490,7 +490,7 @@ def leagues_html(d, team_id):
             move = r["last_rank"] - r["rank"] if r.get("last_rank") else 0
             arrow = f'<span class="up">▲{move}</span>' if move > 0 else (f'<span class="down">▼{-move}</span>' if move < 0 else "")
             rows.append(f'<tr class="{"me" if r["entry"] == team_id else ""}" data-entry="{r["entry"]}"><td>{r["rank"]}{arrow}</td>'
-                        f'<td>{esc(r["entry_name"])}<div class="meta">{esc(r["player_name"])}</div></td>'
+                        f'<td class="team" title="{esc(r["player_name"])}">{esc(r["entry_name"])}</td>'
                         f'<td>{r["event_total"]}</td><td>{r["total"]}</td><td>{r["total"] - leader or ""}</td></tr>')
         n = max(lg["rivals"], 1)
         targets = "".join(
@@ -505,7 +505,7 @@ def leagues_html(d, team_id):
         out.append(f"""
         <details class="league" open>
           <summary><strong>{esc(lg['name'])}</strong> <span class="meta">{pos}</span></summary>
-          <div class="tablewrap"><table>
+          <div class="tablewrap"><table class="compact">
             <thead><tr><th>#</th><th>Team</th><th>GW</th><th>Total</th><th>Gap</th></tr></thead>
             <tbody>{''.join(rows)}</tbody>
           </table></div>
@@ -593,11 +593,12 @@ def live_html(d, team_id):
             arrow = f'<span class="up">▲{move}</span>' if move > 0 else (f'<span class="down">▼{-move}</span>' if move < 0 else "")
             cap = players[r["live"]["captain"]]["web_name"] if r["live"]["captain"] else "–"
             rows.append(f'<tr class="{"me" if r["entry"] == team_id else ""}"><td>{r["live_rank"]}{arrow}</td>'
-                        f'<td>{esc(r["entry_name"])}<div class="meta">C: {esc(cap)} ({r["live"]["captain_pts"]})</div></td>'
+                        f'<td class="team" title="{esc(r["player_name"])}">{esc(r["entry_name"])}</td>'
+                        f'<td class="cap">{esc(cap)} <b>{r["live"]["captain_pts"]}</b></td>'
                         f'<td>{r["live"]["pts"]}</td><td>{r["live_total"]}</td><td>{r["live"]["left"]}</td></tr>')
         tables.append(f"""<h4>{esc(t['name'])} – live</h4>
-          <div class="tablewrap"><table>
-            <thead><tr><th>#</th><th>Team</th><th>GW</th><th>Total</th><th>Left</th></tr></thead>
+          <div class="tablewrap"><table class="compact">
+            <thead><tr><th>#</th><th>Team</th><th>Capt</th><th>GW</th><th>Total</th><th>Left</th></tr></thead>
             <tbody>{''.join(rows)}</tbody></table></div>""")
     state = "Matches in progress" if lv["playing"] else "Live scores"
     return f"""
@@ -825,6 +826,11 @@ header .up, header .down {{ font-size:.8rem; font-weight:700; margin-left:2px; }
 .prow .note .price {{ display:inline; margin:0; font-size:.78rem; }}
 .poslabel {{ font-size:.7rem; font-weight:700; color:var(--muted); letter-spacing:.05em; padding:8px 0 0; }}
 .squad .badge {{ margin-left:3px; }} .squad .bench {{ margin-left:3px; padding:0 3px; font-size:.65rem; }}
+table.compact th, table.compact td {{ padding:5px 4px; white-space:nowrap; }}
+table.compact td.team {{ width:100%; max-width:0; overflow:hidden; text-overflow:ellipsis; }}
+table.compact td.cap {{ text-align:left; color:var(--muted); font-size:.8rem; max-width:90px; overflow:hidden; text-overflow:ellipsis; }}
+table.compact td.cap b {{ color:var(--text); }}
+table.compact th:nth-child(3) {{ text-align:left; }}
 footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 16px 40px; }}
 </style>
 </head>
