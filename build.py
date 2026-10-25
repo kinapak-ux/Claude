@@ -696,29 +696,33 @@ def live_html(d, team_id):
 
 
 def chips_html(d):
-    """One line per chip: its best week or two, or 'hold'."""
+    """Chips in a 2x2 grid: each chip's best week and chance, or 'Hold'."""
     if not d["chip_plan"]:
-        return '<p class="ok">No chips left to plan right now.</p>'
-    rows = []
+        return '<div class="box duo"><div class="dhead span">Chips</div><div class="dcell meta">None left right now</div></div>'
+    targets = {"bboost": f"bench scores {chips.BB_TARGET}+", "3xc": f"captain scores {chips.TC_TARGET}+",
+               "freehit": f"{chips.FH_TARGET}+ pts more than your team"}
+    cells = []
     for c in d["chip_plan"]:
+        code = chips.CHIP_SHORT.get(c["name"], c["name"])
         if c["name"] == "wildcard":
-            why = ", ".join(c["problems"])
-            rows.append(f'<div class="crow" title="{esc(why + " need replacing" if why else "")}"><strong>Wildcard</strong>'
-                        f'<span class="val">{esc(c["verdict"])}</span></div>')
+            tip = f'Wildcard (use by GW{c["stop"]}): {c["verdict"]}' + (
+                f' – {", ".join(c["problems"])} need replacing' if c["problems"] else "")
+            value = "Play" if c["verdict"].startswith("Good") else ("Maybe" if c["verdict"].startswith("Worth") else "Hold")
+            cells.append(f'<div class="dcell" title="{esc(tip)}"><span class="tag">{code}</span>'
+                         f'<span class="val">{value}</span></div>')
             continue
-        top = sorted(c["rows"], key=lambda r: (r["chance"], r["ev"]), reverse=True)[:2]
-        top = [r for r in top if r["chance"] >= chips.HOLD_BELOW]
+        top = [r for r in sorted(c["rows"], key=lambda r: (r["chance"], r["ev"]), reverse=True)[:2]
+               if r["chance"] >= chips.HOLD_BELOW]
+        tip = f'{c["label"]} (use by GW{c["stop"]}): % chance {targets[c["name"]]}. '
         if top:
-            weeks = " · ".join(
-                f'<span class="wk{" best" if i == 0 else ""}" title="{r["ev"]:.1f} expected pts{" – " + esc(r["note"]) if r["note"] else ""}">'
-                f'GW{r["gw"]} {r["chance"] * 100:.0f}%</span>' for i, r in enumerate(top))
+            tip += " · ".join(f'GW{r["gw"]} {r["chance"] * 100:.0f}% ({r["ev"]:.1f} xP{", " + r["note"] if r["note"] else ""})' for r in top)
+            value = f'<span class="best">GW{top[0]["gw"]}</span> {top[0]["chance"] * 100:.0f}%'
         else:
-            weeks = '<span class="meta">Hold – no strong week yet</span>'
-        rows.append(f'<div class="crow" title="Use by GW{c["stop"]}"><strong>{esc(c["label"])}</strong>'
-                    f'<span class="val">{weeks}</span></div>')
-    key = (f"Chance it pays off: Bench Boost {chips.BB_TARGET}+ bench pts, Triple Captain "
-           f"{chips.TC_TARGET}+ captain pts, Free Hit {chips.FH_TARGET}+ more than your team.")
-    return "".join(rows) + f'<p class="meta legend">{key}</p>'
+            tip += "No strong week in the next 8 gameweeks."
+            value = '<span class="meta">Hold</span>'
+        cells.append(f'<div class="dcell" title="{esc(tip)}"><span class="tag">{code}</span>'
+                     f'<span class="val">{value}</span></div>')
+    return f'<div class="box duo chipduo"><div class="dhead span">Chips · best week</div>{"".join(cells)}</div>'
 
 
 def ordinal(n):
@@ -860,8 +864,6 @@ table {{ width:100%; border-collapse:collapse; font-size:.9rem; }}
 th, td {{ text-align:left; padding:6px; border-bottom:1px solid var(--line); vertical-align:top; }}
 th:nth-child(n+3), td:nth-child(n+3) {{ text-align:right; }}
 tr.me td {{ background:var(--hl); font-weight:600; }}
-.wk.best {{ color:var(--green); }}
-.legend {{ margin:8px 0 0; font-size:.72rem; }}
 .crow {{ display:flex; align-items:center; gap:6px; padding:4px 0; border-bottom:1px solid var(--line); font-size:.9rem; }}
 .crow:last-child {{ border-bottom:0; }}
 .crow strong {{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }}
@@ -930,6 +932,9 @@ table.compact th:nth-child(3) {{ text-align:left; }}
 .cgrid i {{ font-style:normal; font-size:.55rem; font-weight:700; line-height:1.3; text-align:center; border-radius:2px; background:var(--line); min-height:1.3em; }}
 .cgrid i:empty {{ background:transparent; outline:1px dashed var(--line); outline-offset:-1px; }}
 .duo {{ display:grid; grid-template-columns:1fr 1fr; column-gap:12px; padding:8px 12px; margin-top:16px; }}
+.dhead.span {{ grid-column:1 / -1; }}
+.chipduo .val .best {{ color:var(--green); }}
+.chipduo .tag {{ font-size:.75rem; padding:1px 6px; }}
 .dhead {{ font-size:.72rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; padding-bottom:2px; border-bottom:1px solid var(--line); }}
 .dcell {{ display:flex; align-items:center; gap:5px; min-width:0; padding:5px 0; border-bottom:1px solid var(--line); font-size:.85rem; }}
 .duo .dcell:nth-last-child(-n+2) {{ border-bottom:0; }}
@@ -953,8 +958,7 @@ footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 1
 <main>
   {live_html(d, team_id)}
   {duo_html(d)}
-  <h2>Chip planner</h2>
-  <div class="box chips">{chips_html(d)}</div>
+  {chips_html(d)}
   <h2>Transfer ideas</h2>
   <div class="box">{ideas}</div>
   {squad_html(d)}
@@ -965,6 +969,7 @@ footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 1
   Tap a player, pick, price or transfer for more details.<br>
   Live scores include provisional bonus, auto-subs and transfer hits. Green outline = playing now, faded = not
   counting (bench or subbed off). Pl = players still to play, Chips = chips left.<br>
+  Chip % = estimated chance it pays off: Bench Boost bench 15+, Triple Captain captain 12+, Free Hit 12+ more than your team.<br>
   Fixture colours: dark green = easiest … dark red = hardest. Lowercase opponent = away.<br>
   Price predictions are estimates from this gameweek's transfers.<br>
   Chip chances are estimates from a simple simulation of your current squad – transfers, rotation and
