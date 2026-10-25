@@ -42,6 +42,7 @@ jobs:
         env:
           TEAM_ID: "2612117"
           LEAGUES: "New Longton Legends"
+          LEAGUE_NICKNAMES: "New Longton Legends=NLLL"
           PAGE_URL: "https://kinapak-ux.github.io/Claude/"
           GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS || vars.GMAIL_ADDRESS }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}

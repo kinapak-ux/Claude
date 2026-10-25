@@ -45,6 +45,8 @@ DIFFERENTIAL_SHARE = 0.25  # your starters owned by at most this share of rivals
 # Only show leagues whose name contains one of these (comma-separated, any case).
 # Leave LEAGUES empty to show every private league.
 LEAGUES = os.environ.get("LEAGUES", "")
+# Short display names, as "part of league name=nickname" pairs separated by commas.
+LEAGUE_NICKNAMES = os.environ.get("LEAGUE_NICKNAMES", "")
 
 # Price change estimate: net transfers this gameweek as a share of current owners.
 RISE_RATIO, RISE_MIN_NET = 0.04, 25000
@@ -224,6 +226,15 @@ def wanted_league(name):
     return not wanted or any(w in simplify(name) for w in wanted)
 
 
+def nickname(name):
+    for pair in LEAGUE_NICKNAMES.split(","):
+        if "=" in pair:
+            match, nick = (x.strip() for x in pair.split("=", 1))
+            if match and simplify(match) in simplify(name):
+                return nick
+    return name
+
+
 def mini_leagues(source, entry, team_id, gw, squad):
     """Standings plus rival ownership for each private classic league."""
     mine_xi = {s["p"]["id"] for s in squad if s["pick"]["multiplier"] > 0}
@@ -260,7 +271,7 @@ def mini_leagues(source, entry, team_id, gw, squad):
         differentials = [el for el in mine_xi if rivals and owned.get(el, 0) / rivals <= DIFFERENTIAL_SHARE]
         me = next((r for r in rows if r["entry"] == team_id), None)
         leagues.append({
-            "name": data["league"]["name"], "rows": rows, "me": me, "rivals": rivals,
+            "name": nickname(data["league"]["name"]), "full_name": data["league"]["name"], "rows": rows, "me": me, "rivals": rivals,
             "more": data["standings"].get("has_next", False),
             "targets": targets, "captained": sorted(((n, el) for el, n in captained.items()), reverse=True)[:3],
             "differentials": differentials, "owned": owned, "squads": squads, "meta": meta,
@@ -634,12 +645,6 @@ def short_num(n):
     return f"{n:,}"
 
 
-def short_league(name):
-    """'New Longton Legends League' -> 'Legends'."""
-    words = [w for w in name.split() if w.lower() != "league"] or name.split()
-    return " ".join(words) if len(" ".join(words)) <= 12 else words[-1]
-
-
 def movement(up):
     """Green ▲ / red ▼ for a rank change (positive = moved up)."""
     if not up:
@@ -659,7 +664,7 @@ def ranks_html(d, team_id):
         me = lg["me"]
         if me:
             up = me["last_rank"] - me["rank"] if me.get("last_rank") else 0
-            pills.append(f'<span class="pill rank" title="{esc(lg["name"])}">{esc(short_league(lg["name"]))} {ordinal(me["rank"])}/{len(lg["rows"])} {movement(up)}</span>')
+            pills.append(f'<span class="pill rank" title="{esc(lg["full_name"])}">{esc(lg["name"])} {ordinal(me["rank"])}/{len(lg["rows"])} {movement(up)}</span>')
     return "".join(pills)
 
 

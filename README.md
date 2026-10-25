@@ -13,7 +13,7 @@ It also shows:
 - **Captain picks**: your best 3 options for the next gameweek, based on FPL's expected points, form and fixture.
 - **Price watch**: price changes this gameweek, plus an estimate of who's likely to rise or fall based on this gameweek's transfers. Treat it as a guide, not a guarantee.
 - **Chip planner**: for each chip you haven't used, the estimated chance it pays off in each of the next 8 gameweeks, with the best week highlighted. "Pays off" means your bench scores 15+ (Bench Boost), your captain scores 12+ (Triple Captain), or you'd score 12+ more than your own team (Free Hit). The Wildcard gets a play-or-hold verdict based on how many players need replacing. These are estimates from a simple simulation of your current squad, and double gameweeks announced later will change them.
-- **Mini-leagues**: standings for New Longton Legends, which players your rivals start that you don't, who they captain, and your differentials. Pick any manager from the **Compare with** list, or tap them in the table, to see your squads side by side: only you, both, only them. The deadline email also sums up the leader and the managers just above and below you.
+- **Mini-leagues**: standings for New Longton Legends (shown as NLLL), which players your rivals start that you don't, who they captain, and your differentials. Pick any manager from the **Compare with** list, or tap them in the table, to see your squads side by side: only you, both, only them. The deadline email also sums up the leader and the managers just above and below you.
 
 - **Live gameweek scores** while matches are on: your live points (with provisional bonus, auto-subs, vice-captain cover and transfer hits), each player's points, and a live New Longton Legends table with everyone's live total, captain and players left to play.
 
@@ -48,6 +48,7 @@ Secrets are private. They never appear on the page or in the code, even though t
 - **Live score timing:** GitHub's scheduled runs can be 5–20 minutes late at busy times (Saturday afternoons especially), so live scores may lag the FPL app a little.
 - **Email timing:** sent by the 6–7am (UK) run on deadline day. GitHub's scheduled runs can be up to an hour late at busy times.
 - **Change which mini-leagues show:** edit `LEAGUES` in `.github/workflows/update-tracker.yml`. Separate several names with commas, or leave it empty for all private leagues.
+- **Change the league's short name** (currently NLLL): edit `LEAGUE_NICKNAMES` in `.github/workflows/update-tracker.yml`.
 - **Change team:** edit `TEAM_ID` in `.github/workflows/update-tracker.yml`.
 - **Change the chip targets** (for example, 20+ for Bench Boost): see the settings at the top of `chips.py`.
 - **Change the rules** (number of fixtures, form thresholds and so on): see the settings at the top of `build.py`.
