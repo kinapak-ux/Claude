@@ -13,6 +13,9 @@ It also shows:
 - **Captain picks**: your best 3 options for the next gameweek, based on FPL's expected points, form and fixture.
 - **Price watch**: price changes this gameweek, plus an estimate of who's likely to rise or fall based on this gameweek's transfers. Treat it as a guide, not a guarantee.
 - **Chip planner**: for each chip you haven't used, the estimated chance it pays off in each of the next 8 gameweeks, with the best week highlighted. "Pays off" means your bench scores 15+ (Bench Boost), your captain scores 12+ (Triple Captain), or you'd score 12+ more than your own team (Free Hit). The Wildcard gets a play-or-hold verdict based on how many players need replacing. These are estimates from a simple simulation of your current squad, and double gameweeks announced later will change them.
+- **Free transfers**: an estimate of your banked free transfers (next to your bank balance), rebuilt from your transfer history (FPL doesn't publish the exact number).
+- **Doubles & blanks**: a warning box for upcoming double and blank gameweeks in the next 8, showing which of your players are affected. Also in the email.
+- **Points race**: a chart of everyone's gap to the NLLL leader, gameweek by gameweek. Tap a gameweek for the numbers, or open "Show as table".
 - **Mini-leagues**: standings for New Longton Legends (shown as NLLL), which players your rivals start that you don't, who they captain, and your differentials. Pick any manager from the **Compare with** list, or tap them in the table, to see your squads side by side: only you, both, only them. The deadline email also sums up the leader and the managers just above and below you.
 
 - **Live gameweek scores** while matches are on: your live points (with provisional bonus, auto-subs, vice-captain cover and transfer hits), each player's points, and a live New Longton Legends table with everyone's live total, captain and players left to play.

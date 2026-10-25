@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import chips
+import extras
 import live
 from rivals import head_to_head
 import email_digest
@@ -365,6 +366,8 @@ def build(source, team_id):
         live_data = None
 
     return {
+        "free_transfers": extras.free_transfers(history),
+        "gw_alerts": extras.gameweek_alerts(fixtures, teams, squad, first_ahead, len(events)),
         "entry": entry, "teams": teams, "players": players, "squad": squad, "ideas": ideas,
         "live": live_data,
         "chip_plan": chip_plan, "history": history,
@@ -553,6 +556,7 @@ def leagues_html(d, team_id):
             <thead><tr><th>#</th><th>Team</th><th>GW</th><th>Total</th><th>Gap</th></tr></thead>
             <tbody>{''.join(rows)}</tbody>
           </table></div>
+          {extras.race_svg(lg, team_id)}
           {h2h}
           <div class="groups summary-groups">
             <div class="glabel" title="Players your rivals started in GW{d['current_gw']} that you don't own, with the share of rivals starting them">Rivals have</div><div class="chips">{targets}</div>
@@ -944,13 +948,21 @@ table.compact th:nth-child(3) {{ text-align:left; }}
 .dcell .val small {{ font-weight:400; color:var(--muted); margin-left:1px; font-size:.7rem; }}
 .dcell .tag {{ flex:none; font-size:.65rem; padding:1px 4px; }}
 .dcell .price {{ margin:0; flex:none; }}
+.alerts .crow {{ font-size:.82rem; }}
+.alerts .tag {{ flex:none; font-size:.68rem; padding:1px 5px; }}
+.alerts .double .tag {{ background:var(--green); color:#0b2d0e; }}
+.alerts .blank .tag {{ background:var(--red); color:#fff; }}
+.alerts strong {{ flex:none; }}
+.alerts .teams {{ font-size:.72rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }}
+.alerts .val {{ font-weight:600; font-size:.78rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:45%; }}
+{extras.RACE_CSS}
 footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 16px 40px; }}
 </style>
 </head>
 <body>
 {deadline}
 <header>
-  <h1>{esc(entry.get('name', 'My FPL Team'))} <span>{esc(manager)} · GW{d['current_gw']} squad{chip} · {money(d['bank'])} in bank</span></h1>
+  <h1>{esc(entry.get('name', 'My FPL Team'))} <span>{esc(manager)} · GW{d['current_gw']} squad{chip} · {money(d['bank'])} ITB{f' · <b title="Estimated free transfers for the next deadline (max {extras.MAX_FREE_TRANSFERS} banked). Each extra transfer costs 4 pts.">{d["free_transfers"]} FT</b>' if d.get("free_transfers") is not None else ''}</span></h1>
   <div class="summary">
     {ranks_html(d, team_id)}
     <span class="pill" title="out / doubtful / fine">🔴{counts['red']} 🟠{counts['amber']} 🟢{counts['green']}</span>
@@ -958,6 +970,7 @@ footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 1
 </header>
 <main>
   {live_html(d, team_id)}
+  {extras.alerts_html(d["gw_alerts"])}
   {duo_html(d)}
   {chips_html(d)}
   <div class="box tbox"><div class="dhead">Transfer ideas <span class="meta">sell → buy</span></div>{ideas}</div>

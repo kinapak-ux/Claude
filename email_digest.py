@@ -41,6 +41,10 @@ def money(tenths):
     return f"£{tenths / 10:.1f}m"
 
 
+def _clubs(teams, limit=8):
+    return ", ".join(teams[:limit]) + (f" +{len(teams) - limit} more" if len(teams) > limit else "")
+
+
 def _suffix(n):
     return "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
 
@@ -56,6 +60,16 @@ def compose(d, team_id):
 
     h2 = 'style="font-size:15px;margin:20px 0 6px;color:#37003c"'
     parts = [f'<p style="font-size:16px"><strong>GW{gw} deadline: {esc(when)} (UK)</strong></p>']
+
+    if d.get("free_transfers") is not None:
+        parts.append(f'<p>Free transfers: <strong>{d["free_transfers"]}</strong> (estimated; extra transfers cost 4 pts each)</p>')
+
+    alerts = (d.get("gw_alerts") or {}).get("alerts", [])
+    if alerts:
+        rows = "".join(
+            f'<li>{"⬆" if a["kind"] == "double" else "⬇"} GW{a["gw"]} {a["kind"]}: {esc(_clubs(a["teams"]))}'
+            f'{" – your " + esc(", ".join(a["mine"])) if a["mine"] else ""}</li>' for a in alerts)
+        parts.append(f"<h3 {h2}>Doubles &amp; blanks</h3><ul>{rows}</ul>")
 
     if d["captains"]:
         c = d["captains"]
