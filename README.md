@@ -13,7 +13,7 @@ It also shows:
 - **Captain picks**: your best 3 options for the next gameweek, based on FPL's expected points, form and fixture.
 - **Price watch**: price changes this gameweek, plus an estimate of who's likely to rise or fall based on this gameweek's transfers. Treat it as a guide, not a guarantee.
 - **Chip planner**: for each chip you haven't used, the estimated chance it pays off in each of the next 8 gameweeks, with the best week highlighted. "Pays off" means your bench scores 15+ (Bench Boost), your captain scores 12+ (Triple Captain), or you'd score 12+ more than your own team (Free Hit). The Wildcard gets a play-or-hold verdict based on how many players need replacing. These are estimates from a simple simulation of your current squad, and double gameweeks announced later will change them.
-- **Mini-leagues**: standings for New Longton Legends, which players your rivals start that you don't, who they captain, and your differentials.
+- **Mini-leagues**: standings for New Longton Legends, which players your rivals start that you don't, who they captain, and your differentials. Pick any manager from the **Compare with** list, or tap them in the table, to see your squads side by side: only you, both, only them. The deadline email also sums up the leader and the managers just above and below you.
 
 The page refreshes itself twice a day. On the **morning of each deadline** it also emails you a summary.
 

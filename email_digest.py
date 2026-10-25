@@ -14,6 +14,7 @@ from email.mime.text import MIMEText
 from zoneinfo import ZoneInfo
 
 import chips
+from rivals import head_to_head, nearest_rivals
 
 UK = ZoneInfo("Europe/London")
 PAGE_URL = os.environ.get("PAGE_URL", "https://kinapak-ux.github.io/Claude/")
@@ -38,6 +39,10 @@ def esc(x):
 
 def money(tenths):
     return f"£{tenths / 10:.1f}m"
+
+
+def _suffix(n):
+    return "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
 
 
 def compose(d, team_id):
@@ -104,6 +109,20 @@ def compose(d, team_id):
                 continue
             gap = f", {leader['total'] - me['total']} pts behind {esc(leader['entry_name'])}" if leader and leader is not me and leader["total"] > me["total"] else ""
             rows.append(f'<li><strong>{esc(lg["name"])}</strong>: {me["rank"]} of {len(lg["rows"])}{gap}</li>')
+        for lg in d["leagues"]:
+            mine = [s["pick"] for s in d["squad"]]
+            for r in nearest_rivals(lg, team_id):
+                c = head_to_head(mine, lg["squads"][r["entry"]], d["players"])
+                gap = r["total"] - lg["me"]["total"]
+                standing = f"{gap} pts ahead of you" if gap > 0 else (f"{-gap} pts behind you" if gap < 0 else "level with you")
+                starters = [el for el in c["theirs"] if c["b"][el]["multiplier"] > 0]
+                starters.sort(key=lambda el: -float(d["players"][el]["ep_next"] or 0))
+                theirs = [d["players"][el]["web_name"] for el in starters][:3]
+                cap = next((d["players"][el]["web_name"] for el, pk in c["b"].items() if pk["is_captain"]), None)
+                bits = [f"owns {', '.join(theirs)} (you don't)" if theirs else "no starters you don't own"]
+                if cap:
+                    bits.append(f"captained {cap}")
+                rows.append(f'<li>{esc(r["entry_name"])} ({r["rank"]}{_suffix(r["rank"])}): {standing} – {esc("; ".join(bits))}</li>')
         if rows:
             parts.append(f"<h3 {h2}>Mini-leagues</h3><ul>{''.join(rows)}</ul>")
 

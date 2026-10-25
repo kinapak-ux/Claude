@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import chips
+from rivals import head_to_head
 import email_digest
 
 DEFAULT_TEAM_ID = 2612117
@@ -236,7 +237,7 @@ def mini_leagues(source, entry, team_id, gw, squad):
         except LookupError:
             continue
         rows = data["standings"]["results"][:MAX_RIVALS]
-        owned, captained, rivals = {}, {}, 0
+        owned, captained, rivals, squads = {}, {}, 0, {}
         for r in rows:
             if r["entry"] == team_id:
                 continue
@@ -245,6 +246,7 @@ def mini_leagues(source, entry, team_id, gw, squad):
             except LookupError:
                 continue  # joined after this gameweek
             rivals += 1
+            squads[r["entry"]] = picks
             for pk in picks:
                 if pk["multiplier"] > 0:
                     owned[pk["element"]] = owned.get(pk["element"], 0) + 1
@@ -257,7 +259,7 @@ def mini_leagues(source, entry, team_id, gw, squad):
             "name": data["league"]["name"], "rows": rows, "me": me, "rivals": rivals,
             "more": data["standings"].get("has_next", False),
             "targets": targets, "captained": sorted(((n, el) for el, n in captained.items()), reverse=True)[:3],
-            "differentials": differentials, "owned": owned,
+            "differentials": differentials, "owned": owned, "squads": squads,
         })
     return leagues
 
@@ -447,7 +449,7 @@ def leagues_html(d, team_id):
         for r in lg["rows"]:
             move = r["last_rank"] - r["rank"] if r.get("last_rank") else 0
             arrow = f'<span class="up">▲{move}</span>' if move > 0 else (f'<span class="down">▼{-move}</span>' if move < 0 else "")
-            rows.append(f'<tr class="{"me" if r["entry"] == team_id else ""}"><td>{r["rank"]}{arrow}</td>'
+            rows.append(f'<tr class="{"me" if r["entry"] == team_id else ""}" data-entry="{r["entry"]}"><td>{r["rank"]}{arrow}</td>'
                         f'<td>{esc(r["entry_name"])}<div class="meta">{esc(r["player_name"])}</div></td>'
                         f'<td>{r["event_total"]}</td><td>{r["total"]}</td><td>{r["total"] - leader or ""}</td></tr>')
         n = max(lg["rivals"], 1)
@@ -457,6 +459,7 @@ def leagues_html(d, team_id):
             for c, el in lg["targets"]) or "<li>None – you own everything they do.</li>"
         caps = ", ".join(f'{esc(players[el]["web_name"])} ({c})' for c, el in lg["captained"]) or "–"
         diffs = ", ".join(esc(players[el]["web_name"]) for el in lg["differentials"]) or "None"
+        h2h = h2h_html(d, lg, team_id)
         me = lg["me"]
         pos = f'You are {me["rank"]} of {len(lg["rows"])}{"+" if lg["more"] else ""}' if me else ""
         out.append(f"""
@@ -466,11 +469,62 @@ def leagues_html(d, team_id):
             <thead><tr><th>#</th><th>Team</th><th>GW</th><th>Total</th><th>Gap</th></tr></thead>
             <tbody>{''.join(rows)}</tbody>
           </table></div>
+          {h2h}
           <h4>Rivals own, you don't (GW{d['current_gw']} starters)</h4><ul class="plain">{targets}</ul>
           <p><strong>Rivals' captains:</strong> {caps}</p>
           <p><strong>Your differentials:</strong> {diffs} <span class="meta">(started by ≤{int(DIFFERENTIAL_SHARE * 100)}% of rivals)</span></p>
         </details>""")
     return "".join(out)
+
+
+def h2h_html(d, lg, team_id):
+    """Side-by-side squad comparison with every rival, chosen from a dropdown."""
+    me = lg["me"]
+    if not me or not lg["squads"]:
+        return ""
+    players, teams = d["players"], d["teams"]
+    mine = [s["pick"] for s in d["squad"]]
+    rows = [r for r in lg["rows"] if r["entry"] in lg["squads"]]
+    i = lg["rows"].index(me)
+    default = (lg["rows"][i - 1] if i > 0 else lg["rows"][min(i + 1, len(lg["rows"]) - 1)])["entry"]
+    if default not in lg["squads"]:
+        default = rows[0]["entry"]
+
+    def item(el, *picks):
+        p = players[el]
+        tags = ""
+        for who, pk in picks:
+            if pk["is_captain"]:
+                tags += f' <span class="badge">C</span><span class="meta">{who}</span>'
+            elif pk["multiplier"] == 0:
+                tags += f' <span class="bench">Bench{" " + who if who else ""}</span>'
+        return (f'<li><strong>{esc(p["web_name"])}</strong>{tags} <span class="meta">'
+                f'{POS_SHORT[p["element_type"]]} · {esc(teams[p["team"]]["short_name"])}</span></li>')
+
+    options, panels = [], []
+    for r in rows:
+        c = head_to_head(mine, lg["squads"][r["entry"]], players)
+        gap = me["total"] - r["total"]
+        standing = f"you're {gap} pts ahead" if gap > 0 else (f"you're {-gap} pts behind" if gap < 0 else "level on points")
+        options.append(f'<option value="{r["entry"]}"{" selected" if r["entry"] == default else ""}>'
+                       f'{r["rank"]}. {esc(r["entry_name"])} ({esc(r["player_name"])})</option>')
+        col = lambda title, els, fn: f'<div><h4>{title} ({len(els)})</h4><ul class="plain">{"".join(fn(el) for el in els) or "<li>–</li>"}</ul></div>'
+        panels.append(f"""
+          <div class="h2h-panel" data-entry="{r['entry']}"{"" if r["entry"] == default else " hidden"}>
+            <p><strong>You vs {esc(r['entry_name'])}</strong> – {standing}.
+              <span class="meta">Expected next GW with these teams: you {c['exp_me']:.0f} · them {c['exp_them']:.0f}</span></p>
+            <div class="h2h-cols">
+              {col("Only you", c["mine"], lambda el: item(el, ("", c["a"][el])))}
+              {col("Both", c["both"], lambda el: item(el, ("you", c["a"][el]), ("them", c["b"][el])))}
+              {col("Only them", c["theirs"], lambda el: item(el, ("", c["b"][el])))}
+            </div>
+          </div>""")
+    return f"""
+          <div class="h2h">
+            <label><strong>Compare with</strong> <select class="h2h-select">{''.join(options)}</select></label>
+            <p class="meta">Tip: tap anyone in the table. Squads are from GW{d['current_gw']}.</p>
+            {''.join(panels)}
+          </div>"""
 
 
 def chips_html(d):
@@ -623,6 +677,12 @@ tr.me td {{ background:var(--hl); font-weight:600; }}
 .chiptable tr.best td {{ background:var(--hl); font-weight:600; }}
 .bar {{ background:var(--line); border-radius:4px; height:8px; overflow:hidden; min-width:60px; }}
 .bar span {{ display:block; height:100%; background:var(--accent); }}
+.h2h {{ margin-top:14px; border-top:1px solid var(--line); padding-top:12px; }}
+.h2h select {{ font:inherit; padding:4px 6px; border-radius:6px; border:1px solid var(--line); background:var(--card); color:var(--text); max-width:100%; }}
+.h2h-cols {{ display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); }}
+.h2h-cols h4 {{ margin:8px 0 4px; }}
+.h2h-cols .badge {{ margin-right:2px; }}
+tr[data-entry] {{ cursor:pointer; }}
 footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 16px 40px; }}
 </style>
 </head>
@@ -661,6 +721,21 @@ footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 1
 document.querySelectorAll('time[data-iso]').forEach(function (t) {{
   var d = new Date(t.dataset.iso);
   if (!isNaN(d)) t.textContent = d.toLocaleString(undefined, {{weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}});
+}});
+document.querySelectorAll('.league').forEach(function (lg) {{
+  var sel = lg.querySelector('.h2h-select');
+  if (!sel) return;
+  function show(id) {{
+    lg.querySelectorAll('.h2h-panel').forEach(function (p) {{ p.hidden = p.dataset.entry !== id; }});
+  }}
+  sel.addEventListener('change', function () {{ show(sel.value); }});
+  lg.querySelectorAll('tr[data-entry]').forEach(function (tr) {{
+    tr.addEventListener('click', function () {{
+      if (!lg.querySelector('.h2h-panel[data-entry="' + tr.dataset.entry + '"]')) return;
+      sel.value = tr.dataset.entry; show(sel.value);
+      sel.scrollIntoView({{behavior: 'smooth', block: 'start'}});
+    }});
+  }});
 }});
 </script>
 </body>
