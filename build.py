@@ -834,6 +834,9 @@ table.compact th:nth-child(3) {{ text-align:left; }}
 .crow.idea strong {{ flex:none; }}
 .crow.idea .meta {{ flex:none; font-size:.78rem; }}
 .crow .fx small {{ display:none; }}
+.tip {{ position:fixed; left:12px; right:12px; bottom:16px; z-index:10; background:var(--text); color:var(--bg);
+  padding:10px 14px; border-radius:10px; font-size:.9rem; box-shadow:0 4px 16px rgba(0,0,0,.3); max-width:560px; margin:0 auto; }}
+[title] {{ cursor:pointer; -webkit-tap-highlight-color:transparent; }}
 footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 16px 40px; }}
 </style>
 </head>
@@ -861,6 +864,7 @@ footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 1
 </main>
 <footer>
   Data from the official Fantasy Premier League site. Updated <time data-iso="{updated}">{updated}</time>.<br>
+  Tap a player, pick, price or transfer for more details.<br>
   Fixture colours: dark green = easiest … dark red = hardest. Lowercase opponent = away.<br>
   Price predictions are estimates from this gameweek's transfers.<br>
   Chip chances are estimates from a simple simulation of your current squad – transfers, rotation and
@@ -872,6 +876,21 @@ document.querySelectorAll('time[data-iso]').forEach(function (t) {{
   if (!isNaN(d)) t.textContent = d.toLocaleString(undefined, {{weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}});
 }});
 {"setTimeout(function () { location.reload(); }, 5 * 60 * 1000);" if d["live"] and d["live"]["playing"] else ""}
+// Phones don't show title tooltips, so tapping anything with details shows them in a small pop-up.
+(function () {{
+  var tip = document.createElement('div');
+  tip.className = 'tip'; tip.hidden = true;
+  document.body.appendChild(tip);
+  var timer;
+  document.addEventListener('click', function (e) {{
+    var el = e.target.closest('[title]');
+    if (!el || !el.getAttribute('title')) {{ tip.hidden = true; return; }}
+    tip.textContent = el.getAttribute('title');
+    tip.hidden = false;
+    clearTimeout(timer);
+    timer = setTimeout(function () {{ tip.hidden = true; }}, 6000);
+  }});
+}})();
 document.querySelectorAll('.countdown[data-until]').forEach(function (c) {{
   function tick() {{
     var ms = new Date(c.dataset.until) - new Date();
