@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import chips
+import live
 from rivals import head_to_head
 import email_digest
 
@@ -237,16 +238,19 @@ def mini_leagues(source, entry, team_id, gw, squad):
         except LookupError:
             continue
         rows = data["standings"]["results"][:MAX_RIVALS]
-        owned, captained, rivals, squads = {}, {}, 0, {}
+        owned, captained, rivals, squads, meta = {}, {}, 0, {}, {}
         for r in rows:
             if r["entry"] == team_id:
                 continue
             try:
-                picks = source.get(f"entry/{r['entry']}/event/{gw}/picks/")["picks"]
+                resp = source.get(f"entry/{r['entry']}/event/{gw}/picks/")
             except LookupError:
                 continue  # joined after this gameweek
+            picks = resp["picks"]
             rivals += 1
             squads[r["entry"]] = picks
+            meta[r["entry"]] = {"chip": resp.get("active_chip"),
+                                "hit": (resp.get("entry_history") or {}).get("event_transfers_cost", 0)}
             for pk in picks:
                 if pk["multiplier"] > 0:
                     owned[pk["element"]] = owned.get(pk["element"], 0) + 1
@@ -259,7 +263,7 @@ def mini_leagues(source, entry, team_id, gw, squad):
             "name": data["league"]["name"], "rows": rows, "me": me, "rivals": rivals,
             "more": data["standings"].get("has_next", False),
             "targets": targets, "captained": sorted(((n, el) for el, n in captained.items()), reverse=True)[:3],
-            "differentials": differentials, "owned": owned, "squads": squads,
+            "differentials": differentials, "owned": owned, "squads": squads, "meta": meta,
         })
     return leagues
 
@@ -332,13 +336,23 @@ def build(source, team_id):
     chip_plan = chips.plan(squad, players, fixtures, first_ahead, len(events),
                            chips.available_chips(boot, history, first_ahead), flagged) if next_event else []
 
+    leagues = mini_leagues(source, entry, team_id, current_gw, squad)
+    my_meta = {"chip": picks_data.get("active_chip"),
+               "hit": (picks_data.get("entry_history") or {}).get("event_transfers_cost", 0)}
+    try:
+        live_data = live.build_live(source, events, players, picks_data["picks"], my_meta, team_id, leagues)
+    except Exception as exc:  # live scores are a bonus: never let them break the page
+        print(f"Live scores skipped: {exc}")
+        live_data = None
+
     return {
         "entry": entry, "teams": teams, "players": players, "squad": squad, "ideas": ideas,
+        "live": live_data,
         "chip_plan": chip_plan,
         "bank": bank, "current_gw": current_gw, "next_event": next_event,
         "past_gws": past_gws, "chip": picks_data.get("active_chip"),
         "captains": captain_picks(squad),
-        "leagues": mini_leagues(source, entry, team_id, current_gw, squad),
+        "leagues": leagues,
     }
 
 
@@ -498,8 +512,9 @@ def h2h_html(d, lg, team_id):
                 tags += f' <span class="badge">C</span><span class="meta">{who}</span>'
             elif pk["multiplier"] == 0:
                 tags += f' <span class="bench">Bench{" " + who if who else ""}</span>'
+        live_pts = f' · <b>{d["live"]["pts"].get(el, {"pts": 0})["pts"]} pts</b>' if d["live"] else ""
         return (f'<li><strong>{esc(p["web_name"])}</strong>{tags} <span class="meta">'
-                f'{POS_SHORT[p["element_type"]]} · {esc(teams[p["team"]]["short_name"])}</span></li>')
+                f'{POS_SHORT[p["element_type"]]} · {esc(teams[p["team"]]["short_name"])}{live_pts}</span></li>')
 
     options, panels = [], []
     for r in rows:
@@ -525,6 +540,52 @@ def h2h_html(d, lg, team_id):
             <p class="meta">Tip: tap anyone in the table. Squads are from GW{d['current_gw']}.</p>
             {''.join(panels)}
           </div>"""
+
+
+def live_html(d, team_id):
+    lv = d["live"]
+    if not lv:
+        return ""
+    players, teams = d["players"], d["teams"]
+    me = lv["me"]
+    status_word = {"done": "", "playing": " playing", "todo": " to play"}
+    xi = []
+    for s in d["squad"]:
+        el = s["p"]["id"]
+        m = me["mult"].get(el, 0)
+        p = lv["pts"].get(el, {"pts": 0, "mins": 0})
+        st = lv["status"].get(s["p"]["team"], "done")
+        cls = "pts" + (" none" if m == 0 else "") + (" on" if st == "playing" else "")
+        badge = "C" if el == me["captain"] else ""
+        xi.append(f'<span class="{cls}" title="{esc(s["p"]["web_name"])}: {p["pts"]} pts, {p["mins"]} mins{status_word[st]}">'
+                  f'{esc(s["p"]["web_name"])}{" (C)" if badge else ""} <b>{p["pts"] * max(m, 1)}</b></span>')
+    tables = []
+    for t in lv["tables"]:
+        rows = []
+        for r in t["rows"]:
+            move = r["rank"] - r["live_rank"]
+            arrow = f'<span class="up">▲{move}</span>' if move > 0 else (f'<span class="down">▼{-move}</span>' if move < 0 else "")
+            cap = players[r["live"]["captain"]]["web_name"] if r["live"]["captain"] else "–"
+            rows.append(f'<tr class="{"me" if r["entry"] == team_id else ""}"><td>{r["live_rank"]}{arrow}</td>'
+                        f'<td>{esc(r["entry_name"])}<div class="meta">C: {esc(cap)} ({r["live"]["captain_pts"]})</div></td>'
+                        f'<td>{r["live"]["pts"]}</td><td>{r["live_total"]}</td><td>{r["live"]["left"]}</td></tr>')
+        tables.append(f"""<h4>{esc(t['name'])} – live</h4>
+          <div class="tablewrap"><table>
+            <thead><tr><th>#</th><th>Team</th><th>GW</th><th>Total</th><th>Left</th></tr></thead>
+            <tbody>{''.join(rows)}</tbody></table></div>""")
+    state = "Matches in progress" if lv["playing"] else "Live scores"
+    return f"""
+  <section class="live">
+    <h2>{'<span class="pulse"></span>' if lv['playing'] else ''}GW{lv['gw']} live</h2>
+    <div class="box">
+      <p class="bigscore"><strong>{me['pts']}</strong> pts <span class="meta">· {me['left']} player{'s' if me['left'] != 1 else ''} left to play</span></p>
+      <div class="strip livexi">{''.join(xi)}</div>
+      {''.join(tables)}
+      <p class="meta">{state} · updated <time data-iso="{lv['updated']}">{lv['updated']}</time>. Includes provisional bonus,
+        auto-subs and transfer hits. "Left" = players still to play.
+        Green outline = playing now, faded = not counting (bench or subbed off).</p>
+    </div>
+  </section>"""
 
 
 def chips_html(d):
@@ -683,6 +744,11 @@ tr.me td {{ background:var(--hl); font-weight:600; }}
 .h2h-cols h4 {{ margin:8px 0 4px; }}
 .h2h-cols .badge {{ margin-right:2px; }}
 tr[data-entry] {{ cursor:pointer; }}
+.bigscore {{ margin:0 0 8px; font-size:1.1rem; }} .bigscore strong {{ font-size:2rem; }}
+.livexi .pts {{ font-weight:400; }} .livexi .pts b {{ margin-left:3px; }}
+.pts.on {{ outline:2px solid var(--green); }}
+.pulse {{ display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--red); margin-right:6px; animation:pulse 1.5s infinite; }}
+@keyframes pulse {{ 50% {{ opacity:.25; }} }}
 footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 16px 40px; }}
 </style>
 </head>
@@ -698,6 +764,7 @@ footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 1
   </div>
 </header>
 <main>
+  {live_html(d, team_id)}
   {deadline}
   <div class="cols">
     <section><h2>Captain picks</h2><div class="box">{captains_html(d)}</div></section>
@@ -722,6 +789,7 @@ document.querySelectorAll('time[data-iso]').forEach(function (t) {{
   var d = new Date(t.dataset.iso);
   if (!isNaN(d)) t.textContent = d.toLocaleString(undefined, {{weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}});
 }});
+{"setTimeout(function () { location.reload(); }, 5 * 60 * 1000);" if d["live"] and d["live"]["playing"] else ""}
 document.querySelectorAll('.league').forEach(function (lg) {{
   var sel = lg.querySelector('.h2h-select');
   if (!sel) return;
@@ -750,9 +818,19 @@ def main():
     ap.add_argument("--email", choices=["auto", "force", "off"], default="auto",
                     help="auto = only on the morning of a deadline")
     ap.add_argument("--email-preview", help="also save the email to this file")
+    ap.add_argument("--live-check", action="store_true", help="only report whether matches are on")
     args = ap.parse_args()
 
     team_id = int(os.environ.get("TEAM_ID") or DEFAULT_TEAM_ID)
+    if args.live_check:
+        source = Source(args.sample)
+        current = next((e for e in source.get("bootstrap-static/")["events"] if e["is_current"]), None)
+        on = bool(current) and live.matches_on(source.get(f"fixtures/?event={current['id']}"))
+        print(f"Matches on: {on}")
+        if os.environ.get("GITHUB_OUTPUT"):
+            with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+                fh.write(f"live={'true' if on else 'false'}\n")
+        return
     data = build(Source(args.sample), team_id)
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)

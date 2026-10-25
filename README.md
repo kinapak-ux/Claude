@@ -15,7 +15,9 @@ It also shows:
 - **Chip planner**: for each chip you haven't used, the estimated chance it pays off in each of the next 8 gameweeks, with the best week highlighted. "Pays off" means your bench scores 15+ (Bench Boost), your captain scores 12+ (Triple Captain), or you'd score 12+ more than your own team (Free Hit). The Wildcard gets a play-or-hold verdict based on how many players need replacing. These are estimates from a simple simulation of your current squad, and double gameweeks announced later will change them.
 - **Mini-leagues**: standings for New Longton Legends, which players your rivals start that you don't, who they captain, and your differentials. Pick any manager from the **Compare with** list, or tap them in the table, to see your squads side by side: only you, both, only them. The deadline email also sums up the leader and the managers just above and below you.
 
-The page refreshes itself twice a day. On the **morning of each deadline** it also emails you a summary.
+- **Live gameweek scores** while matches are on: your live points (with provisional bonus, auto-subs, vice-captain cover and transfer hits), each player's points, and a live New Longton Legends table with everyone's live total, captain and players left to play.
+
+The page refreshes itself twice a day, and about every 10 minutes while matches are on. The page also reloads itself during matches. On the **morning of each deadline** it also emails you a summary.
 
 ## One-time setup (about 2 minutes)
 
@@ -43,6 +45,7 @@ Secrets are private. They never appear on the page or in the code, even though t
 - **Refresh now:** Actions tab → *Update FPL tracker* → *Run workflow*.
 - **Transfers show after the deadline.** FPL only makes your new squad public once the gameweek deadline passes, so transfers appear after that.
 - **Selling prices are approximate.** FPL doesn't publish your exact selling price, so the budget uses current price plus bank.
+- **Live score timing:** GitHub's scheduled runs can be 5–20 minutes late at busy times (Saturday afternoons especially), so live scores may lag the FPL app a little.
 - **Email timing:** sent by the 6–7am (UK) run on deadline day. GitHub's scheduled runs can be up to an hour late at busy times.
 - **Change which mini-leagues show:** edit `LEAGUES` in `.github/workflows/update-tracker.yml`. Separate several names with commas, or leave it empty for all private leagues.
 - **Change team:** edit `TEAM_ID` in `.github/workflows/update-tracker.yml`.
