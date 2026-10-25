@@ -415,24 +415,24 @@ def form_html(form):
     return "".join(cells)
 
 
-def player_row(s, teams):
-    """One compact row per player; a second line only when there's news."""
+def player_row(s, teams, first=False):
+    """One compact row per player; a second line only for news or form warnings."""
     p, pick = s["p"], s["pick"]
     badge = ' <span class="badge">C</span>' if pick.get("is_captain") else (
         ' <span class="badge">V</span>' if pick.get("is_vice_captain") else "")
     bench = "" if s["starter"] else ' <span class="bench">B</span>'
     status_words = ("Injured", "Suspended", "Unavailable", "Not in squad")
-    notes = ([p["news"]] if p.get("news") else []) + [
-        r for r in s["reasons"] if not p.get("news") or ("chance" not in r and r not in status_words)]
+    shown = [p["news"]] if p.get("news") else [r for r in s["reasons"] if r in status_words or "chance" in r]
+    shown += [r for r in s["reasons"] if r.startswith("Only ")]  # low minutes / low points
+    hidden = [r for r in s["reasons"] if r not in shown and r not in status_words and "chance" not in r]
     pl = price_label(s["price"])
-    direction = s["price"]["likely"] or ("rise" if s["price"]["change"] > 0 else "fall")
-    note = esc(" · ".join(notes))
-    if pl:
-        note += f'{" · " if note else ""}<span class="price {direction}">{esc(pl)}</span>'
+    tip = [f'{p["web_name"]} · {POS_SHORT[p["element_type"]]} · {teams[p["team"]]["name"]} · {money(p["now_cost"])}']
+    tip += hidden + ([pl] if pl else [])
     total5 = sum(f["pts"] for _, f in s["form"])
+    note = esc(" · ".join(shown))
     return f"""
-      <div class="prow flag-{s['flag']}">
-        <div class="name" title="{esc(p['web_name'])} · {esc(teams[p['team']]['name'])} · {money(p['now_cost'])}"><strong>{esc(p['web_name'])}</strong>{badge}{bench}</div>
+      <div class="prow flag-{s['flag']}{' posfirst' if first else ''}">
+        <div class="name" title="{esc(' · '.join(tip))}"><strong>{esc(p['web_name'])}</strong>{badge}{bench}</div>
         <div class="strip" title="Last {len(s['form'])} GWs: {total5} pts">{form_html(s['form'])}</div>
         <div class="strip">{fixtures_html(s['runs'])}</div>
         {f'<div class="note">{note}</div>' if note else ''}
@@ -442,12 +442,11 @@ def player_row(s, teams):
 def squad_html(d):
     rows = []
     for pos in POSITIONS:
-        rows.append(f'<div class="poslabel">{POS_SHORT[pos]}</div>')
-        rows.extend(player_row(s, d["teams"]) for s in d["squad"] if s["p"]["element_type"] == pos)
+        group = [s for s in d["squad"] if s["p"]["element_type"] == pos]
+        rows.extend(player_row(s, d["teams"], first=(i == 0 and pos != 1)) for i, s in enumerate(group))
     return f"""
-  <h2>Your squad</h2>
   <div class="box squad">
-    <div class="prow head"><div></div><div class="lbl">Last {FORM_WINDOW} GWs</div><div class="lbl">Next {FIXTURES_AHEAD}</div></div>
+    <div class="prow head"><div class="dhead">Your squad</div><div class="lbl">Last {FORM_WINDOW}</div><div class="lbl">Next {FIXTURES_AHEAD}</div></div>
     {''.join(rows)}
   </div>"""
 
@@ -884,22 +883,21 @@ tr[data-entry] {{ cursor:pointer; }}
 header .up {{ color:#00ff87; }} header .down {{ color:#ff6b81; }} header .same {{ opacity:.6; }}
 header .up, header .down {{ font-size:.8rem; font-weight:700; margin-left:2px; }}
 .pill.rank {{ background:rgba(255,255,255,.22); font-weight:600; }}
-.squad {{ padding:6px 12px; }}
+.squad {{ padding:8px 12px; margin-top:16px; }}
+.squad .dhead {{ border:0; padding:0; }}
+.prow.posfirst {{ border-top:2px solid var(--muted); }}
 .prow {{ display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:2px 8px; align-items:center;
-  padding:6px 0 6px 8px; border-bottom:1px solid var(--line); border-left:3px solid var(--green); margin-left:-12px; padding-left:9px; }}
+  padding:4px 0 4px 9px; border-bottom:1px solid var(--line); border-left:3px solid var(--green); margin-left:-12px; }}
 .prow.flag-amber {{ border-left-color:var(--amber); }} .prow.flag-red {{ border-left-color:var(--red); }}
 .prow.head {{ border:0; padding-top:2px; padding-bottom:0; }}
-.prow .name {{ display:flex; align-items:center; min-width:0; font-size:.9rem; }}
+.prow .name {{ display:flex; align-items:center; min-width:0; font-size:.85rem; }}
 .prow .name strong {{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }}
 .prow .name .badge, .prow .name .bench {{ flex:none; }}
 .prow .name .meta {{ font-size:.75rem; }}
-.prow .dot {{ width:8px; height:8px; margin-right:5px; }}
 .prow .strip {{ margin:0; gap:2px; flex-wrap:nowrap; }}
 .prow .pts, .prow .fx {{ min-width:20px; font-size:.7rem; padding:1px 3px; }}
 .prow .fx small {{ display:none; }}
-.prow .note {{ grid-column:1 / -1; font-size:.78rem; color:var(--muted); }}
-.prow .note .price {{ display:inline; margin:0; font-size:.78rem; }}
-.poslabel {{ font-size:.7rem; font-weight:700; color:var(--muted); letter-spacing:.05em; padding:8px 0 0; }}
+.prow .note {{ grid-column:1 / -1; font-size:.75rem; color:var(--muted); line-height:1.25; }}
 .squad .badge {{ margin-left:3px; }} .squad .bench {{ margin-left:3px; padding:0 3px; font-size:.65rem; }}
 table.compact th, table.compact td {{ padding:5px 4px; white-space:nowrap; }}
 table.compact td.team {{ width:100%; max-width:0; overflow:hidden; text-overflow:ellipsis; }}
