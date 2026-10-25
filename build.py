@@ -624,11 +624,27 @@ def ordinal(n):
     return f"{n}{'th' if 10 <= n % 100 <= 20 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
 
 
+def short_num(n):
+    """3712754 -> 3.71m, 507977 -> 508k."""
+    n = abs(n)
+    if n >= 1_000_000:
+        return f"{n / 1_000_000:.2f}m"
+    if n >= 10_000:
+        return f"{n / 1000:.0f}k"
+    return f"{n:,}"
+
+
+def short_league(name):
+    """'New Longton Legends League' -> 'Legends'."""
+    words = [w for w in name.split() if w.lower() != "league"] or name.split()
+    return " ".join(words) if len(" ".join(words)) <= 12 else words[-1]
+
+
 def movement(up):
     """Green ▲ / red ▼ for a rank change (positive = moved up)."""
     if not up:
         return '<span class="same">–</span>'
-    return f'<span class="{"up" if up > 0 else "down"}">{"▲" if up > 0 else "▼"}{abs(up):,}</span>'
+    return f'<span class="{"up" if up > 0 else "down"}">{"▲" if up > 0 else "▼"}{short_num(up)}</span>'
 
 
 def ranks_html(d, team_id):
@@ -638,13 +654,13 @@ def ranks_html(d, team_id):
     rank = gws[-1]["overall_rank"] if gws else d["entry"].get("summary_overall_rank")
     if rank:
         up = gws[-2]["overall_rank"] - gws[-1]["overall_rank"] if len(gws) > 1 else 0
-        pills.append(f'<span class="pill">Overall {rank:,} {movement(up)}</span>')
+        pills.append(f'<span class="pill rank" title="Overall rank {rank:,}">OR {short_num(rank)} {movement(up)}</span>')
     for lg in d["leagues"]:
         me = lg["me"]
         if me:
             up = me["last_rank"] - me["rank"] if me.get("last_rank") else 0
-            pills.append(f'<span class="pill">{esc(lg["name"])}: {ordinal(me["rank"])} of {len(lg["rows"])} {movement(up)}</span>')
-    return f'<div class="summary ranks">{"".join(pills)}</div>' if pills else ""
+            pills.append(f'<span class="pill rank" title="{esc(lg["name"])}">{esc(short_league(lg["name"]))} {ordinal(me["rank"])}/{len(lg["rows"])} {movement(up)}</span>')
+    return "".join(pills)
 
 
 def render(d, team_id):
@@ -679,7 +695,7 @@ def render(d, team_id):
         ideas = '<p class="ok">No urgent transfers – your squad looks healthy.</p>'
 
     nxt = d["next_event"]
-    deadline = (f'<div class="deadline">⏰ GW{nxt["id"]} deadline: <time data-iso="{esc(nxt["deadline_time"])}">'
+    deadline = (f'<div class="deadline">⏰ GW{nxt["id"]} deadline <time data-iso="{esc(nxt["deadline_time"])}">'
                 f'{esc(nxt["deadline_time"])}</time> <span class="countdown" data-until="{esc(nxt["deadline_time"])}"></span></div>') if nxt else ""
     chip = f' · Chip: {esc(d["chip"])}' if d["chip"] else ""
     updated = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -702,13 +718,13 @@ def render(d, team_id):
 }}
 * {{ box-sizing:border-box; }}
 body {{ margin:0; font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--text); }}
-header {{ background:var(--accent); color:#fff; padding:20px 16px; }}
-header h1 {{ margin:0; font-size:1.4rem; }}
-header p {{ margin:4px 0 0; opacity:.85; }}
+header {{ background:var(--accent); color:#fff; padding:10px 16px 12px; }}
+header h1 {{ margin:0; font-size:1.15rem; line-height:1.3; }}
+header h1 span {{ font-size:.8rem; font-weight:400; opacity:.8; margin-left:4px; white-space:nowrap; }}
 main {{ max-width:1100px; margin:0 auto; padding:16px; }}
-.summary {{ display:flex; gap:8px; flex-wrap:wrap; margin:12px 0 0; }}
-.pill {{ background:rgba(255,255,255,.15); border-radius:99px; padding:3px 10px; font-size:.85rem; }}
-.deadline {{ background:#00ff87; color:#1b1d22; font-weight:700; text-align:center; padding:10px 16px; font-size:1rem; }}
+.summary {{ display:flex; gap:6px; flex-wrap:wrap; margin:8px 0 0; }}
+.pill {{ background:rgba(255,255,255,.15); border-radius:99px; padding:2px 9px; font-size:.8rem; white-space:nowrap; }}
+.deadline {{ background:#00ff87; color:#1b1d22; font-weight:700; text-align:center; padding:6px 12px; font-size:.9rem; }}
 .countdown {{ font-weight:400; white-space:nowrap; }}
 h2 {{ font-size:1.05rem; margin:24px 0 10px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }}
 h4 {{ margin:14px 0 4px; font-size:.95rem; }}
@@ -778,21 +794,17 @@ tr[data-entry] {{ cursor:pointer; }}
 @keyframes pulse {{ 50% {{ opacity:.25; }} }}
 header .up {{ color:#00ff87; }} header .down {{ color:#ff6b81; }} header .same {{ opacity:.6; }}
 header .up, header .down {{ font-size:.8rem; font-weight:700; margin-left:2px; }}
-.ranks .pill {{ background:rgba(255,255,255,.22); font-weight:600; }}
+.pill.rank {{ background:rgba(255,255,255,.22); font-weight:600; }}
 footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 16px 40px; }}
 </style>
 </head>
 <body>
 {deadline}
 <header>
-  <h1>{esc(entry.get('name', 'My FPL Team'))}</h1>
-  <p>{esc(manager)} · GW{d['current_gw']} squad{chip}</p>
-  {ranks_html(d, team_id)}
+  <h1>{esc(entry.get('name', 'My FPL Team'))} <span>{esc(manager)} · GW{d['current_gw']} squad{chip} · {money(d['bank'])} in bank</span></h1>
   <div class="summary">
-    <span class="pill">🔴 {counts['red']} out</span>
-    <span class="pill">🟠 {counts['amber']} doubtful</span>
-    <span class="pill">🟢 {counts['green']} fine</span>
-    <span class="pill">Bank {money(d['bank'])}</span>
+    {ranks_html(d, team_id)}
+    <span class="pill" title="out / doubtful / fine">🔴{counts['red']} 🟠{counts['amber']} 🟢{counts['green']}</span>
   </div>
 </header>
 <main>
@@ -825,9 +837,9 @@ document.querySelectorAll('.countdown[data-until]').forEach(function (c) {{
   function tick() {{
     var ms = new Date(c.dataset.until) - new Date();
     if (isNaN(ms)) return;
-    if (ms <= 0) {{ c.textContent = '(passed)'; return; }}
+    if (ms <= 0) {{ c.textContent = '· passed'; return; }}
     var d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60;
-    c.textContent = '(' + (d ? d + 'd ' : '') + (d || h ? h + 'h ' : '') + m + 'm to go)';
+    c.textContent = '· ' + (d ? d + 'd ' + h + 'h' : (h ? h + 'h ' : '') + m + 'm') + ' to go';
   }}
   tick(); setInterval(tick, 30000);
 }});
