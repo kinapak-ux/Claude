@@ -39,6 +39,9 @@ CAPTAIN_OPTIONS = 3
 MAX_RIVALS = 50         # managers compared per mini-league (one page of standings)
 RIVAL_TARGETS = 6       # "players your rivals own" shown per league
 DIFFERENTIAL_SHARE = 0.25  # your starters owned by at most this share of rivals
+# Only show leagues whose name contains one of these (comma-separated, any case).
+# Leave LEAGUES empty to show every private league.
+LEAGUES = os.environ.get("LEAGUES", "")
 
 # Price change estimate: net transfers this gameweek as a share of current owners.
 RISE_RATIO, RISE_MIN_NET = 0.04, 25000
@@ -209,13 +212,23 @@ def captain_picks(squad):
     return options[:CAPTAIN_OPTIONS]
 
 
+def simplify(name):
+    return "".join(ch for ch in name.lower() if ch.isalnum())
+
+
+def wanted_league(name):
+    wanted = [simplify(w) for w in LEAGUES.split(",") if w.strip()]
+    return not wanted or any(w in simplify(name) for w in wanted)
+
+
 def mini_leagues(source, entry, team_id, gw, squad):
     """Standings plus rival ownership for each private classic league."""
     mine_xi = {s["p"]["id"] for s in squad if s["pick"]["multiplier"] > 0}
     mine_all = {s["p"]["id"] for s in squad}
     leagues = []
     for lg in (entry.get("leagues") or {}).get("classic", []):
-        if lg.get("league_type") != "x":  # private leagues only
+        if lg.get("league_type") != "x" or not wanted_league(lg["name"]):  # private leagues only
+            print(f"Skipping league: {lg['name']}")
             continue
         try:
             data = source.get(f"leagues-classic/{lg['id']}/standings/")

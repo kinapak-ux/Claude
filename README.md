@@ -12,7 +12,7 @@ It also shows:
 
 - **Captain picks**: your best 3 options for the next gameweek, based on FPL's expected points, form and fixture.
 - **Price watch**: price changes this gameweek, plus an estimate of who's likely to rise or fall based on this gameweek's transfers. Treat it as a guide, not a guarantee.
-- **Mini-leagues**: standings for each of your private leagues, which players your rivals start that you don't, who they captain, and your differentials.
+- **Mini-leagues**: standings for New Longton Legends, which players your rivals start that you don't, who they captain, and your differentials.
 
 The page refreshes itself twice a day. On the **morning of each deadline** it also emails you a summary.
 
@@ -43,5 +43,6 @@ Secrets are private. They never appear on the page or in the code, even though t
 - **Transfers show after the deadline.** FPL only makes your new squad public once the gameweek deadline passes, so transfers appear after that.
 - **Selling prices are approximate.** FPL doesn't publish your exact selling price, so the budget uses current price plus bank.
 - **Email timing:** sent by the 6–7am (UK) run on deadline day. GitHub's scheduled runs can be up to an hour late at busy times.
+- **Change which mini-leagues show:** edit `LEAGUES` in `.github/workflows/update-tracker.yml`. Separate several names with commas, or leave it empty for all private leagues.
 - **Change team:** edit `TEAM_ID` in `.github/workflows/update-tracker.yml`.
 - **Change the rules** (number of fixtures, form thresholds and so on): see the settings at the top of `build.py`.
