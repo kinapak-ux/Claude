@@ -686,22 +686,22 @@ def render(d, team_id):
 
 
     if d["ideas"]:
-        idea_html = []
+        idea_rows = []
         for idea in d["ideas"]:
-            out = idea["out"]["p"]
-            opts = "".join(
-                f'<li><strong>{esc(p["web_name"])}</strong> <span class="meta">{esc(teams[p["team"]]["short_name"])} · '
-                f'{money(p["now_cost"])} · form {esc(p["form"])}</span><div class="strip">{fixtures_html(runs)}</div></li>'
-                for _, p, runs in idea["options"]
-            ) or "<li>No available alternatives within budget.</li>"
-            idea_html.append(f"""
-            <div class="idea">
-              <p class="sell"><span class="dot flag-{idea['out']['flag']}"></span>Consider selling
-                <strong>{esc(out['web_name'])}</strong> <span class="meta">{POS_SHORT[out['element_type']]} · {esc('; '.join(idea['out']['reasons']))}</span></p>
-              <p class="meta">Budget up to {money(idea['budget'])} (price + bank). Try:</p>
-              <ol>{opts}</ol>
-            </div>""")
-        ideas = "".join(idea_html)
+            out = idea["out"]
+            why = "; ".join(out["reasons"])
+            if idea["options"]:
+                _, p, runs = idea["options"][0]
+                others = ", ".join(f'{o["web_name"]} {money(o["now_cost"])}' for _, o, _ in idea["options"][1:])
+                tip = f'Sell: {why}. Budget {money(idea["budget"])}.' + (f' Also: {others}.' if others else "")
+                target = (f'<strong>{esc(p["web_name"])}</strong><span class="meta">{money(p["now_cost"])}</span>'
+                          f'<span class="strip val">{fixtures_html(runs)}</span>')
+            else:
+                tip = f'Sell: {why}. No fit alternatives within {money(idea["budget"])}.'
+                target = '<span class="meta val">no option in budget</span>'
+            idea_rows.append(f'<div class="crow idea flag-{out["flag"]}" title="{esc(tip)}">'
+                             f'<span class="out">{esc(out["p"]["web_name"])}</span><span class="arrow">→</span>{target}</div>')
+        ideas = "".join(idea_rows)
     else:
         ideas = '<p class="ok">No urgent transfers – your squad looks healthy.</p>'
 
@@ -768,10 +768,6 @@ h4 {{ margin:14px 0 4px; font-size:.95rem; }}
 .fx.d1 {{ background:var(--d1); color:#fff; }} .fx.d2 {{ background:var(--d2); color:#0b2d0e; }}
 .fx.d3 {{ background:var(--d3); color:var(--text); }} .fx.d4 {{ background:var(--d4); color:#fff; }}
 .fx.d5 {{ background:var(--d5); color:#fff; }} .fx.blank {{ background:transparent; border:1px dashed var(--muted); color:var(--muted); }}
-.idea + .idea {{ border-top:1px solid var(--line); margin-top:12px; padding-top:12px; }}
-.idea p {{ margin:0 0 4px; }}
-.idea ol, .caps {{ margin:6px 0 0; padding-left:20px; }}
-.idea li, .caps li {{ margin-bottom:8px; }}
 .plain {{ margin:4px 0; padding-left:18px; }} .plain li {{ margin-bottom:4px; }}
 .ok {{ margin:0; }}
 .cols {{ display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); }}
@@ -831,6 +827,13 @@ table.compact td.team {{ width:100%; max-width:0; overflow:hidden; text-overflow
 table.compact td.cap {{ text-align:left; color:var(--muted); font-size:.8rem; max-width:90px; overflow:hidden; text-overflow:ellipsis; }}
 table.compact td.cap b {{ color:var(--text); }}
 table.compact th:nth-child(3) {{ text-align:left; }}
+.crow.idea {{ border-left:3px solid var(--green); padding-left:7px; margin-left:-10px; }}
+.crow.idea.flag-amber {{ border-left-color:var(--amber); }} .crow.idea.flag-red {{ border-left-color:var(--red); }}
+.crow.idea .out {{ color:var(--muted); text-decoration:line-through; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }}
+.crow.idea .arrow {{ color:var(--muted); flex:none; }}
+.crow.idea strong {{ flex:none; }}
+.crow.idea .meta {{ flex:none; font-size:.78rem; }}
+.crow .fx small {{ display:none; }}
 footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 16px 40px; }}
 </style>
 </head>
