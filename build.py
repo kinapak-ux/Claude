@@ -542,6 +542,14 @@ def chips_left(lg, entry_id):
     return " ".join(chips.CHIP_SHORT.get(n, n) for n in left) or "none"
 
 
+def chip_grid(lg, entry_id):
+    """Chips left as a tiny 2x2 block of letters; used ones are blank."""
+    left = set((lg.get("meta", {}).get(entry_id) or {}).get("left", []))
+    cells = "".join(f'<i>{chips.CHIP_SHORT[n] if n in left else ""}</i>' for n in ("bboost", "3xc", "freehit", "wildcard"))
+    names = ", ".join(chips.CHIP_NAMES[n] for n in chips.CHIP_NAMES if n in left) or "none"
+    return f'<span class="cgrid" title="Chips left: {esc(names)}">{cells}</span>'
+
+
 def h2h_html(d, lg, team_id):
     """Side-by-side squad comparison with every rival, chosen from a dropdown."""
     me = lg["me"]
@@ -625,10 +633,11 @@ def live_html(d, team_id):
             rows.append(f'<tr class="{"me" if r["entry"] == team_id else ""}"><td>{r["live_rank"]}{arrow}</td>'
                         f'<td class="team" title="{esc(r["player_name"])}">{chip_badge(t, r["entry"])}{esc(r["entry_name"])}</td>'
                         f'<td class="cap">{esc(cap)} <b>{r["live"]["captain_pts"]}</b></td>'
-                        f'<td>{r["live"]["pts"]}</td><td>{r["live_total"]}</td><td>{r["live"]["left"]}</td></tr>')
+                        f'<td>{r["live"]["pts"]}</td><td>{r["live_total"]}</td><td>{r["live"]["left"]}</td>'
+                        f'<td>{chip_grid(t, r["entry"])}</td></tr>')
         tables.append(f"""<h4>{esc(t['name'])} – live</h4>
-          <div class="tablewrap"><table class="compact">
-            <thead><tr><th>#</th><th>Team</th><th>Capt</th><th>GW</th><th>Total</th><th>Left</th></tr></thead>
+          <div class="tablewrap"><table class="compact live-t">
+            <thead><tr><th>#</th><th>Team</th><th>Capt</th><th>GW</th><th>Tot</th><th title="Players still to play">Pl</th><th title="Chips left">Chips</th></tr></thead>
             <tbody>{''.join(rows)}</tbody></table></div>""")
     state = "Matches in progress" if lv["playing"] else "Live scores"
     return f"""
@@ -639,7 +648,7 @@ def live_html(d, team_id):
       <div class="strip livexi">{''.join(xi)}</div>
       {''.join(tables)}
       <p class="meta">{state} · updated <time data-iso="{lv['updated']}">{lv['updated']}</time>. Includes provisional bonus,
-        auto-subs and transfer hits. "Left" = players still to play.
+        auto-subs and transfer hits. "Pl" = players still to play, "Chips" = chips left.
         Green outline = playing now, faded = not counting (bench or subbed off).</p>
     </div>
   </section>"""
@@ -851,7 +860,8 @@ header .up, header .down {{ font-size:.8rem; font-weight:700; margin-left:2px; }
 .squad .badge {{ margin-left:3px; }} .squad .bench {{ margin-left:3px; padding:0 3px; font-size:.65rem; }}
 table.compact th, table.compact td {{ padding:5px 4px; white-space:nowrap; }}
 table.compact td.team {{ width:100%; max-width:0; overflow:hidden; text-overflow:ellipsis; }}
-table.compact td.cap {{ text-align:left; color:var(--muted); font-size:.8rem; max-width:90px; overflow:hidden; text-overflow:ellipsis; }}
+table.compact td.cap {{ text-align:left; color:var(--muted); font-size:.75rem; max-width:62px; overflow:hidden; text-overflow:ellipsis; }}
+table.live-t th, table.live-t td {{ padding:5px 3px; }}
 table.compact td.cap b {{ color:var(--text); }}
 table.compact th:nth-child(3) {{ text-align:left; }}
 .crow.idea {{ border-left:3px solid var(--green); padding-left:7px; margin-left:-10px; }}
@@ -875,6 +885,9 @@ table.compact th:nth-child(3) {{ text-align:left; }}
 .h2h-panel p {{ margin:6px 0 0; }}
 .summary-groups {{ border-top:1px solid var(--line); margin-top:10px; padding-top:8px; }}
 .chipbadge {{ background:#00ff87; color:#1b1d22; font-size:.65rem; font-weight:800; border-radius:4px; padding:1px 4px; margin-right:5px; vertical-align:1px; }}
+.cgrid {{ display:inline-grid; grid-template-columns:repeat(2, 1.4em); gap:1px; vertical-align:middle; }}
+.cgrid i {{ font-style:normal; font-size:.55rem; font-weight:700; line-height:1.3; text-align:center; border-radius:2px; background:var(--line); min-height:1.3em; }}
+.cgrid i:empty {{ background:transparent; outline:1px dashed var(--line); outline-offset:-1px; }}
 footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 16px 40px; }}
 </style>
 </head>
