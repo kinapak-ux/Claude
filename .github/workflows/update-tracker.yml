@@ -37,7 +37,7 @@ jobs:
           TEAM_ID: "2612117"
           LEAGUES: "New Longton Legends"
           PAGE_URL: "https://kinapak-ux.github.io/Claude/"
-          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS || vars.GMAIL_ADDRESS }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
         run: python build.py --email ${{ inputs.send_email && 'force' || (github.event_name == 'schedule' && 'auto' || 'off') }}
       - uses: actions/configure-pages@v5
