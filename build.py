@@ -447,26 +447,35 @@ def squad_html(d):
 def captains_html(d):
     if not d["captains"]:
         return '<p class="ok">No fit starters with a fixture next gameweek.</p>'
-    items = []
+    rows = []
     for i, c in enumerate(d["captains"]):
         p = c["s"]["p"]
-        tag = ["Captain", "Vice", "Also consider"][min(i, 2)]
-        items.append(f'<li><span class="tag">{tag}</span> <strong>{esc(p["web_name"])}</strong> '
-                     f'<span class="meta">{esc(", ".join(c["why"]))}</span>'
-                     f'<div class="strip">{fixtures_html(c["games"])}</div></li>')
-    return f'<ol class="caps">{"".join(items)}</ol>'
+        tag = ["C", "V", "3rd"][min(i, 2)]
+        rows.append(f'<div class="crow" title="{esc(", ".join(c["why"]))}"><span class="tag">{tag}</span>'
+                    f'<strong>{esc(p["web_name"])}</strong><span class="strip">{fixtures_html(c["games"])}</span>'
+                    f'<span class="val">{float(p["ep_next"] or 0):.1f}<small>xP</small></span></div>')
+    return "".join(rows)
 
 
 def prices_html(d):
     moving = [s for s in d["squad"] if price_label(s["price"])]
     if not moving:
         return '<p class="ok">No price moves expected for your players.</p>'
-    items = "".join(
-        f'<li class="price {s["price"]["likely"] or ("rise" if s["price"]["change"] > 0 else "fall")}">'
-        f'<strong>{esc(s["p"]["web_name"])}</strong> {money(s["p"]["now_cost"])} · {esc(price_label(s["price"]))} '
-        f'<span class="meta">(net transfers {s["price"]["net"]:+,})</span></li>'
-        for s in moving)
-    return f'<ul class="plain">{items}</ul>'
+    rows = []
+    for s in moving:
+        pr = s["price"]
+        direction = pr["likely"] or ("rise" if pr["change"] > 0 else "fall")
+        bits = []
+        if pr["change"]:
+            moved = "rise" if pr["change"] > 0 else "fall"
+            bits.append(f'<span class="price {moved}">{"+" if pr["change"] > 0 else "−"}{abs(pr["change"]) / 10:.1f}</span>')
+        if pr["likely"]:
+            bits.append(f'<span class="price {pr["likely"]}">likely {pr["likely"]}</span>')
+        rows.append(f'<div class="crow" title="Net transfers this GW: {pr["net"]:+,}">'
+                    f'<span class="price {direction}">{"▲" if direction == "rise" else "▼"}</span>'
+                    f'<strong>{esc(s["p"]["web_name"])}</strong><span class="meta">{money(s["p"]["now_cost"])}</span>'
+                    f'<span class="val">{" · ".join(bits)}</span></div>')
+    return "".join(rows)
 
 
 def leagues_html(d, team_id):
@@ -608,33 +617,29 @@ def live_html(d, team_id):
 def chips_html(d):
     if not d["chip_plan"]:
         return '<p class="ok">No chips left to plan right now.</p>'
-    targets = {"bboost": f"bench scores {chips.BB_TARGET}+",
-               "3xc": f"captain scores {chips.TC_TARGET}+",
-               "freehit": f"{chips.FH_TARGET}+ pts more than your team"}
     out = []
     for c in d["chip_plan"]:
         if c["name"] == "wildcard":
-            why = f' <span class="meta">({esc(", ".join(c["problems"]))} need replacing)</span>' if c["problems"] else ""
-            out.append(f'<div class="chip"><h3>Wildcard <span class="meta">use by GW{c["stop"]}</span></h3>'
-                       f'<p><strong>{esc(c["verdict"])}</strong>{why}</p></div>')
+            why = f' <span class="meta">· {esc(", ".join(c["problems"]))} need replacing</span>' if c["problems"] else ""
+            out.append(f'<div class="chip"><div><strong>Wildcard</strong> {esc(c["verdict"])}{why}'
+                       f' <span class="meta">· by GW{c["stop"]}</span></div></div>')
             continue
         b = c["best"]
-        rows = "".join(
-            f'<tr class="{"best" if r["best"] else ""}"><td>GW{r["gw"]}</td>'
-            f'<td><div class="bar"><span style="width:{r["chance"] * 100:.0f}%"></span></div></td>'
-            f'<td>{r["chance"] * 100:.0f}%</td><td>{r["ev"]:.1f}</td><td class="meta">{esc(r["note"])}</td></tr>'
-            for r in c["rows"])
-        more = f" Window closes GW{c['stop']}." if c["stop"] > c["end"] else ""
         if b["chance"] < chips.HOLD_BELOW:
-            verdict = f"<strong>Hold it</strong> – no strong week in the next {len(c['rows'])} gameweeks."
+            verdict = "Hold – no strong week yet"
         else:
-            verdict = f"Best week: <strong>GW{b['gw']}</strong> – {b['chance'] * 100:.0f}% chance {targets[c['name']]}."
-        out.append(f"""<div class="chip"><h3>{esc(c['label'])} <span class="meta">use by GW{c['stop']}</span></h3>
-          <p>{verdict}{more}</p>
-          <div class="tablewrap"><table class="chiptable">
-            <thead><tr><th>GW</th><th></th><th>Chance</th><th>Exp. pts</th><th></th></tr></thead>
-            <tbody>{rows}</tbody></table></div></div>""")
-    return "".join(out)
+            verdict = f"Best <strong>GW{b['gw']}</strong> · {b['chance'] * 100:.0f}%"
+        cells = "".join(
+            f'<span class="cell{" best" if r["best"] and b["chance"] >= chips.HOLD_BELOW else ""}{" hot" if r["chance"] >= 0.35 else ""}" '
+            f'style="--c:{min(r["chance"] * 1.5, 1):.2f}" '
+            f'title="GW{r["gw"]}: {r["chance"] * 100:.0f}% chance, {r["ev"]:.1f} expected pts{" – " + esc(r["note"]) if r["note"] else ""}">'
+            f'<small>{r["gw"]}</small>{r["chance"] * 100:.0f}</span>'
+            for r in c["rows"])
+        out.append(f'<div class="chip"><div><strong>{esc(c["label"])}</strong> {verdict}'
+                   f' <span class="meta">· by GW{c["stop"]}</span></div><div class="cells">{cells}</div></div>')
+    targets = (f"% chance it pays off by gameweek: Bench Boost = bench scores {chips.BB_TARGET}+, "
+               f"Triple Captain = captain scores {chips.TC_TARGET}+, Free Hit = {chips.FH_TARGET}+ more than your team.")
+    return "".join(out) + f'<p class="meta legend">{targets}</p>'
 
 
 def ordinal(n):
@@ -733,7 +738,7 @@ main {{ max-width:1100px; margin:0 auto; padding:16px; }}
 .pill {{ background:rgba(255,255,255,.15); border-radius:99px; padding:2px 9px; font-size:.8rem; white-space:nowrap; }}
 .deadline {{ background:#00ff87; color:#1b1d22; font-weight:700; text-align:center; padding:6px 12px; font-size:.9rem; }}
 .countdown {{ font-weight:400; white-space:nowrap; }}
-h2 {{ font-size:1.05rem; margin:24px 0 10px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }}
+h2 {{ font-size:.95rem; margin:18px 0 6px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }}
 h4 {{ margin:14px 0 4px; font-size:.95rem; }}
 .grid {{ display:grid; gap:10px; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); }}
 .card, .box {{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; border-left:5px solid var(--green); }}
@@ -780,14 +785,23 @@ table {{ width:100%; border-collapse:collapse; font-size:.9rem; }}
 th, td {{ text-align:left; padding:6px; border-bottom:1px solid var(--line); vertical-align:top; }}
 th:nth-child(n+3), td:nth-child(n+3) {{ text-align:right; }}
 tr.me td {{ background:var(--hl); font-weight:600; }}
-.chip + .chip {{ border-top:1px solid var(--line); margin-top:14px; padding-top:14px; }}
-.chip h3 {{ margin:0 0 4px; font-size:1rem; }}
-.chip p {{ margin:0 0 6px; }}
-.chiptable td:nth-child(2) {{ width:35%; }}
-.chiptable td:last-child {{ text-align:left; }}
-.chiptable tr.best td {{ background:var(--hl); font-weight:600; }}
-.bar {{ background:var(--line); border-radius:4px; height:8px; overflow:hidden; min-width:60px; }}
-.bar span {{ display:block; height:100%; background:var(--accent); }}
+.chip + .chip {{ border-top:1px solid var(--line); margin-top:8px; padding-top:8px; }}
+.cells {{ display:flex; gap:3px; margin-top:4px; }}
+.cell {{ flex:1; text-align:center; font-size:.75rem; font-weight:600; border-radius:5px; padding:2px 0;
+  background:color-mix(in srgb, #00c46a calc(var(--c) * 100%), var(--line)); color:var(--text); }}
+.cell.hot {{ color:#0b2d0e; }}
+.cell small {{ display:block; font-size:.6rem; font-weight:400; opacity:.75; }}
+.cell.best {{ outline:2px solid var(--text); outline-offset:-2px; }}
+.legend {{ margin:8px 0 0; font-size:.72rem; }}
+.crow {{ display:flex; align-items:center; gap:6px; padding:4px 0; border-bottom:1px solid var(--line); font-size:.9rem; }}
+.crow:last-child {{ border-bottom:0; }}
+.crow strong {{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }}
+.crow .strip {{ margin:0; flex:none; }}
+.crow .fx {{ font-size:.7rem; padding:1px 4px; min-width:0; }}
+.crow .val {{ margin-left:auto; white-space:nowrap; font-weight:600; }}
+.crow .val small {{ font-weight:400; color:var(--muted); margin-left:1px; }}
+.crow .tag {{ flex:none; min-width:26px; text-align:center; }}
+.crow .price {{ margin:0; }}
 .h2h {{ margin-top:14px; border-top:1px solid var(--line); padding-top:12px; }}
 .h2h select {{ font:inherit; padding:4px 6px; border-radius:6px; border:1px solid var(--line); background:var(--card); color:var(--text); max-width:100%; }}
 .h2h-cols {{ display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); }}
