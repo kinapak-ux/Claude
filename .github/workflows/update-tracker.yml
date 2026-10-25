@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "17 6,18 * * *"   # twice a day (UTC)
   workflow_dispatch:          # lets you click "Run workflow" to refresh now
+    inputs:
+      send_email:
+        description: "Send the deadline email now (for testing)"
+        type: boolean
+        default: false
   push:
     branches: [main, claude/fpl-news-tracker-design-4jivwl]
 
@@ -30,7 +35,10 @@ jobs:
       - name: Build page
         env:
           TEAM_ID: "2612117"
-        run: python build.py
+          PAGE_URL: "https://kinapak-ux.github.io/Claude/"
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: python build.py --email ${{ inputs.send_email && 'force' || (github.event_name == 'schedule' && 'auto' || 'off') }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
