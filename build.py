@@ -628,10 +628,10 @@ def live_html(d, team_id):
         m = me["mult"].get(el, 0)
         p = lv["pts"].get(el, {"pts": 0, "mins": 0})
         st = lv["status"].get(s["p"]["team"], "done")
-        cls = "pts" + (" none" if m == 0 else "") + (" on" if st == "playing" else "")
-        badge = "C" if el == me["captain"] else ""
+        cls = "pchip" + (" off" if m == 0 else "") + (" on" if st == "playing" else "")
+        badge = ' <span class="badge">C</span>' if el == me["captain"] else ""
         xi.append(f'<span class="{cls}" title="{esc(s["p"]["web_name"])}: {p["pts"]} pts, {p["mins"]} mins{status_word[st]}">'
-                  f'{esc(s["p"]["web_name"])}{" (C)" if badge else ""} <b>{p["pts"] * max(m, 1)}</b></span>')
+                  f'{esc(s["p"]["web_name"])}{badge} <b>{p["pts"] * max(m, 1)}</b></span>')
     tables = []
     for t in lv["tables"]:
         rows = []
@@ -644,21 +644,17 @@ def live_html(d, team_id):
                         f'<td class="cap" title="Captain: {esc(cap)}">{esc(abbrev(cap))} <b>{r["live"]["captain_pts"]}</b></td>'
                         f'<td>{r["live"]["pts"]}</td><td>{r["live_total"]}</td><td>{r["live"]["left"]}</td>'
                         f'<td>{chip_grid(t, r["entry"])}</td></tr>')
-        tables.append(f"""<h4>{esc(t['name'])} – live</h4>
-          <div class="tablewrap"><table class="compact live-t">
+        tables.append(f"""
+          <div class="tablewrap"><table class="compact live-t" title="{esc(t['name'])} live table">
             <thead><tr><th>#</th><th>Team</th><th>Capt</th><th>GW</th><th>Tot</th><th title="Players still to play">Pl</th><th title="Chips left">Chips</th></tr></thead>
             <tbody>{''.join(rows)}</tbody></table></div>""")
-    state = "Matches in progress" if lv["playing"] else "Live scores"
     return f"""
   <section class="live">
     <h2>{'<span class="pulse"></span>' if lv['playing'] else ''}GW{lv['gw']} live</h2>
     <div class="box">
-      <p class="bigscore"><strong>{me['pts']}</strong> pts <span class="meta">· {me['left']} player{'s' if me['left'] != 1 else ''} left to play</span></p>
-      <div class="strip livexi">{''.join(xi)}</div>
+      <p class="liveline"><strong>{me['pts']}</strong> pts <span class="meta">· {me['left']} to play · updated <time data-hm="{lv['updated']}">{lv['updated'][11:16]}</time></span></p>
+      <div class="chips livexi">{''.join(xi)}</div>
       {''.join(tables)}
-      <p class="meta">{state} · updated <time data-iso="{lv['updated']}">{lv['updated']}</time>. Includes provisional bonus,
-        auto-subs and transfer hits. "Pl" = players still to play, "Chips" = chips left.
-        Green outline = playing now, faded = not counting (bench or subbed off).</p>
     </div>
   </section>"""
 
@@ -842,9 +838,9 @@ tr.me td {{ background:var(--hl); font-weight:600; }}
 .h2h {{ margin-top:14px; border-top:1px solid var(--line); padding-top:12px; }}
 .h2h select {{ font:inherit; padding:4px 6px; border-radius:6px; border:1px solid var(--line); background:var(--card); color:var(--text); max-width:100%; }}
 tr[data-entry] {{ cursor:pointer; }}
-.bigscore {{ margin:0 0 8px; font-size:1.1rem; }} .bigscore strong {{ font-size:2rem; }}
-.livexi .pts {{ font-weight:400; }} .livexi .pts b {{ margin-left:3px; }}
-.pts.on {{ outline:2px solid var(--green); }}
+.liveline {{ margin:0 0 6px; }} .liveline strong {{ font-size:1.5rem; line-height:1; }}
+.pchip.on, .pts.on {{ outline:2px solid var(--green); outline-offset:-2px; }}
+.livexi {{ margin-bottom:4px; }}
 .pulse {{ display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--red); margin-right:6px; animation:pulse 1.5s infinite; }}
 @keyframes pulse {{ 50% {{ opacity:.25; }} }}
 header .up {{ color:#00ff87; }} header .down {{ color:#ff6b81; }} header .same {{ opacity:.6; }}
@@ -925,6 +921,8 @@ footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 1
 <footer>
   Data from the official Fantasy Premier League site. Updated <time data-iso="{updated}">{updated}</time>.<br>
   Tap a player, pick, price or transfer for more details.<br>
+  Live scores include provisional bonus, auto-subs and transfer hits. Green outline = playing now, faded = not
+  counting (bench or subbed off). Pl = players still to play, Chips = chips left.<br>
   Fixture colours: dark green = easiest … dark red = hardest. Lowercase opponent = away.<br>
   Price predictions are estimates from this gameweek's transfers.<br>
   Chip chances are estimates from a simple simulation of your current squad – transfers, rotation and
@@ -951,6 +949,10 @@ document.querySelectorAll('time[data-iso]').forEach(function (t) {{
     timer = setTimeout(function () {{ tip.hidden = true; }}, 6000);
   }});
 }})();
+document.querySelectorAll('time[data-hm]').forEach(function (t) {{
+  var d = new Date(t.dataset.hm);
+  if (!isNaN(d)) t.textContent = d.toLocaleTimeString(undefined, {{hour:'2-digit', minute:'2-digit'}});
+}});
 document.querySelectorAll('.countdown[data-until]').forEach(function (c) {{
   function tick() {{
     var ms = new Date(c.dataset.until) - new Date();
