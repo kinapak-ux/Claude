@@ -348,7 +348,7 @@ def build(source, team_id):
     return {
         "entry": entry, "teams": teams, "players": players, "squad": squad, "ideas": ideas,
         "live": live_data,
-        "chip_plan": chip_plan,
+        "chip_plan": chip_plan, "history": history,
         "bank": bank, "current_gw": current_gw, "next_event": next_event,
         "past_gws": past_gws, "chip": picks_data.get("active_chip"),
         "captains": captain_picks(squad),
@@ -620,6 +620,33 @@ def chips_html(d):
     return "".join(out)
 
 
+def ordinal(n):
+    return f"{n}{'th' if 10 <= n % 100 <= 20 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
+
+
+def movement(up):
+    """Green ▲ / red ▼ for a rank change (positive = moved up)."""
+    if not up:
+        return '<span class="same">–</span>'
+    return f'<span class="{"up" if up > 0 else "down"}">{"▲" if up > 0 else "▼"}{abs(up):,}</span>'
+
+
+def ranks_html(d, team_id):
+    """Overall and mini-league rank pills, each with last gameweek's movement."""
+    pills = []
+    gws = [g for g in (d.get("history") or {}).get("current", []) if g.get("overall_rank")]
+    rank = gws[-1]["overall_rank"] if gws else d["entry"].get("summary_overall_rank")
+    if rank:
+        up = gws[-2]["overall_rank"] - gws[-1]["overall_rank"] if len(gws) > 1 else 0
+        pills.append(f'<span class="pill">Overall {rank:,} {movement(up)}</span>')
+    for lg in d["leagues"]:
+        me = lg["me"]
+        if me:
+            up = me["last_rank"] - me["rank"] if me.get("last_rank") else 0
+            pills.append(f'<span class="pill">{esc(lg["name"])}: {ordinal(me["rank"])} of {len(lg["rows"])} {movement(up)}</span>')
+    return f'<div class="summary ranks">{"".join(pills)}</div>' if pills else ""
+
+
 def render(d, team_id):
     entry, teams = d["entry"], d["teams"]
     counts = {"red": 0, "amber": 0, "green": 0}
@@ -657,7 +684,6 @@ def render(d, team_id):
     chip = f' · Chip: {esc(d["chip"])}' if d["chip"] else ""
     updated = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     manager = f'{entry.get("player_first_name", "")} {entry.get("player_last_name", "")}'.strip()
-    rank = entry.get("summary_overall_rank")
 
     return f"""<!doctype html>
 <html lang="en">
@@ -750,6 +776,9 @@ tr[data-entry] {{ cursor:pointer; }}
 .pts.on {{ outline:2px solid var(--green); }}
 .pulse {{ display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--red); margin-right:6px; animation:pulse 1.5s infinite; }}
 @keyframes pulse {{ 50% {{ opacity:.25; }} }}
+header .up {{ color:#00ff87; }} header .down {{ color:#ff6b81; }} header .same {{ opacity:.6; }}
+header .up, header .down {{ font-size:.8rem; font-weight:700; margin-left:2px; }}
+.ranks .pill {{ background:rgba(255,255,255,.22); font-weight:600; }}
 footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 16px 40px; }}
 </style>
 </head>
@@ -757,7 +786,8 @@ footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 1
 {deadline}
 <header>
   <h1>{esc(entry.get('name', 'My FPL Team'))}</h1>
-  <p>{esc(manager)} · GW{d['current_gw']} squad{chip}{f' · Overall rank {rank:,}' if rank else ''}</p>
+  <p>{esc(manager)} · GW{d['current_gw']} squad{chip}</p>
+  {ranks_html(d, team_id)}
   <div class="summary">
     <span class="pill">🔴 {counts['red']} out</span>
     <span class="pill">🟠 {counts['amber']} doubtful</span>
