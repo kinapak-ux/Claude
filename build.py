@@ -407,35 +407,41 @@ def form_html(form):
     return "".join(cells)
 
 
-def player_card(s, teams):
+def player_row(s, teams):
+    """One compact row per player; a second line only when there's news."""
     p, pick = s["p"], s["pick"]
-    badges = ""
-    if pick.get("is_captain"):
-        badges += '<span class="badge">C</span>'
-    elif pick.get("is_vice_captain"):
-        badges += '<span class="badge">V</span>'
-    news = f'<p class="news">{esc(p["news"])}</p>' if p.get("news") else ""
-    reasons = "".join(f"<li>{esc(r)}</li>" for r in s["reasons"])
-    reasons = f'<ul class="reasons">{reasons}</ul>' if reasons else ""
-    bench = "" if s["starter"] else '<span class="bench">Bench</span>'
-    total5 = sum(f["pts"] for _, f in s["form"])
+    badge = ' <span class="badge">C</span>' if pick.get("is_captain") else (
+        ' <span class="badge">V</span>' if pick.get("is_vice_captain") else "")
+    bench = "" if s["starter"] else ' <span class="bench">B</span>'
+    status_words = ("Injured", "Suspended", "Unavailable", "Not in squad")
+    notes = ([p["news"]] if p.get("news") else []) + [
+        r for r in s["reasons"] if not p.get("news") or ("chance" not in r and r not in status_words)]
     pl = price_label(s["price"])
     direction = s["price"]["likely"] or ("rise" if s["price"]["change"] > 0 else "fall")
-    price = f'<p class="price {direction}">{esc(pl)}</p>' if pl else ""
+    note = esc(" · ".join(notes))
+    if pl:
+        note += f'{" · " if note else ""}<span class="price {direction}">{esc(pl)}</span>'
+    total5 = sum(f["pts"] for _, f in s["form"])
     return f"""
-    <article class="card flag-{s['flag']}">
-      <div class="row top">
-        <span class="dot" aria-label="{s['flag']}"></span>
-        <h3>{esc(p['web_name'])}{badges}</h3>
-        {bench}
-        <span class="meta">{esc(teams[p['team']]['short_name'])} · {money(p['now_cost'])}</span>
-      </div>
-      {news}{reasons}{price}
-      <div class="row strips">
-        <div><span class="lbl">Last {len(s['form'])} GWs · {total5} pts</span><div class="strip">{form_html(s['form'])}</div></div>
-        <div><span class="lbl">Next {FIXTURES_AHEAD}</span><div class="strip">{fixtures_html(s['runs'])}</div></div>
-      </div>
-    </article>"""
+      <div class="prow flag-{s['flag']}">
+        <div class="name" title="{esc(p['web_name'])} · {esc(teams[p['team']]['name'])} · {money(p['now_cost'])}"><strong>{esc(p['web_name'])}</strong>{badge}{bench}</div>
+        <div class="strip" title="Last {len(s['form'])} GWs: {total5} pts">{form_html(s['form'])}</div>
+        <div class="strip">{fixtures_html(s['runs'])}</div>
+        {f'<div class="note">{note}</div>' if note else ''}
+      </div>"""
+
+
+def squad_html(d):
+    rows = []
+    for pos in POSITIONS:
+        rows.append(f'<div class="poslabel">{POS_SHORT[pos]}</div>')
+        rows.extend(player_row(s, d["teams"]) for s in d["squad"] if s["p"]["element_type"] == pos)
+    return f"""
+  <h2>Your squad</h2>
+  <div class="box squad">
+    <div class="prow head"><div></div><div class="lbl">Last {FORM_WINDOW} GWs</div><div class="lbl">Next {FIXTURES_AHEAD}</div></div>
+    {''.join(rows)}
+  </div>"""
 
 
 def captains_html(d):
@@ -674,10 +680,6 @@ def render(d, team_id):
     for s in d["squad"]:
         counts[s["flag"]] += 1
 
-    sections = []
-    for pos, title in POSITIONS.items():
-        cards = "".join(player_card(s, teams) for s in d["squad"] if s["p"]["element_type"] == pos)
-        sections.append(f'<section><h2>{title}</h2><div class="grid">{cards}</div></section>')
 
     if d["ideas"]:
         idea_html = []
@@ -800,6 +802,23 @@ tr[data-entry] {{ cursor:pointer; }}
 header .up {{ color:#00ff87; }} header .down {{ color:#ff6b81; }} header .same {{ opacity:.6; }}
 header .up, header .down {{ font-size:.8rem; font-weight:700; margin-left:2px; }}
 .pill.rank {{ background:rgba(255,255,255,.22); font-weight:600; }}
+.squad {{ padding:6px 12px; }}
+.prow {{ display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:2px 8px; align-items:center;
+  padding:6px 0 6px 8px; border-bottom:1px solid var(--line); border-left:3px solid var(--green); margin-left:-12px; padding-left:9px; }}
+.prow.flag-amber {{ border-left-color:var(--amber); }} .prow.flag-red {{ border-left-color:var(--red); }}
+.prow.head {{ border:0; padding-top:2px; padding-bottom:0; }}
+.prow .name {{ display:flex; align-items:center; min-width:0; font-size:.9rem; }}
+.prow .name strong {{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }}
+.prow .name .badge, .prow .name .bench {{ flex:none; }}
+.prow .name .meta {{ font-size:.75rem; }}
+.prow .dot {{ width:8px; height:8px; margin-right:5px; }}
+.prow .strip {{ margin:0; gap:2px; flex-wrap:nowrap; }}
+.prow .pts, .prow .fx {{ min-width:20px; font-size:.7rem; padding:1px 3px; }}
+.prow .fx small {{ display:none; }}
+.prow .note {{ grid-column:1 / -1; font-size:.78rem; color:var(--muted); }}
+.prow .note .price {{ display:inline; margin:0; font-size:.78rem; }}
+.poslabel {{ font-size:.7rem; font-weight:700; color:var(--muted); letter-spacing:.05em; padding:8px 0 0; }}
+.squad .badge {{ margin-left:3px; }} .squad .bench {{ margin-left:3px; padding:0 3px; font-size:.65rem; }}
 footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 16px 40px; }}
 </style>
 </head>
@@ -822,7 +841,7 @@ footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 1
   <div class="box chips">{chips_html(d)}</div>
   <h2>Transfer ideas</h2>
   <div class="box">{ideas}</div>
-  {''.join(sections)}
+  {squad_html(d)}
   {leagues_html(d, team_id)}
 </main>
 <footer>
