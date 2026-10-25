@@ -528,6 +528,15 @@ def leagues_html(d, team_id):
     return "".join(out)
 
 
+def abbrev(name):
+    """Three capital letters for a player: Haaland -> HAA, B.Fernandes -> FER, João Pedro -> JOA."""
+    import unicodedata
+    special = str.maketrans({"Ø": "O", "ø": "o", "Æ": "AE", "æ": "ae", "Ł": "L", "ł": "l", "Đ": "D", "đ": "d", "ß": "ss", "ı": "i"})
+    plain = unicodedata.normalize("NFKD", name.split(".")[-1].translate(special)).encode("ascii", "ignore").decode()
+    letters = "".join(ch for ch in plain if ch.isalpha())
+    return letters[:3].upper() or name[:3]
+
+
 def chip_badge(lg, entry_id):
     """'BB' / 'TC' / 'FH' / 'WC' badge when that manager is playing a chip this gameweek."""
     name = (lg.get("meta", {}).get(entry_id) or {}).get("chip")
@@ -632,7 +641,7 @@ def live_html(d, team_id):
             cap = players[r["live"]["captain"]]["web_name"] if r["live"]["captain"] else "–"
             rows.append(f'<tr class="{"me" if r["entry"] == team_id else ""}"><td>{r["live_rank"]}{arrow}</td>'
                         f'<td class="team" title="{esc(r["player_name"])}">{chip_badge(t, r["entry"])}{esc(r["entry_name"])}</td>'
-                        f'<td class="cap">{esc(cap)} <b>{r["live"]["captain_pts"]}</b></td>'
+                        f'<td class="cap" title="Captain: {esc(cap)}">{esc(abbrev(cap))} <b>{r["live"]["captain_pts"]}</b></td>'
                         f'<td>{r["live"]["pts"]}</td><td>{r["live_total"]}</td><td>{r["live"]["left"]}</td>'
                         f'<td>{chip_grid(t, r["entry"])}</td></tr>')
         tables.append(f"""<h4>{esc(t['name'])} – live</h4>
@@ -860,7 +869,7 @@ header .up, header .down {{ font-size:.8rem; font-weight:700; margin-left:2px; }
 .squad .badge {{ margin-left:3px; }} .squad .bench {{ margin-left:3px; padding:0 3px; font-size:.65rem; }}
 table.compact th, table.compact td {{ padding:5px 4px; white-space:nowrap; }}
 table.compact td.team {{ width:100%; max-width:0; overflow:hidden; text-overflow:ellipsis; }}
-table.compact td.cap {{ text-align:left; color:var(--muted); font-size:.75rem; max-width:62px; overflow:hidden; text-overflow:ellipsis; }}
+table.compact td.cap {{ text-align:left; color:var(--muted); font-size:.75rem; }}
 table.live-t th, table.live-t td {{ padding:5px 3px; }}
 table.compact td.cap b {{ color:var(--text); }}
 table.compact th:nth-child(3) {{ text-align:left; }}
