@@ -494,11 +494,12 @@ def leagues_html(d, team_id):
                         f'<td>{r["event_total"]}</td><td>{r["total"]}</td><td>{r["total"] - leader or ""}</td></tr>')
         n = max(lg["rivals"], 1)
         targets = "".join(
-            f'<li><strong>{esc(players[el]["web_name"])}</strong> <span class="meta">{esc(teams[players[el]["team"]]["short_name"])} · '
-            f'{money(players[el]["now_cost"])} · started by {c} of {lg["rivals"]} ({c * 100 // n}%)</span></li>'
-            for c, el in lg["targets"]) or "<li>None – you own everything they do.</li>"
-        caps = ", ".join(f'{esc(players[el]["web_name"])} ({c})' for c, el in lg["captained"]) or "–"
-        diffs = ", ".join(esc(players[el]["web_name"]) for el in lg["differentials"]) or "None"
+            f'<span class="pchip" title="{esc(players[el]["web_name"])} · {money(players[el]["now_cost"])} · started by {c} of {lg["rivals"]} rivals">'
+            f'{esc(players[el]["web_name"])} <b>{c * 100 // n}%</b></span>'
+            for c, el in lg["targets"]) or "–"
+        caps = "".join(f'<span class="pchip" title="Captained by {c} of {lg["rivals"]} rivals">{esc(players[el]["web_name"])} <b>{c}</b></span>'
+                       for c, el in lg["captained"]) or "–"
+        diffs = "".join(f'<span class="pchip">{esc(players[el]["web_name"])}</span>' for el in lg["differentials"]) or "–"
         h2h = h2h_html(d, lg, team_id)
         me = lg["me"]
         pos = f'You are {me["rank"]} of {len(lg["rows"])}{"+" if lg["more"] else ""}' if me else ""
@@ -510,9 +511,11 @@ def leagues_html(d, team_id):
             <tbody>{''.join(rows)}</tbody>
           </table></div>
           {h2h}
-          <h4>Rivals own, you don't (GW{d['current_gw']} starters)</h4><ul class="plain">{targets}</ul>
-          <p><strong>Rivals' captains:</strong> {caps}</p>
-          <p><strong>Your differentials:</strong> {diffs} <span class="meta">(started by ≤{int(DIFFERENTIAL_SHARE * 100)}% of rivals)</span></p>
+          <div class="groups summary-groups">
+            <div class="glabel" title="Players your rivals started in GW{d['current_gw']} that you don't own, with the share of rivals starting them">Rivals have</div><div class="chips">{targets}</div>
+            <div class="glabel" title="Who your rivals captained in GW{d['current_gw']}">Their C</div><div class="chips">{caps}</div>
+            <div class="glabel" title="Your starters owned by {int(DIFFERENTIAL_SHARE * 100)}% or fewer of your rivals">Your diffs</div><div class="chips">{diffs}</div>
+          </div>
         </details>""")
     return "".join(out)
 
@@ -530,40 +533,44 @@ def h2h_html(d, lg, team_id):
     if default not in lg["squads"]:
         default = rows[0]["entry"]
 
-    def item(el, *picks):
+    def chip(el, *picks):
+        """A small player chip; captain badge, faded if benched, live points when matches are on."""
         p = players[el]
-        tags = ""
-        for who, pk in picks:
-            if pk["is_captain"]:
-                tags += f' <span class="badge">C</span><span class="meta">{who}</span>'
-            elif pk["multiplier"] == 0:
-                tags += f' <span class="bench">Bench{" " + who if who else ""}</span>'
-        live_pts = f' · <b>{d["live"]["pts"].get(el, {"pts": 0})["pts"]} pts</b>' if d["live"] else ""
-        return (f'<li><strong>{esc(p["web_name"])}</strong>{tags} <span class="meta">'
-                f'{POS_SHORT[p["element_type"]]} · {esc(teams[p["team"]]["short_name"])}{live_pts}</span></li>')
+        caps = [who for who, pk in picks if pk["is_captain"]]
+        benched = [who for who, pk in picks if pk["multiplier"] == 0]
+        badge = ""
+        if caps:
+            badge = ' <span class="badge">C</span>' + (f'<small>{caps[0]}</small>' if len(picks) > 1 and len(caps) == 1 else "")
+        tip = f'{p["web_name"]} · {POS_SHORT[p["element_type"]]} · {teams[p["team"]]["name"]}'
+        if caps:
+            tip += " · captain" + (f" ({caps[0]})" if len(picks) > 1 and len(caps) == 1 else "")
+        if benched:
+            tip += " · bench" + (f" ({benched[0]})" if len(picks) > 1 and len(benched) == 1 else "")
+        live_pts = f' <b>{d["live"]["pts"].get(el, {"pts": 0})["pts"]}</b>' if d["live"] else ""
+        faded = " off" if len(benched) == len(picks) else ""
+        return f'<span class="pchip{faded}" title="{esc(tip)}">{esc(p["web_name"])}{badge}{live_pts}</span>'
 
     options, panels = [], []
     for r in rows:
         c = head_to_head(mine, lg["squads"][r["entry"]], players)
         gap = me["total"] - r["total"]
-        standing = f"you're {gap} pts ahead" if gap > 0 else (f"you're {-gap} pts behind" if gap < 0 else "level on points")
+        standing = f"{gap} ahead" if gap > 0 else (f"{-gap} behind" if gap < 0 else "level")
         options.append(f'<option value="{r["entry"]}"{" selected" if r["entry"] == default else ""}>'
-                       f'{r["rank"]}. {esc(r["entry_name"])} ({esc(r["player_name"])})</option>')
-        col = lambda title, els, fn: f'<div><h4>{title} ({len(els)})</h4><ul class="plain">{"".join(fn(el) for el in els) or "<li>–</li>"}</ul></div>'
+                       f'{r["rank"]}. {esc(r["entry_name"])}</option>')
+        group = lambda label, els, fn: (f'<div class="glabel">{label} <span class="meta">{len(els)}</span></div>'
+                                        f'<div class="chips">{"".join(fn(el) for el in els) or "–"}</div>')
         panels.append(f"""
           <div class="h2h-panel" data-entry="{r['entry']}"{"" if r["entry"] == default else " hidden"}>
-            <p><strong>You vs {esc(r['entry_name'])}</strong> – {standing}.
-              <span class="meta">Expected next GW with these teams: you {c['exp_me']:.0f} · them {c['exp_them']:.0f}</span></p>
-            <div class="h2h-cols">
-              {col("Only you", c["mine"], lambda el: item(el, ("", c["a"][el])))}
-              {col("Both", c["both"], lambda el: item(el, ("you", c["a"][el]), ("them", c["b"][el])))}
-              {col("Only them", c["theirs"], lambda el: item(el, ("", c["b"][el])))}
+            <p class="meta" title="Expected points next GW if neither team changes">You're {standing} · next GW xP you {c['exp_me']:.0f}, them {c['exp_them']:.0f}</p>
+            <div class="groups">
+              {group("You", c["mine"], lambda el: chip(el, ("", c["a"][el])))}
+              {group("Both", c["both"], lambda el: chip(el, ("you", c["a"][el]), ("them", c["b"][el])))}
+              {group("Them", c["theirs"], lambda el: chip(el, ("", c["b"][el])))}
             </div>
           </div>""")
     return f"""
           <div class="h2h">
-            <label><strong>Compare with</strong> <select class="h2h-select">{''.join(options)}</select></label>
-            <p class="meta">Tip: tap anyone in the table. Squads are from GW{d['current_gw']}.</p>
+            <label><strong>vs</strong> <select class="h2h-select">{''.join(options)}</select></label>
             {''.join(panels)}
           </div>"""
 
@@ -793,9 +800,6 @@ tr.me td {{ background:var(--hl); font-weight:600; }}
 .crow .price {{ margin:0; }}
 .h2h {{ margin-top:14px; border-top:1px solid var(--line); padding-top:12px; }}
 .h2h select {{ font:inherit; padding:4px 6px; border-radius:6px; border:1px solid var(--line); background:var(--card); color:var(--text); max-width:100%; }}
-.h2h-cols {{ display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); }}
-.h2h-cols h4 {{ margin:8px 0 4px; }}
-.h2h-cols .badge {{ margin-right:2px; }}
 tr[data-entry] {{ cursor:pointer; }}
 .bigscore {{ margin:0 0 8px; font-size:1.1rem; }} .bigscore strong {{ font-size:2rem; }}
 .livexi .pts {{ font-weight:400; }} .livexi .pts b {{ margin-left:3px; }}
@@ -837,6 +841,16 @@ table.compact th:nth-child(3) {{ text-align:left; }}
 .tip {{ position:fixed; left:12px; right:12px; bottom:16px; z-index:10; background:var(--text); color:var(--bg);
   padding:10px 14px; border-radius:10px; font-size:.9rem; box-shadow:0 4px 16px rgba(0,0,0,.3); max-width:560px; margin:0 auto; }}
 [title] {{ cursor:pointer; -webkit-tap-highlight-color:transparent; }}
+.groups {{ display:grid; grid-template-columns:auto 1fr; gap:6px 8px; align-items:start; margin-top:6px; }}
+.glabel {{ font-size:.75rem; font-weight:700; padding-top:3px; white-space:nowrap; }}
+.chips {{ display:flex; flex-wrap:wrap; gap:3px; }}
+.pchip {{ background:var(--line); border-radius:5px; padding:1px 6px; font-size:.78rem; white-space:nowrap; }}
+.pchip b {{ margin-left:2px; }}
+.pchip .badge {{ font-size:.6rem; padding:0 3px; margin-left:3px; }}
+.pchip small {{ font-size:.6rem; color:var(--muted); margin-left:1px; }}
+.pchip.off {{ opacity:.5; }}
+.h2h-panel p {{ margin:6px 0 0; }}
+.summary-groups {{ border-top:1px solid var(--line); margin-top:10px; padding-top:8px; }}
 footer {{ color:var(--muted); font-size:.8rem; text-align:center; padding:24px 16px 40px; }}
 </style>
 </head>
