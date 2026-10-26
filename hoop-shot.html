@@ -155,6 +155,7 @@
       <ul>
         <li><span class="tag">+3</span><span>Swish: the ball drops in without touching the rim or board.</span></li>
         <li><span class="tag">+2</span><span>Bucket: it goes in after a bounce.</span></li>
+        <li><span class="tag">Tap</span><span>Missed? Once the ball hits the ground, tap anywhere to get it back straight away.</span></li>
         <li><span class="tag">+1</span><span>Hit a bird. It also drops the power-up written above it.</span></li>
         <li><span class="tag" style="--c: var(--p-fire)">Fire</span><span>Make 3 in a row and you're on fire: points x2 until you miss.</span></li>
       </ul>
@@ -310,8 +311,17 @@
     return { dx, dy, d: Math.min(d, maxPull) };
   }
 
+  // After a miss (every ball has hit the floor without scoring), a tap brings the ball straight back
+  const canTapReset = () => phase === 'missed' || (phase === 'flying' && shot.scoredAt === null && shot.balls.every(b => b.floored));
+
   cv.addEventListener('pointerdown', e => {
-    if (phase !== 'aim' || paused) return;
+    if (paused) return;
+    if (canTapReset()) {
+      if (phase === 'flying') miss();
+      endShot(false);
+      return;
+    }
+    if (phase !== 'aim') return;
     cv.setPointerCapture(e.pointerId);
     drag = { id: e.pointerId, sx: e.offsetX, sy: e.offsetY, x: e.offsetX, y: e.offsetY };
     cv.classList.add('dragging');
@@ -389,6 +399,7 @@
     }
 
     if (b.y + r > floorY) {
+      b.floored = true;
       b.y = floorY - r;
       b.vy *= -e(0.55);
       b.vx *= 0.8;
@@ -804,6 +815,15 @@
     ctx.fillText('Pull back and release', Math.min(launch.x + R * 3, W - 150), launch.y - R * 3.2);
   }
 
+  function drawResetHint() {
+    if (!canTapReset()) return;
+    ctx.fillStyle = COL.ink; ctx.globalAlpha = 0.85;
+    ctx.font = `700 ${Math.max(14, R * 1.05)}px ${C('--font-body')}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('Tap to reset', W / 2, floorY + (H - floorY) * 0.45);
+    ctx.globalAlpha = 1;
+  }
+
   function drawFlash() {
     if (!flash) return;
     const t = flash.t / 1.1;
@@ -833,6 +853,7 @@
     }
     ctx.globalAlpha = 1;
     drawIdleHint();
+    drawResetHint();
     drawFlash();
   }
 
