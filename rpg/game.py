@@ -2307,6 +2307,11 @@ async def bounty_board(player):
 SUITS = "♠♥♦♣"
 
 
+async def pause():
+    """Hold the next reveal until the player is ready."""
+    await ask("[Next] > ", keys=["next"])
+
+
 def card_name(card):
     rank, suit = card
     return {1: "A", 11: "J", 12: "Q", 13: "K"}.get(rank, str(rank)) + suit
@@ -2359,7 +2364,11 @@ async def blackjack(player):
         say(f"You: {show_hand(you)}")
         outcome = None
         if hand_value(you) == 21:
+            say("Blackjack in your hand. Pete reaches for his hole card.")
+            await pause()
+            say(f"Pete flips {card_name(dealer[1])}. Dealer: {show_hand(dealer)}")
             outcome = "push" if hand_value(dealer) == 21 else "blackjack"
+            await pause()
         else:
             first = True
             while True:
@@ -2381,10 +2390,13 @@ async def blackjack(player):
                         break
                     first = False
             if not outcome:
+                await pause()
                 say(f"Pete flips {card_name(dealer[1])}. Dealer: {show_hand(dealer)}")
                 while hand_value(dealer) < 17:
+                    await pause()
                     dealer.append(deck.pop())
                     say(f"Pete draws. Dealer: {show_hand(dealer)}")
+                await pause()
                 d, y = hand_value(dealer), hand_value(you)
                 outcome = "win" if d > 21 or y > d else "push" if y == d else "lose"
 
@@ -2480,7 +2492,10 @@ async def liars_dice(player):
 
         q, f = bid
         total = mine.count(f) + his.count(f)
-        say(f"Cups up. Cole had {' '.join(map(str, sorted(his)))}. There are {total} x {f} on the table.")
+        await pause()
+        say(f"Cups up. Cole had {' '.join(map(str, sorted(his)))}.")
+        await pause()
+        say(f"There are {total} x {f} on the table. The bid was {q} x {f}.")
         bidder_honest = total >= q
         you_win = bidder_honest if caller == "cole" else not bidder_honest
         if you_win:
@@ -2697,9 +2712,15 @@ async def holdem_hand(player, stacks, sb, bb, button):
     say(f"\n{'You have' if button == 'you' else 'Ide has'} the button. Blinds {sb}/{bb}.")
     say(f"Your cards: {cards_text(you)}")
     folded = None
+    shown = False
     for street in ("preflop", "flop", "turn", "river"):
         t["street"] = street
         if street != "preflop":
+            if not (stacks["you"] > 0 and stacks["her"] > 0):
+                if not shown:
+                    say(f"\nAll in. Ide turns over {cards_text(her)}.")
+                    shown = True
+                await pause()
             board += [deck.pop() for _ in range(3 if street == "flop" else 1)]
             say(f"\n{street.capitalize()}: {cards_text(board)}    You: {cards_text(you)} "
                 f"({POKER_HANDS[hand_rank(you + board)[0]]})")
@@ -2719,9 +2740,11 @@ async def holdem_hand(player, stacks, sb, bb, button):
     while len(board) < 5:
         board.append(deck.pop())
     mine, hers = hand_rank(you + board), hand_rank(her + board)
-    say(f"\nBoard: {cards_text(board)}")
+    say(f"\nShowdown. Board: {cards_text(board)}")
     say(f"You: {cards_text(you)} - {POKER_HANDS[mine[0]]}")
+    await pause()
     say(f"Ide: {cards_text(her)} - {POKER_HANDS[hers[0]]}")
+    await pause()
     if mine == hers:
         stacks["you"] += t["pot"] - t["pot"] // 2
         stacks["her"] += t["pot"] // 2
@@ -2815,7 +2838,9 @@ async def roulette(player):
             continue
         n = random.randint(0, 36)
         colour = "green" if n == 0 else "red" if n in ROULETTE_RED else "black"
-        say(f"Madame Zero spins. The ball rattles, skips, and drops into {n} {colour}.")
+        say("Madame Zero spins. The ball rattles round the rim, skips, skips again...")
+        await pause()
+        say(f"...and drops into {n} {colour}.")
         if wins(n):
             player.caps += stake * pays
             say(f"You win {stake * pays} caps.")
@@ -2838,6 +2863,7 @@ async def dead_mans_spin(player):
         return
     say("You spin the cylinder. It clicks round and stops. The barrel is cold against your temple. The bar goes "
         "quiet. You pull the trigger.")
+    await pause()
     if random.randint(1, 6) == 1:
         if getattr(player, "practice", False):
             say("BANG.\n\nIn the wasteland, that's the end of your story. Practice chips don't bleed. This time.")
