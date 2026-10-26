@@ -4,7 +4,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Semi+Condensed:wght@500;700&display=swap">
 <style>
-  /* Layout: one full-screen dusk court on canvas, a thin scoreboard strip floating over the top. */
+  /* Layout: one full-screen dusk court on canvas, a thin scoreboard strip floating over the top, power-up chips painted on the asphalt. */
   :root {
     --sky-top: #0f2140;
     --sky-low: #2b5a78;
@@ -15,11 +15,20 @@
     --gold: #ffc857;
     --ink: #f5efe6;
     --ink-dim: #a9b6c6;
+    --panel: rgba(12, 22, 40, 0.94);
+    --p-wide: #3ec7b8;
+    --p-double: #ffc857;
+    --p-laser: #ff6fa8;
+    --p-magnet: #a593ff;
+    --p-slow: #6fb8ff;
+    --p-triple: #8fd14f;
+    --p-fire: #ff7a2f;
     --font-display: "Bungee", "Impact", "Arial Black", sans-serif;
     --font-body: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
     color-scheme: dark;
   }
   html, body { height: 100%; }
+  [hidden] { display: none !important; }
   body { margin: 0; background: var(--sky-top); color: var(--ink); font-family: var(--font-body); overflow: hidden; }
   .game { position: relative; height: 100%; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
   canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; }
@@ -34,6 +43,14 @@
   }
   .brand { font-family: var(--font-display); font-size: 1.15rem; letter-spacing: 0.02em; color: var(--ink); line-height: 1; }
   .brand small { display: block; margin-top: 6px; font-family: var(--font-body); font-weight: 500; font-size: 0.85rem; letter-spacing: 0.04em; color: var(--ink-dim); }
+  .help-btn {
+    pointer-events: auto; margin-top: 10px;
+    font: 700 0.78rem/1 var(--font-body); letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink); background: transparent; border: 1.5px solid var(--ink-dim); border-radius: 999px;
+    padding: 6px 12px; cursor: pointer;
+  }
+  .help-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .help-btn:focus-visible, .close-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
   .board { display: flex; gap: 18px; }
   .stat { text-align: right; }
   .stat .label { font-weight: 700; font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-dim); }
@@ -41,22 +58,101 @@
   .stat.main .val { color: var(--gold); }
   .bump { animation: bump 0.45s ease-out; }
   @keyframes bump { 0% { transform: scale(1); } 35% { transform: scale(1.35); } 100% { transform: scale(1); } }
+
+  .powers {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    pointer-events: none;
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    font: 700 0.8rem/1 var(--font-body); letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--asphalt); background: var(--c); border-radius: 4px; padding: 5px 8px;
+  }
+  .chip b { font-family: var(--font-display); font-weight: 400; font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+
+  .toast {
+    position: absolute; left: 50%; top: 84px; transform: translateX(-50%);
+    width: max-content; max-width: calc(100% - 32px);
+    text-align: center; pointer-events: none;
+    opacity: 0; transition: opacity 0.25s, transform 0.25s;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(6px); }
+  .toast strong { display: block; font-family: var(--font-display); font-weight: 400; font-size: 1.4rem; color: var(--c, var(--gold)); letter-spacing: 0.02em; }
+  .toast span { font-weight: 500; font-size: 1rem; color: var(--ink); }
+
+  .help {
+    position: absolute; inset: 0; background: var(--panel);
+    display: flex; justify-content: center; overflow-y: auto;
+    padding-block: 24px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .help-inner { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 18px; }
+  .help h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; text-wrap: balance; }
+  .help h3 { margin: 0; font-weight: 700; font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-dim); }
+  .help ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .help li { display: grid; grid-template-columns: 4.5rem 1fr; gap: 12px; align-items: baseline; font-size: 1.02rem; line-height: 1.35; }
+  .help li .tag { font-family: var(--font-display); font-size: 0.8rem; color: var(--c, var(--gold)); }
+  .help li em { font-style: normal; color: var(--ink-dim); }
+  .close-btn {
+    align-self: flex-start;
+    font: 700 0.9rem/1 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase;
+    background: var(--gold); color: var(--asphalt); border: 0; border-radius: 999px; padding: 10px 18px; cursor: pointer;
+  }
+
   @media (max-width: 520px) {
     .brand small { display: none; }
     .board { gap: 12px; }
     .stat .val { font-size: 1.5rem; }
+    .toast { top: 96px; }
   }
-  @media (prefers-reduced-motion: reduce) { .bump { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .bump { animation: none; } .toast { transition: none; } }
 </style>
 
 <div class="game" id="game">
-  <canvas id="court" aria-label="Basketball court. Drag back from anywhere and release to shoot at the hoop." role="img"></canvas>
+  <canvas id="court" aria-label="Basketball court. Drag back from anywhere and release to shoot at the hoop. Hit passing birds for power-ups." role="img"></canvas>
   <div class="hud">
-    <div class="brand">Hoop Shot<small>Drag back anywhere, aim, let go</small></div>
+    <div class="brand">Hoop Shot<small>Drag back anywhere, aim, let go. Hit birds for power-ups.</small>
+      <div><button class="help-btn" id="help-open" type="button">Power-ups &amp; rules</button></div>
+    </div>
     <div class="board">
-      <div class="stat main"><div class="label">Buckets</div><div class="val" id="score">0</div></div>
+      <div class="stat main"><div class="label">Points</div><div class="val" id="score">0</div></div>
       <div class="stat"><div class="label">Streak</div><div class="val" id="streak">0</div></div>
       <div class="stat"><div class="label">Best</div><div class="val" id="best">0</div></div>
+    </div>
+  </div>
+  <div class="powers" id="powers" aria-live="polite"></div>
+  <div class="toast" id="toast" aria-live="polite"><strong></strong><span></span></div>
+
+  <div class="help" id="help" hidden>
+    <div class="help-inner">
+      <h2>Power-ups &amp; rules</h2>
+      <h3>Scoring</h3>
+      <ul>
+        <li><span class="tag">+3</span><span>Swish: the ball drops in without touching the rim or board.</span></li>
+        <li><span class="tag">+2</span><span>Bucket: it goes in after a bounce.</span></li>
+        <li><span class="tag">+1</span><span>Hit a bird. It also drops the power-up written above it.</span></li>
+        <li><span class="tag" style="--c: var(--p-fire)">Fire</span><span>Make 3 in a row and you're on fire: points x2 until you miss.</span></li>
+      </ul>
+      <h3>Birds carry these power-ups</h3>
+      <ul>
+        <li><span class="tag" style="--c: var(--p-wide)">WIDE</span><span>Wide Rim: the basket is twice as wide. <em>3 shots</em></span></li>
+        <li><span class="tag" style="--c: var(--p-double)">x2</span><span>Double Points on every basket. <em>3 shots</em></span></li>
+        <li><span class="tag" style="--c: var(--p-laser)">AIM</span><span>Laser Sight: the guide shows the whole flight. <em>3 shots</em></span></li>
+        <li><span class="tag" style="--c: var(--p-magnet)">MAG</span><span>Magnet Rim: the hoop pulls in near misses. <em>2 shots</em></span></li>
+        <li><span class="tag" style="--c: var(--p-slow)">SLOW</span><span>Slow Motion: the ball flies at half speed. <em>3 shots</em></span></li>
+        <li><span class="tag" style="--c: var(--p-triple)">x3</span><span>Triple Shot: your next throw fires three balls. <em>1 shot</em></span></li>
+      </ul>
+      <h3>It gets harder</h3>
+      <ul>
+        <li><span class="tag">8</span><span>After 8 baskets the hoop starts sliding side to side.</span></li>
+        <li><span class="tag">15</span><span>After 15 baskets wind pushes the ball. The aim guide includes it.</span></li>
+      </ul>
+      <button class="close-btn" id="help-close" type="button">Back to the court</button>
     </div>
   </div>
 </div>
@@ -66,18 +162,37 @@
   const wrap = document.getElementById('game');
   const cv = document.getElementById('court');
   const ctx = cv.getContext('2d');
-  const el = { score: document.getElementById('score'), streak: document.getElementById('streak'), best: document.getElementById('best') };
+  const el = {
+    score: document.getElementById('score'), streak: document.getElementById('streak'), best: document.getElementById('best'),
+    powers: document.getElementById('powers'), toast: document.getElementById('toast'), help: document.getElementById('help'),
+  };
   const css = getComputedStyle(document.documentElement);
   const C = name => css.getPropertyValue(name).trim();
-  const COL = { skyTop: C('--sky-top'), skyLow: C('--sky-low'), asphalt: C('--asphalt'), paint: C('--paint'), ball: C('--ball'), rim: C('--rim'), gold: C('--gold'), ink: C('--ink'), dim: C('--ink-dim') };
+  const COL = { skyTop: C('--sky-top'), skyLow: C('--sky-low'), asphalt: C('--asphalt'), paint: C('--paint'), ball: C('--ball'), rim: C('--rim'), gold: C('--gold'), ink: C('--ink'), dim: C('--ink-dim'), fire: C('--p-fire') };
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  let W, H, R, G, floorY, launch, maxPull, maxSpeed;
-  let hoop = null, ball = null, drag = null, phase = 'aim', phaseT = 0;
-  let flash = null, particles = [], netSway = 0, stars = [];
-  const st = { score: 0, streak: 0, best: 0 };
+  const POWERS = {
+    wide:   { name: 'Wide Rim',      desc: 'Double-width basket for 3 shots',       shots: 3, tag: 'WIDE' },
+    double: { name: 'Double Points', desc: 'Every basket scores x2 for 3 shots',    shots: 3, tag: 'x2' },
+    laser:  { name: 'Laser Sight',   desc: 'Full flight path for 3 shots',          shots: 3, tag: 'AIM' },
+    magnet: { name: 'Magnet Rim',    desc: 'The hoop pulls the ball in for 2 shots', shots: 2, tag: 'MAG' },
+    slow:   { name: 'Slow Motion',   desc: 'Half-speed flight for 3 shots',         shots: 3, tag: 'SLOW' },
+    triple: { name: 'Triple Shot',   desc: 'Your next throw fires three balls',     shots: 1, tag: 'x3' },
+  };
+  for (const k in POWERS) POWERS[k].color = C('--p-' + k);
+  const POWER_KEYS = Object.keys(POWERS);
+  const MOVE_AT = 8, WIND_AT = 15;
 
-  try { st.best = Number(localStorage.getItem('hoopshot-best')) || 0; } catch (e) {}
+  let W, H, R, G, floorY, launch, maxPull, maxSpeed;
+  let hoop = null, shot = null, drag = null, phase = 'aim', phaseT = 0, clock = 0, paused = false;
+  let flash = null, particles = [], netSway = 0, stars = [], birds = [], birdTimer = 2.5;
+  let active = {}, toastTimer = null;
+  const st = { score: 0, streak: 0, best: 0, makes: 0 };
+
+  try { st.best = Number(localStorage.getItem('hoopshot-best-points')) || 0; } catch (e) {}
+
+  const has = k => !!active[k];
+  const onFire = () => st.streak >= 3;
 
   function resize() {
     const r = wrap.getBoundingClientRect();
@@ -94,40 +209,56 @@
     maxSpeed = Math.hypot(1.9 * H, 1.0 * W);
     stars = Array.from({ length: 40 }, (_, i) => ({ x: (i * 97.3 % 100) / 100 * W, y: (i * 53.7 % 100) / 100 * H * 0.5, r: (i % 3) * 0.4 + 0.5 }));
     if (hoop) layoutHoop(); else newHoop();
-    if (phase !== 'flying') resetBall();
+    if (phase === 'aim') resetShot();
   }
 
+  // ---- hoop ----
   function layoutHoop() {
-    const rimW = R * 2 * 2.4;
+    const baseW = R * 2 * 2.4;
+    const rimW = baseW * (has('wide') ? 2 : 1);
     const cx = hoop.fx * W, y = hoop.fy * H;
     hoop.y = y;
-    hoop.l = cx - rimW / 2;
-    hoop.r = cx + rimW / 2;
-    hoop.bx = hoop.r + R * 0.45;          // backboard face
+    hoop.r = cx + baseW / 2;              // the board stays put; Wide Rim grows the rim toward the shooter
+    hoop.l = hoop.r - rimW;
+    hoop.bx = hoop.r + R * 0.45;
     hoop.bw = Math.max(4, R * 0.45);
     hoop.bt = y - R * 5.2;
     hoop.bb = y + R * 1.3;
   }
 
   function newHoop() {
-    const minFx = Math.max(0.42, (launch.x + R * 12) / W);
-    const maxFx = Math.max(minFx, 1 - (R * 7) / W);
+    const moving = st.makes >= MOVE_AT;
+    const amp = moving ? Math.min(0.16, 0.04 + (st.makes - MOVE_AT) * 0.012) : 0;
+    const minFx = Math.max(0.42, (launch.x + R * 12) / W) + amp;
+    const maxFx = Math.max(minFx, 1 - (R * 7) / W - amp);
     let fx, fy, tries = 0;
     do {
       fx = minFx + Math.random() * (maxFx - minFx);
       fy = 0.2 + Math.random() * 0.42;
       tries++;
-    } while (hoop && tries < 20 && Math.hypot((fx - hoop.fx) * W, (fy - hoop.fy) * H) < Math.min(W, H) * 0.22);
-    hoop = { fx, fy, appear: 0 };
+    } while (hoop && tries < 20 && Math.hypot((fx - hoop.baseFx) * W, (fy - hoop.fy) * H) < Math.min(W, H) * 0.22);
+    const windOn = st.makes >= WIND_AT;
+    const windMax = Math.min(1, 0.45 + (st.makes - WIND_AT) * 0.05);
+    hoop = {
+      baseFx: fx, fx, fy, appear: 0,
+      amp, speed: 0.7 + Math.random() * 0.5 + amp * 3, ph: Math.random() * Math.PI * 2,
+      wind: windOn ? (Math.random() * 2 - 1) * windMax : 0,
+    };
     layoutHoop();
   }
 
-  function resetBall() {
-    ball = { x: launch.x, y: launch.y, vx: 0, vy: 0, spin: 0, touched: false, scored: false, prevY: launch.y };
+  const windAccel = () => (hoop ? hoop.wind : 0) * G * 0.14;
+
+  // ---- shots and balls ----
+  function makeBall(x, y) {
+    return { x, y, vx: 0, vy: 0, spin: 0, touched: false, scored: false, rest: false, prevY: y, trail: [] };
+  }
+
+  function resetShot() {
+    shot = { balls: [makeBall(launch.x, launch.y)], t: 0, scoredAt: null, fire: false, hits: 0 };
     phase = 'aim'; phaseT = 0;
   }
 
-  // ---- input ----
   function pullVector() {
     let dx = drag.sx - drag.x, dy = drag.sy - drag.y;
     const d = Math.hypot(dx, dy);
@@ -136,7 +267,7 @@
   }
 
   cv.addEventListener('pointerdown', e => {
-    if (phase !== 'aim') return;
+    if (phase !== 'aim' || paused) return;
     cv.setPointerCapture(e.pointerId);
     drag = { id: e.pointerId, sx: e.offsetX, sy: e.offsetY, x: e.offsetX, y: e.offsetY };
     cv.classList.add('dragging');
@@ -145,112 +276,229 @@
     if (!drag || e.pointerId !== drag.id) return;
     drag.x = e.offsetX; drag.y = e.offsetY;
   });
-  const release = e => {
+  cv.addEventListener('pointerup', e => {
     if (!drag || e.pointerId !== drag.id) return;
     const p = pullVector();
     drag = null;
     cv.classList.remove('dragging');
     if (p.d < maxPull * 0.08) return;   // too small a pull counts as a cancel
-    const k = maxSpeed / maxPull;
-    ball.vx = p.dx * k; ball.vy = p.dy * k;
-    ball.spin = -ball.vx / R * 0.02;
-    phase = 'flying'; phaseT = 0;
-  };
-  cv.addEventListener('pointerup', release);
+    shoot(p.dx * maxSpeed / maxPull, p.dy * maxSpeed / maxPull);
+  });
   cv.addEventListener('pointercancel', e => { if (drag && e.pointerId === drag.id) { drag = null; cv.classList.remove('dragging'); } });
 
+  function shoot(vx, vy) {
+    const spread = has('triple') ? [-0.08, 0, 0.08] : [0];
+    shot.balls = spread.map(a => {
+      const b = makeBall(launch.x, launch.y);
+      b.vx = vx * Math.cos(a) - vy * Math.sin(a);
+      b.vy = vx * Math.sin(a) + vy * Math.cos(a);
+      return b;
+    });
+    shot.fire = onFire();
+    phase = 'flying'; phaseT = 0; shot.t = 0;
+  }
+
   // ---- physics ----
-  function hitPoint(px, py, pr, e) {
-    const dx = ball.x - px, dy = ball.y - py;
+  function hitPoint(b, px, py, pr, e) {
+    const dx = b.x - px, dy = b.y - py;
     const d = Math.hypot(dx, dy), min = R + pr;
     if (d >= min || d === 0) return false;
     const nx = dx / d, ny = dy / d;
-    ball.x = px + nx * min; ball.y = py + ny * min;
-    const vn = ball.vx * nx + ball.vy * ny;
-    if (vn < 0) { ball.vx -= (1 + e) * vn * nx; ball.vy -= (1 + e) * vn * ny; }
+    b.x = px + nx * min; b.y = py + ny * min;
+    const vn = b.vx * nx + b.vy * ny;
+    if (vn < 0) { b.vx -= (1 + e) * vn * nx; b.vy -= (1 + e) * vn * ny; }
     return true;
   }
 
-  function hitBoard() {
-    // backboard as a rectangle: find the closest point and bounce off it
-    const px = Math.max(hoop.bx, Math.min(ball.x, hoop.bx + hoop.bw));
-    const py = Math.max(hoop.bt, Math.min(ball.y, hoop.bb));
-    return hitPoint(px, py, 0, 0.6);
-  }
-
-  function step(dt) {
-    ball.prevY = ball.y;
-    ball.vy += G * dt;
-    ball.x += ball.vx * dt;
-    ball.y += ball.vy * dt;
-    ball.spin += ball.vx / R * dt * 0.15;
+  function step(b, dt) {
+    b.prevY = b.y;
+    b.vy += G * dt;
+    b.vx += windAccel() * dt;
+    if (has('magnet') && !b.scored) {
+      const cx = (hoop.l + hoop.r) / 2, cy = hoop.y - R * 0.6;
+      const dx = cx - b.x, dy = cy - b.y, d = Math.hypot(dx, dy);
+      if (d < R * 11 && d > 1) { const f = G * 1.1 * (1 - d / (R * 11)); b.vx += dx / d * f * dt; b.vy += dy / d * f * dt; }
+    }
+    b.x += b.vx * dt;
+    b.y += b.vy * dt;
+    b.spin += b.vx / R * dt * 0.15;
 
     const rimR = Math.max(2, R * 0.2);
-    if (hitPoint(hoop.l, hoop.y, rimR, 0.5)) ball.touched = true;
-    if (hitPoint(hoop.r, hoop.y, rimR, 0.5)) ball.touched = true;
-    if (hitBoard()) ball.touched = true;
-    // pole below the board
-    if (ball.y > hoop.bb) hitPoint(hoop.bx + hoop.bw / 2, ball.y, R * 0.2, 0.4);
+    if (hitPoint(b, hoop.l, hoop.y, rimR, 0.5)) b.touched = true;
+    if (hitPoint(b, hoop.r, hoop.y, rimR, 0.5)) b.touched = true;
+    const px = Math.max(hoop.bx, Math.min(b.x, hoop.bx + hoop.bw));
+    const py = Math.max(hoop.bt, Math.min(b.y, hoop.bb));
+    if (hitPoint(b, px, py, 0, 0.6)) b.touched = true;
+    if (b.y > hoop.bb) hitPoint(b, hoop.bx + hoop.bw / 2, b.y, R * 0.2, 0.4);
 
-    if (!ball.scored && ball.prevY < hoop.y && ball.y >= hoop.y && ball.vy > 0 && ball.x > hoop.l && ball.x < hoop.r) {
-      ball.scored = true;
-      ball.vx *= 0.35; ball.vy *= 0.55;  // the net grabs it
-      score();
+    if (!b.scored && b.prevY < hoop.y && b.y >= hoop.y && b.vy > 0 && b.x > hoop.l && b.x < hoop.r) {
+      b.scored = true;
+      b.vx *= 0.35; b.vy *= 0.55;  // the net grabs it
+      scoreBall(b);
     }
 
-    if (ball.y + R > floorY) {
-      ball.y = floorY - R;
-      ball.vy *= -0.55;
-      ball.vx *= 0.8;
-      if (Math.abs(ball.vy) < G * 0.04) ball.vy = 0;
+    for (const bird of birds) {
+      if (!bird.hit && Math.hypot(b.x - bird.x, b.y - bird.y) < R + bird.s * 1.2) hitBird(bird);
     }
-    if (ball.x - R < 0) { ball.x = R; ball.vx = Math.abs(ball.vx) * 0.6; }
-    if (ball.x + R > W) { ball.x = W - R; ball.vx = -Math.abs(ball.vx) * 0.6; }
+
+    if (b.y + R > floorY) {
+      b.y = floorY - R;
+      b.vy *= -0.55;
+      b.vx *= 0.8;
+      if (Math.abs(b.vy) < G * 0.04) b.vy = 0;
+    }
+    if (b.x - R < 0) { b.x = R; b.vx = Math.abs(b.vx) * 0.6; }
+    if (b.x + R > W) { b.x = W - R; b.vx = -Math.abs(b.vx) * 0.6; }
+    b.rest = b.vy === 0 && Math.abs(b.vx) < R * 0.5 && b.y >= floorY - R - 0.5;
   }
 
-  function score() {
-    st.score++; st.streak++;
-    if (st.score > st.best) { st.best = st.score; try { localStorage.setItem('hoopshot-best', String(st.best)); } catch (e) {} }
-    flash = { text: ball.touched ? 'Bucket!' : 'Swish!', t: 0, x: (hoop.l + hoop.r) / 2, y: hoop.y - R * 6.5, color: ball.touched ? COL.ink : COL.gold };
+  // ---- scoring and power-ups ----
+  function scoreBall(b) {
+    const first = shot.scoredAt === null;
+    if (first) { shot.scoredAt = shot.t; st.streak++; }
+    st.makes++;
+    const base = b.touched ? 2 : 3;
+    const mult = (has('double') ? 2 : 1) * (shot.fire ? 2 : 1);
+    addPoints(base * mult);
+    const label = (b.touched ? 'Bucket! +' : 'Swish! +') + base * mult;
+    flash = { text: label, t: 0, x: (hoop.l + hoop.r) / 2, y: hoop.y - R * 6.5, color: b.touched ? COL.ink : COL.gold };
     netSway = 1;
-    if (!reduceMotion) {
-      for (let i = 0; i < 26; i++) {
-        const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.2, s = (0.4 + Math.random()) * H * 0.6;
-        particles.push({ x: (hoop.l + hoop.r) / 2, y: hoop.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0.9 + Math.random() * 0.5, t: 0, c: [COL.gold, COL.rim, COL.paint, COL.ball][i % 4] });
-      }
-    }
-    phase = 'scored'; phaseT = 0;
+    burst((hoop.l + hoop.r) / 2, hoop.y, 26, [COL.gold, COL.rim, COL.paint, COL.ball]);
+    if (first && st.streak === 3) showToast('On fire!', 'Points x2 until you miss', COL.fire);
+    if (st.makes === MOVE_AT) showToast('Moving hoops', 'From the next basket on, the hoop slides', COL.gold);
+    if (st.makes === WIND_AT) showToast('Wind picks up', 'Watch the arrow at the top', COL.gold);
     updateHud(true);
   }
 
-  function miss() {
-    st.streak = 0;
-    flash = { text: 'Miss', t: 0, x: ball.x, y: ball.y - R * 3, color: COL.dim };
+  function addPoints(n) {
+    st.score += n;
+    if (st.score > st.best) { st.best = st.score; try { localStorage.setItem('hoopshot-best-points', String(st.best)); } catch (e) {} }
+  }
+
+  function hitBird(bird) {
+    bird.hit = true;
+    const p = POWERS[bird.type];
+    if (active[bird.type]) { active[bird.type].left += p.shots; active[bird.type].fresh = true; }
+    else active[bird.type] = { left: p.shots, fresh: true };
+    addPoints(1);
+    burst(bird.x, bird.y, 18, [p.color, COL.paint]);
+    showToast(p.name, p.desc + ' · +1 point', p.color);
+    if (bird.type === 'wide') layoutHoop();
+    updateHud(true);
+  }
+
+  function endShot(scored) {
+    for (const k of Object.keys(active)) {
+      const a = active[k];
+      if (a.fresh) { a.fresh = false; continue; }   // a power-up caught mid-shot starts with the next one
+      if (--a.left <= 0) delete active[k];
+    }
+    if (scored) newHoop();
+    else layoutHoop();
+    resetShot();
     updateHud(false);
   }
 
+  function miss() {
+    const b = shot.balls[0];
+    if (st.streak >= 3) showToast('Fire is out', 'Make 3 in a row to light it again', COL.dim);
+    st.streak = 0;
+    flash = { text: 'Miss', t: 0, x: b.x, y: b.y - R * 3, color: COL.dim };
+    updateHud(false);
+  }
+
+  function burst(x, y, n, colors) {
+    if (reduceMotion) return;
+    for (let i = 0; i < n; i++) {
+      const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.4, s = (0.3 + Math.random()) * H * 0.55;
+      particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0.8 + Math.random() * 0.5, t: 0, c: colors[i % colors.length] });
+    }
+  }
+
+  // ---- HUD ----
   function updateHud(bumped) {
     el.score.textContent = st.score;
     el.streak.textContent = st.streak;
     el.best.textContent = st.best;
     if (bumped) { el.score.classList.remove('bump'); void el.score.offsetWidth; el.score.classList.add('bump'); }
+    const chips = [];
+    if (onFire()) chips.push(`<span class="chip" style="--c:${COL.fire}">On fire <b>x2</b></span>`);
+    for (const k of Object.keys(active)) {
+      const n = active[k].left;
+      chips.push(`<span class="chip" style="--c:${POWERS[k].color}">${POWERS[k].name} <b>${n}</b></span>`);
+    }
+    el.powers.innerHTML = chips.join('');
   }
 
+  function showToast(title, text, color) {
+    el.toast.style.setProperty('--c', color);
+    el.toast.querySelector('strong').textContent = title;
+    el.toast.querySelector('span').textContent = text;
+    el.toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.toast.classList.remove('show'), 2200);
+  }
+
+  document.getElementById('help-open').addEventListener('click', () => { el.help.hidden = false; paused = true; drag = null; document.getElementById('help-close').focus(); });
+  document.getElementById('help-close').addEventListener('click', () => { el.help.hidden = true; paused = false; });
+  window.addEventListener('keydown', e => { if (e.key === 'Escape' && !el.help.hidden) { el.help.hidden = true; paused = false; } });
+
+  // ---- birds ----
+  function spawnBird() {
+    const dir = Math.random() < 0.5 ? 1 : -1;
+    const s = R * 0.8;
+    birds.push({
+      type: POWER_KEYS[Math.floor(Math.random() * POWER_KEYS.length)],
+      x: dir > 0 ? -s * 3 : W + s * 3,
+      baseY: H * (0.12 + Math.random() * 0.36),
+      y: 0, dir, s,
+      speed: Math.max(70, W * (0.07 + Math.random() * 0.07)),
+      flap: Math.random() * 10, bob: Math.random() * 10, hit: false,
+    });
+  }
+
+  function updateBirds(dt) {
+    birdTimer -= dt;
+    if (birdTimer <= 0) {
+      if (birds.length < 2) spawnBird();
+      birdTimer = 3 + Math.random() * 4;
+    }
+    for (const b of birds) {
+      b.x += b.dir * b.speed * dt;
+      b.flap += dt;
+      b.y = b.baseY + Math.sin(b.flap * 2 + b.bob) * R * 0.8;
+    }
+    birds = birds.filter(b => !b.hit && b.x > -b.s * 4 && b.x < W + b.s * 4);
+  }
+
+  // ---- loop ----
   function update(dt) {
+    clock += dt;
     phaseT += dt;
     if (hoop.appear < 1) hoop.appear = Math.min(1, hoop.appear + dt * 3);
-    if (phase === 'flying' || phase === 'scored' || phase === 'missed') {
-      const n = 6;
-      for (let i = 0; i < n; i++) step(dt / n);
-    }
+    if (hoop.amp) { hoop.fx = hoop.baseFx + hoop.amp * Math.sin(clock * hoop.speed + hoop.ph); layoutHoop(); }
+
+    const timeScale = has('slow') && phase === 'flying' ? 0.5 : 1;
+    updateBirds(dt * timeScale);
+
     if (phase === 'flying') {
-      const resting = ball.vy === 0 && Math.abs(ball.vx) < R * 0.5 && ball.y >= floorY - R - 0.5;
-      if (resting || phaseT > 5) { miss(); phase = 'missed'; phaseT = 0; }
-    } else if (phase === 'scored' && phaseT > 1.2) {
-      newHoop(); resetBall();
+      const sdt = dt * timeScale;
+      shot.t += sdt;
+      const n = 6;
+      for (const b of shot.balls) {
+        if (b.rest) continue;
+        for (let i = 0; i < n; i++) step(b, sdt / n);
+        if (shot.fire || has('slow')) { b.trail.push([b.x, b.y]); if (b.trail.length > 9) b.trail.shift(); }
+      }
+      if (shot.scoredAt !== null) {
+        if (shot.t - shot.scoredAt > 1.2) endShot(true);
+      } else if (shot.balls.every(b => b.rest) || shot.t > 5) {
+        miss(); phase = 'missed'; phaseT = 0;
+      }
     } else if (phase === 'missed' && phaseT > 0.7) {
-      resetBall();
+      endShot(false);
     }
+
     netSway = Math.max(0, netSway - dt * 1.4);
     particles = particles.filter(p => (p.t += dt) < p.life);
     for (const p of particles) { p.vy += G * 0.6 * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
@@ -268,32 +516,48 @@
     ctx.fillStyle = COL.asphalt; ctx.fillRect(0, floorY, W, H - floorY);
     ctx.strokeStyle = COL.paint; ctx.globalAlpha = 0.5; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(0, floorY + 1); ctx.lineTo(W, floorY + 1); ctx.stroke();
-    // shooting spot
     ctx.globalAlpha = 0.6;
     ctx.beginPath(); ctx.ellipse(launch.x, floorY + (H - floorY) * 0.45, R * 1.8, R * 0.45, 0, 0, Math.PI * 2); ctx.stroke();
     ctx.globalAlpha = 1;
   }
 
+  function drawWind() {
+    if (!hoop.wind) return;
+    const cx = W / 2, cy = Math.min(H * 0.2, 120), len = Math.abs(hoop.wind) * R * 5 + R;
+    const d = Math.sign(hoop.wind);
+    ctx.strokeStyle = COL.paint; ctx.fillStyle = COL.paint; ctx.lineWidth = 2; ctx.globalAlpha = 0.75;
+    ctx.beginPath(); ctx.moveTo(cx - d * len / 2, cy); ctx.lineTo(cx + d * len / 2, cy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + d * len / 2 + d * 6, cy); ctx.lineTo(cx + d * len / 2 - d * 4, cy - 6); ctx.lineTo(cx + d * len / 2 - d * 4, cy + 6); ctx.fill();
+    ctx.font = `700 ${Math.max(12, R * 0.8)}px ${C('--font-body')}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText(`WIND ${Math.round(Math.abs(hoop.wind) * 10)}`, cx, cy - 8);
+    ctx.globalAlpha = 1;
+  }
+
   function drawHoopBack() {
-    const a = easeOut(hoop.appear);
-    ctx.globalAlpha = a;
-    // pole
+    ctx.globalAlpha = easeOut(hoop.appear);
     ctx.fillStyle = '#4a5466';
-    const poleX = hoop.bx + hoop.bw / 2 - R * 0.2;
-    ctx.fillRect(poleX, hoop.bb, R * 0.4, floorY - hoop.bb);
-    // backboard
+    ctx.fillRect(hoop.bx + hoop.bw / 2 - R * 0.2, hoop.bb, R * 0.4, floorY - hoop.bb);
     ctx.fillStyle = COL.paint;
     ctx.fillRect(hoop.bx, hoop.bt, hoop.bw, hoop.bb - hoop.bt);
     ctx.fillStyle = COL.rim;
     ctx.fillRect(hoop.bx - 1, hoop.y - R * 2.2, 2, R * 2.2);
+    if (has('magnet')) {
+      const cx = (hoop.l + hoop.r) / 2, t = (clock * 0.8) % 1;
+      ctx.strokeStyle = POWERS.magnet.color; ctx.lineWidth = 2;
+      for (let i = 0; i < 3; i++) {
+        const k = (t + i / 3) % 1;
+        ctx.globalAlpha = (1 - k) * 0.5;
+        ctx.beginPath(); ctx.arc(cx, hoop.y, R * (2 + k * 9), 0, Math.PI * 2); ctx.stroke();
+      }
+    }
     ctx.globalAlpha = 1;
   }
 
   function drawHoopFront() {
     const a = easeOut(hoop.appear);
-    ctx.globalAlpha = a;
-    const strands = 6, depth = R * 2.8, top = hoop.y;
-    const w = hoop.r - hoop.l, inset = w * 0.22;
+    const strands = has('wide') ? 10 : 6, depth = R * 2.8, top = hoop.y;
+    const w = hoop.r - hoop.l, inset = w * 0.18;
     const sway = reduceMotion ? 0 : Math.sin(netSway * 18) * netSway * R * 0.5;
     const stretch = netSway * R * 0.9;
     ctx.strokeStyle = COL.paint; ctx.lineWidth = 1.2; ctx.globalAlpha = a * 0.85;
@@ -310,12 +574,35 @@
     }
     ctx.moveTo(...botPts[0]); ctx.lineTo(...botPts[strands]);
     ctx.stroke();
-    // rim
     ctx.globalAlpha = a;
-    ctx.strokeStyle = COL.rim; ctx.lineWidth = Math.max(3, R * 0.32); ctx.lineCap = 'round';
+    ctx.strokeStyle = has('wide') ? POWERS.wide.color : COL.rim;
+    ctx.lineWidth = Math.max(3, R * 0.32); ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(hoop.l, top); ctx.lineTo(hoop.bx, top); ctx.stroke();
     ctx.lineCap = 'butt';
     ctx.globalAlpha = 1;
+  }
+
+  function drawBird(b) {
+    const p = POWERS[b.type], s = b.s;
+    const wing = Math.sin(b.flap * 14);
+    ctx.save();
+    ctx.translate(b.x, b.y); ctx.scale(b.dir, 1);
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.ellipse(0, 0, s * 1.15, s * 0.6, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(s * 1.0, -s * 0.35, s * 0.45, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-s * 0.9, -s * 0.1); ctx.lineTo(-s * 1.8, -s * 0.5); ctx.lineTo(-s * 1.7, s * 0.3); ctx.fill();
+    ctx.fillStyle = COL.gold;
+    ctx.beginPath(); ctx.moveTo(s * 1.35, -s * 0.45); ctx.lineTo(s * 1.85, -s * 0.3); ctx.lineTo(s * 1.35, -s * 0.15); ctx.fill();
+    ctx.fillStyle = COL.asphalt;
+    ctx.beginPath(); ctx.arc(s * 1.1, -s * 0.45, Math.max(1.2, s * 0.1), 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = COL.paint; ctx.globalAlpha = 0.9;
+    ctx.beginPath(); ctx.moveTo(-s * 0.4, -s * 0.1); ctx.lineTo(-s * 0.1, -s * 0.2 - wing * s * 1.4); ctx.lineTo(s * 0.5, -s * 0.1); ctx.fill();
+    ctx.restore();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = p.color;
+    ctx.font = `${Math.max(10, R * 0.7)}px ${C('--font-display')}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText(p.tag, b.x, b.y - s * 1.6);
   }
 
   function drawBall(x, y, rot) {
@@ -329,13 +616,22 @@
     ctx.beginPath(); ctx.arc(-R * 1.25, 0, R * 0.85, -0.85, 0.85); ctx.stroke();
     ctx.beginPath(); ctx.arc(R * 1.25, 0, R * 0.85, Math.PI - 0.85, Math.PI + 0.85); ctx.stroke();
     ctx.restore();
-    // highlight
     ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
     ctx.beginPath(); ctx.arc(x - R * 0.35, y - R * 0.35, R * 0.35, 0, Math.PI * 2); ctx.fill();
   }
 
-  function drawShadow(x) {
-    const h = Math.max(0, floorY - (ball.y + R));
+  function drawTrail(b) {
+    const color = shot.fire ? COL.fire : POWERS.slow.color;
+    b.trail.forEach(([x, y], i) => {
+      const k = (i + 1) / b.trail.length;
+      ctx.globalAlpha = k * 0.45; ctx.fillStyle = color;
+      ctx.beginPath(); ctx.arc(x, y, R * (0.4 + k * 0.6), 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+  }
+
+  function drawShadow(x, y) {
+    const h = Math.max(0, floorY - (y + R));
     const s = Math.max(0.25, 1 - h / H);
     ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
     ctx.beginPath(); ctx.ellipse(x, floorY + 3, R * s, R * 0.3 * s, 0, 0, Math.PI * 2); ctx.fill();
@@ -345,28 +641,31 @@
     const p = pullVector();
     const power = p.d / maxPull;
     const bx = launch.x - p.dx, by = launch.y - p.dy;
-    // slingshot band
     ctx.strokeStyle = COL.paint; ctx.globalAlpha = 0.55; ctx.lineWidth = 2; ctx.setLineDash([4, 5]);
     ctx.beginPath(); ctx.moveTo(launch.x, launch.y); ctx.lineTo(bx, by); ctx.stroke();
     ctx.setLineDash([]); ctx.globalAlpha = 1;
-    // predicted path
+
     const k = maxSpeed / maxPull;
-    let x = launch.x, y = launch.y, vx = p.dx * k, vy = p.dy * k;
-    const dots = 16, dt = 0.045;
-    for (let i = 1; i <= dots; i++) {
-      for (let j = 0; j < 3; j++) { vy += G * dt / 3; x += vx * dt / 3; y += vy * dt / 3; }
-      if (y > floorY) break;
-      ctx.globalAlpha = (1 - i / dots) * 0.9;
-      ctx.fillStyle = COL.gold;
-      ctx.beginPath(); ctx.arc(x, y, Math.max(1.5, R * 0.16), 0, Math.PI * 2); ctx.fill();
+    const laser = has('laser');
+    const dots = laser ? 70 : 16, dt = laser ? 0.03 : 0.045;
+    const angles = has('triple') ? [-0.08, 0, 0.08] : [0];
+    for (const a of angles) {
+      let x = launch.x, y = launch.y;
+      let vx = (p.dx * Math.cos(a) - p.dy * Math.sin(a)) * k, vy = (p.dx * Math.sin(a) + p.dy * Math.cos(a)) * k;
+      for (let i = 1; i <= dots; i++) {
+        for (let j = 0; j < 3; j++) { vy += G * dt / 3; vx += windAccel() * dt / 3; x += vx * dt / 3; y += vy * dt / 3; }
+        if (y > floorY || x < 0 || x > W) break;
+        ctx.globalAlpha = laser ? 0.85 - (i / dots) * 0.4 : (1 - i / dots) * 0.9;
+        ctx.fillStyle = laser ? POWERS.laser.color : COL.gold;
+        ctx.beginPath(); ctx.arc(x, y, Math.max(1.5, R * (laser ? 0.12 : 0.16)), 0, Math.PI * 2); ctx.fill();
+      }
     }
     ctx.globalAlpha = 1;
-    // power ring around the launch spot
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)'; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.arc(launch.x, launch.y, R * 2.1, 0, Math.PI * 2); ctx.stroke();
     ctx.strokeStyle = power > 0.92 ? COL.rim : COL.gold;
     ctx.beginPath(); ctx.arc(launch.x, launch.y, R * 2.1, -Math.PI / 2, -Math.PI / 2 + power * Math.PI * 2); ctx.stroke();
-    drawShadow(bx);
+    drawShadow(bx, by);
     drawBall(bx, by, 0);
   }
 
@@ -389,7 +688,7 @@
     ctx.fillStyle = flash.color;
     ctx.font = `${Math.max(18, R * 1.9)}px ${C('--font-display')}`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    const x = Math.min(Math.max(flash.x, R * 4), W - R * 4);
+    const x = Math.min(Math.max(flash.x, R * 6), W - R * 6);
     ctx.fillText(flash.text, x, Math.max(R * 5, flash.y) - t * R * 2);
     ctx.globalAlpha = 1;
   }
@@ -399,9 +698,11 @@
   function draw() {
     ctx.clearRect(0, 0, W, H);
     drawBackground();
+    drawWind();
     drawHoopBack();
+    for (const b of birds) drawBird(b);
     if (phase === 'aim' && drag) drawAim();
-    else { drawShadow(ball.x); drawBall(ball.x, ball.y, ball.spin); }
+    else for (const b of shot.balls) { drawTrail(b); drawShadow(b.x, b.y); drawBall(b.x, b.y, b.spin); }
     drawHoopFront();
     for (const p of particles) {
       ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.c;
@@ -416,20 +717,24 @@
   function frame(now) {
     const dt = Math.min(0.033, (now - last) / 1000 || 0);
     last = now;
-    update(dt);
+    if (!paused) update(dt);
     draw();
     requestAnimationFrame(frame);
   }
 
   function start(saved) {
-    if (saved && typeof saved.score === 'number') { st.score = saved.score; st.streak = saved.streak || 0; st.best = Math.max(st.best, saved.best || 0); }
+    if (saved && typeof saved.score === 'number') {
+      st.score = saved.score; st.streak = saved.streak || 0; st.makes = saved.makes || 0;
+      st.best = Math.max(st.best, saved.best || 0);
+      if (saved.active) active = saved.active;
+    }
     resize();
     updateHud(false);
     window.addEventListener('resize', resize);
     requestAnimationFrame(frame);
   }
 
-  window.claude?.hot?.snapshot?.(() => ({ score: st.score, streak: st.streak, best: st.best }));
+  window.claude?.hot?.snapshot?.(() => ({ score: st.score, streak: st.streak, best: st.best, makes: st.makes, active }));
   window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
 </script>
