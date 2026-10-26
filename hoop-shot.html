@@ -180,6 +180,9 @@
     padding: 8px 14px; cursor: pointer;
   }
   .exit-btn:hover { border-color: var(--rim); color: var(--rim); }
+  .hud-actions { display: flex; gap: 8px; }
+  #sound-btn:hover { border-color: var(--gold); color: var(--gold); }
+  #sound-btn[aria-pressed="false"] { color: var(--ink-dim); border-style: dashed; }
   .exit-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
   .home .help-inner { justify-content: center; min-height: 100%; }
   .home-title { font-size: clamp(2.4rem, 9vw, 4rem) !important; line-height: 1; color: var(--gold); }
@@ -216,7 +219,10 @@
       <div class="stat" id="best-stat"><div class="label">Record</div><div class="val" id="best">0</div></div>
       <div class="stat timer" id="timer-stat" hidden><div class="label">Time</div><div class="val" id="timer">60</div></div>
     </div>
-    <button class="exit-btn" id="exit-btn" type="button">Exit</button>
+    <div class="hud-actions">
+      <button class="exit-btn" id="sound-btn" type="button" aria-pressed="true">Sound on</button>
+      <button class="exit-btn" id="exit-btn" type="button">Exit</button>
+    </div>
     </div>
   </div>
   <div class="powers" id="powers" aria-live="polite"></div>
@@ -360,6 +366,120 @@
   const ballDef = () => BALLS[ballType];
   const br = () => R * ballDef().size;
   const launchK = () => maxSpeed * ballDef().speed / maxPull;
+
+  // ---- sound: synthesized with Web Audio, tuned per ball ----
+  // body: the thump [start Hz, end Hz, seconds]; slap: surface contact noise [Hz, Q, seconds];
+  // ring: the hollow shell resonance [Hz, seconds]; mass sets how hard it rings metal and wood
+  const SOUNDS = {
+    basketball: { body: [150, 70, 0.16],  slap: [900, 1.2, 0.05],  ring: [320, 0.14],  level: 1,    mass: 1 },
+    tennis:     { body: [420, 300, 0.06], slap: [2200, 2, 0.03],   ring: null,         level: 0.6,  mass: 0.35 },
+    bowling:    { body: [70, 42, 0.45],   slap: [380, 0.8, 0.09],  ring: null,         level: 1.3,  mass: 2.2, rumble: true },
+    beach:      { body: [210, 150, 0.12], slap: [550, 0.7, 0.07],  ring: [170, 0.2],   level: 0.55, mass: 0.3 },
+    super:      { body: [950, 760, 0.05], slap: [3200, 2, 0.02],   ring: [1900, 0.09], level: 0.6,  mass: 0.3 },
+    netball:    { body: [180, 90, 0.13],  slap: [1100, 1.2, 0.045], ring: [380, 0.1],  level: 0.85, mass: 0.8 },
+    rugby:      { body: [130, 75, 0.14],  slap: [700, 1, 0.06],    ring: null,         level: 0.95, mass: 0.9, double: true },
+    pingpong:   { body: [1300, 1150, 0.045], slap: [4500, 3, 0.015], ring: [2600, 0.05], level: 0.55, mass: 0.08 },
+  };
+
+  const sfx = (() => {
+    let ac = null, out = null, noiseBuf = null, on = true;
+    try { on = localStorage.getItem('hoopshot-sound') !== 'off'; } catch (e) {}
+    function unlock() {
+      if (!on) return;
+      if (!ac) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        ac = new AC();
+        const comp = ac.createDynamicsCompressor();
+        out = ac.createGain(); out.gain.value = 0.7;
+        out.connect(comp); comp.connect(ac.destination);
+        noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+        const d = noiseBuf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      }
+      if (ac.state === 'suspended') ac.resume().catch(() => {});
+    }
+    const ready = () => on && ac && ac.state === 'running';
+    function env(g, t, peak, dur, attack = 0.003) {
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), t + attack);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + attack + dur);
+    }
+    function tone(f0, f1, dur, peak, at = 0, type = 'sine') {
+      const t = ac.currentTime + at, o = ac.createOscillator(), g = ac.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+      env(g, t, peak, dur); o.connect(g); g.connect(out); o.start(t); o.stop(t + dur + 0.05);
+    }
+    function noise(f0, f1, q, dur, peak, at = 0, type = 'bandpass') {
+      const t = ac.currentTime + at, src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+      src.buffer = noiseBuf; src.loop = true;
+      f.type = type; f.Q.value = q;
+      f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+      env(g, t, peak, dur); src.connect(f); f.connect(g); g.connect(out); src.start(t, Math.random() * 0.5); src.stop(t + dur + 0.05);
+    }
+    // inharmonic partials make the clang of a steel rim or pole
+    function metal(partials, decay, peak, at = 0) {
+      partials.forEach((f, i) => tone(f, f * 0.995, decay * (1 - i * 0.18), peak / (i + 1), at));
+    }
+    function bounce(p, v, at = 0) {
+      tone(p.body[0], p.body[1], p.body[2], 0.9 * v * p.level, at);
+      noise(p.slap[0], p.slap[0] * 0.8, p.slap[1], p.slap[2], 0.6 * v * p.level, at);
+      if (p.ring) tone(p.ring[0], p.ring[0] * 0.97, p.ring[1], 0.18 * v * p.level, at, 'triangle');
+      if (p.rumble) noise(140, 60, 0.7, 0.5, 0.5 * v, at, 'lowpass');
+      if (p.double) bounce({ ...p, double: false }, v * 0.45, at + 0.045 + Math.random() * 0.03);
+    }
+    return {
+      unlock,
+      get on() { return on; },
+      set on(v) {
+        on = v;
+        try { localStorage.setItem('hoopshot-sound', v ? 'on' : 'off'); } catch (e) {}
+        if (v) unlock(); else if (ac) ac.suspend().catch(() => {});
+      },
+      hit(kind, speed, b, type = ballType) {
+        if (!ready()) return;
+        const p = SOUNDS[type], v = Math.min(1, speed / (H * 1.6));
+        if (v < 0.03) return;
+        if (b) {   // one sound per surface per contact, not one per physics substep
+          const now = performance.now(), key = 'snd_' + kind;
+          if (b[key] && now - b[key] < 60) return;
+          b[key] = now;
+        }
+        const m = Math.sqrt(p.mass);
+        if (kind === 'rim') { metal([540, 1290, 2010, 2880], 0.55, 0.32 * v * m); bounce(p, v * 0.4); }
+        else if (kind === 'board') { tone(170, 115, 0.14, 0.5 * v * m); noise(1400, 1100, 1, 0.04, 0.3 * v * m); bounce(p, v * 0.5); }
+        else if (kind === 'pole') { metal([310, 820, 1450], 0.35, 0.28 * v * m); bounce(p, v * 0.4); }
+        else if (kind === 'wall') bounce(p, v * 0.5);
+        else bounce(p, v);
+      },
+      throw(power, type = ballType) {
+        if (!ready()) return;
+        const sz = Math.sqrt(BALLS[type].size);
+        noise(350 / sz, 1500 / sz, 0.9, 0.22, 0.22 * power);
+      },
+      swish(clean, type = ballType) {
+        if (!ready()) return;
+        noise(3200, 1300, 0.7, 0.38, clean ? 0.35 : 0.25);
+        if (!clean) noise(2000, 1600, 2, 0.15, 0.12, 0.05);
+        if (SOUNDS[type].mass > 1.5) tone(90, 55, 0.25, 0.4, 0.03);   // a bowling ball drags the net down hard
+      },
+      bird() {
+        if (!ready()) return;
+        noise(2500, 1800, 1, 0.05, 0.3, 0, 'highpass');
+        tone(1700, 2600, 0.07, 0.2, 0.02, 'triangle');
+        tone(2100, 3100, 0.08, 0.18, 0.11, 'triangle');
+        tone(880, 880, 0.25, 0.12, 0.22, 'triangle');
+        tone(1320, 1320, 0.3, 0.12, 0.32, 'triangle');
+      },
+      fire() {
+        if (!ready()) return;
+        noise(200, 900, 0.6, 0.5, 0.3, 0, 'lowpass');
+      },
+    };
+  })();
+  document.addEventListener('pointerdown', () => sfx.unlock(), true);
+  document.addEventListener('keydown', () => sfx.unlock(), true);
 
   let W, H, R, G, floorY, launch, maxPull, maxSpeed;
   let hoop = null, shot = null, drag = null, phase = 'aim', phaseT = 0, clock = 0, paused = false;
@@ -610,18 +730,19 @@
       return b;
     });
     shot.fire = onFire();
+    sfx.throw(Math.min(1, Math.hypot(vx, vy) / (maxSpeed * ballDef().speed)));
     phase = 'flying'; phaseT = 0; shot.t = 0;
   }
 
   // ---- physics ----
-  function hitPoint(b, px, py, pr, e) {
+  function hitPoint(b, px, py, pr, e, kind) {
     const dx = b.x - px, dy = b.y - py;
     const d = Math.hypot(dx, dy), min = br() + pr;
     if (d >= min || d === 0) return false;
     const nx = dx / d, ny = dy / d;
     b.x = px + nx * min; b.y = py + ny * min;
     const vn = b.vx * nx + b.vy * ny;
-    if (vn < 0) { b.vx -= (1 + e) * vn * nx; b.vy -= (1 + e) * vn * ny; wobble(b); }
+    if (vn < 0) { sfx.hit(kind, -vn, b); b.vx -= (1 + e) * vn * nx; b.vy -= (1 + e) * vn * ny; wobble(b); }
     return true;
   }
 
@@ -642,12 +763,12 @@
 
     const rimR = Math.max(2, R * 0.2);
     const e = k => Math.min(0.92, k * bd.bounce);
-    if (hitPoint(b, hoop.l, hoop.y, rimR, e(0.5))) b.touched = true;
-    if (hitPoint(b, hoop.r, hoop.y, rimR, e(0.5))) b.touched = true;
+    if (hitPoint(b, hoop.l, hoop.y, rimR, e(0.5), 'rim')) b.touched = true;
+    if (hitPoint(b, hoop.r, hoop.y, rimR, e(0.5), 'rim')) b.touched = true;
     const px = Math.max(hoop.bx, Math.min(b.x, hoop.bx + hoop.bw));
     const py = Math.max(hoop.bt, Math.min(b.y, hoop.bb));
-    if (hasBoard() && hitPoint(b, px, py, 0, e(0.6))) b.touched = true;
-    if (b.y > poleTop()) hitPoint(b, hoop.bx + hoop.bw / 2, b.y, R * 0.2, e(0.4));
+    if (hasBoard() && hitPoint(b, px, py, 0, e(0.6), 'board')) b.touched = true;
+    if (b.y > poleTop()) hitPoint(b, hoop.bx + hoop.bw / 2, b.y, R * 0.2, e(0.4), 'pole');
 
     if (!b.scored && b.prevY < hoop.y && b.y >= hoop.y && b.vy > 0 && b.x > hoop.l && b.x < hoop.r) {
       b.scored = true;
@@ -661,14 +782,15 @@
 
     if (b.y + r > floorY) {
       b.floored = true;
+      if (b.vy > 0) sfx.hit('floor', b.vy, b);
       b.y = floorY - r;
       b.vy *= -e(0.55);
       b.vx *= 0.8;
       if (b.vy < -G * 0.04) wobble(b);
       if (Math.abs(b.vy) < G * 0.04) b.vy = 0;
     }
-    if (b.x - r < 0) { b.x = r; b.vx = Math.abs(b.vx) * e(0.6); }
-    if (b.x + r > W) { b.x = W - r; b.vx = -Math.abs(b.vx) * e(0.6); }
+    if (b.x - r < 0) { if (b.vx < 0) sfx.hit('wall', -b.vx, b); b.x = r; b.vx = Math.abs(b.vx) * e(0.6); }
+    if (b.x + r > W) { if (b.vx > 0) sfx.hit('wall', b.vx, b); b.x = W - r; b.vx = -Math.abs(b.vx) * e(0.6); }
     b.rest = b.vy === 0 && Math.abs(b.vx) < R * 0.5 && b.y >= floorY - r - 0.5;
   }
 
@@ -698,7 +820,9 @@
     const label = (b.touched ? 'Bucket! +' : 'Swish! +') + base * mult;
     flash = { text: label, t: 0, x: (hoop.l + hoop.r) / 2, y: hoop.y - R * 6.5, color: b.touched ? COL.ink : COL.gold };
     netSway = 1;
+    sfx.swish(!b.touched);
     burst((hoop.l + hoop.r) / 2, hoop.y, 26, [COL.gold, COL.rim, COL.paint, COL.ball]);
+    if (first && st.streak === 3) sfx.fire();
     if (!toasted && first && st.streak === 3) showToast('On fire!', 'Points x2 until you miss', COL.fire);
     if (first && st.streak === MOVE_STREAK) showToast('Streak of 20', 'The hoop starts moving. Keep the streak going.', COL.gold);
     if (st.makes === WIND_AT) showToast('Wind picks up', 'Watch the arrow at the top', COL.gold);
@@ -718,6 +842,7 @@
     addPoints(1);
     saveFamily();
     burst(bird.x, bird.y, 18, [p.color, COL.paint]);
+    sfx.bird();
     showToast(p.name, p.desc + ' · +1 point', p.color);
     if (bird.type === 'wide') layoutHoop();
     updateHud(true);
@@ -808,6 +933,11 @@
     document.getElementById('home-free').textContent = mode === 'free' && st.score > 0 ? `Resume free play (${st.score} pts)` : 'Free play';
     openPanel(home, document.getElementById('home-free'));
   }
+
+  const soundBtn = document.getElementById('sound-btn');
+  function markSound() { soundBtn.textContent = sfx.on ? 'Sound on' : 'Sound off'; soundBtn.setAttribute('aria-pressed', String(sfx.on)); }
+  soundBtn.addEventListener('click', () => { sfx.on = !sfx.on; markSound(); });
+  markSound();
 
   document.getElementById('exit-btn').addEventListener('click', () => {
     if (mode === 'timed' && !round.over) resetRound();   // leaving a challenge part-way abandons that round
@@ -940,6 +1070,8 @@
 
   function chooseBall(type) {
     nextBall = type;
+    sfx.unlock();
+    sfx.hit('floor', H * 1.1, null, type);   // let the player hear the ball they picked
     try { localStorage.setItem('hoopshot-ball', type); } catch (e) {}
     if (phase === 'aim') resetShot();   // mid-shot, the new ball arrives with the next throw
     markPicker();
