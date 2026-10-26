@@ -374,13 +374,13 @@ TOWNS = {
     "dustwater": {
         "shop": ["stimpak", "beans", "jerky", "dirty_water", "water", "radaway", "rush", "grenade",
                  "ammo_10mm", "ammo_shells", "machete", "pistol", "shotgun", "leathers", "combat_armor"],
-        "trader": "Vee", "rest": 10, "game": "blackjack",
+        "trader": "Vee", "rest": 10, "games": ["blackjack", "roulette"],
         "npcs": ["okafor", "vee", "doc", "mara", "tomas", "ash"],
     },
     "rivet": {
         "shop": ["stimpak", "super_stim", "water", "radaway", "ammo_10mm", "ammo_shells", "ammo_cells",
                  "smg", "lance", "combat_armor", ("covenant_plate", "covenant_allied")],
-        "trader": "Quartermaster Ide", "rest": 15, "game": "liars_dice",
+        "trader": "Quartermaster Ide", "rest": 15, "games": ["liars_dice", "poker"],
         "terminal": {"id": "armoury", "title": "IRON COVENANT ARMOURY - QUARTERMASTER ACCESS",
                      "reward": ["lance", "ammo_cells", "ammo_cells", "combat_armor"], "alarm": "zealot",
                      "opens": "The cage door clicks open. Lance, cells, armour. Ide is very busy looking the other way."},
@@ -2226,7 +2226,7 @@ PERKS = {
     "night_owl":   ("Night Owl", "+3 attack at night."),
     "scrounger":   ("Scrounger", "Ammo comes in bigger bundles (+50%)."),
     "cannibal":    ("Cannibal", "Eat from the people you kill. It heals and feeds you. It costs karma."),
-    "card_sharp":  ("Card Sharp", "See the dealer's hole card at blackjack. Read tells at liar's dice."),
+    "card_sharp":  ("Card Sharp", "See the dealer's hole card at blackjack. Read tells at liar's dice and poker."),
     "hacker":      ("Hacker", "Two extra attempts on terminals."),
     "rad_child":   ("Rad Child", "Take 30% fewer rads."),
 }
@@ -2491,12 +2491,264 @@ async def liars_dice(player):
             say(f"You lose {stake} caps. \"The Covenant thanks you for your tithe.\"")
 
 
+POKER_HANDS = ["high card", "a pair", "two pair", "three of a kind", "a straight", "a flush",
+               "a full house", "four of a kind", "a straight flush"]
+
+
+def poker_rank(hand):
+    """(category, tiebreakers) for a five-card hand; higher tuples win."""
+    from collections import Counter
+    ranks = sorted((14 if r == 1 else r for r, _ in hand), reverse=True)
+    counts = Counter(ranks)
+    order = sorted(counts, key=lambda r: (-counts[r], -r))
+    shape = sorted(counts.values(), reverse=True)
+    flush = len({s for _, s in hand}) == 1
+    straight, high = len(counts) == 5 and ranks[0] - ranks[4] == 4, ranks[0]
+    if ranks == [14, 5, 4, 3, 2]:
+        straight, high = True, 5
+    if straight and flush:
+        return 8, [high]
+    if shape == [4, 1]:
+        return 7, order
+    if shape == [3, 2]:
+        return 6, order
+    if flush:
+        return 5, ranks
+    if straight:
+        return 4, [high]
+    if shape == [3, 1, 1]:
+        return 3, order
+    if shape == [2, 2, 1]:
+        return 2, order
+    if shape == [2, 1, 1, 1]:
+        return 1, order
+    return 0, ranks
+
+
+def poker_confidence(hand):
+    category, order = poker_rank(hand)
+    return category + order[0] / 14 * 0.9
+
+
+def poker_discards(hand):
+    """Which cards (indexes) the house player swaps: keep made hands, pairs, four to a flush, or high cards."""
+    from collections import Counter
+    if poker_rank(hand)[0] >= 4:
+        return []
+    ranks = [14 if r == 1 else r for r, _ in hand]
+    counts = Counter(ranks)
+    keep = [i for i, r in enumerate(ranks) if counts[r] >= 2]
+    if not keep:
+        suit, n = Counter(s for _, s in hand).most_common(1)[0]
+        if n == 4:
+            keep = [i for i, (_, s) in enumerate(hand) if s == suit]
+        else:
+            keep = sorted(range(5), key=lambda i: -ranks[i])[:2]
+    return [i for i in range(5) if i not in keep][:3]
+
+
+def numbered_hand(hand, marked=()):
+    return "  ".join(f"{i + 1}:{card_name(c)}{'*' if i in marked else ''}" for i, c in enumerate(hand))
+
+
+async def poker(player):
+    say("\nAfter lights out, Quartermaster Ide runs five-card draw on an ammo crate in the barracks. She plays "
+        "the way she runs the armoury: no smiling, no credit. Both players ante the stake. Each bet is one more "
+        "stake. One draw, up to three cards.")
+    while True:
+        say(f"\nYou have {player.caps} caps.")
+        stake_s = await ask("Stake (5-30 caps, or 'leave') > ", keys=["5", "10", "20", "leave"])
+        if stake_s in ("leave", "q", "0", ""):
+            say("Ide sweeps the cards into her tabard. \"Same time tomorrow.\"")
+            return
+        if not stake_s.isdigit() or not 5 <= int(stake_s) <= 30:
+            say("Stakes are 5 to 30 caps.")
+            continue
+        stake = int(stake_s)
+        if player.caps < stake * 3:
+            say(f"You need {stake * 3} caps to cover the ante and two bets.")
+            continue
+
+        deck = [(r, s) for r in range(1, 14) for s in SUITS]
+        random.shuffle(deck)
+        you = [deck.pop() for _ in range(5)]
+        her = [deck.pop() for _ in range(5)]
+        you_in = her_in = stake
+        say(f"You both ante {stake}.")
+        result = None
+        for rnd in (1, 2):
+            say(f"Your hand: {numbered_hand(you)}  ({POKER_HANDS[poker_rank(you)[0]]})")
+            conf = poker_confidence(her)
+            act = await ask("(b)et, (c)heck or (f)old > ", keys=["b", "c", "f"])
+            if act in ("f", "fold"):
+                result = "you_fold"
+                break
+            if act in ("b", "bet"):
+                you_in += stake
+                say(f"You bet {stake}.")
+                if conf >= (1.0 if rnd == 1 else 1.5) or random.random() < 0.12:
+                    her_in += stake
+                    say("Ide calls.")
+                else:
+                    result = "her_fold"
+                    say("Ide folds, and doesn't show you her cards.")
+                    break
+            else:
+                strong = conf >= (1.5 if rnd == 1 else 1.7)
+                if strong or random.random() < 0.1:
+                    her_in += stake
+                    say(f"Ide bets {stake}.")
+                    if "card_sharp" in player.perks:
+                        say("She's calm. She has something." if strong else "She rubs her eye. She's bluffing.")
+                    if await ask("(c)all or (f)old > ", keys=["call", "fold"]) in ("f", "fold"):
+                        result = "you_fold"
+                        break
+                    you_in += stake
+                    say("You call.")
+                else:
+                    say("Ide checks.")
+            if rnd == 1:
+                marked = set()
+                while True:
+                    say(numbered_hand(you, marked))
+                    pick = await ask("Mark up to 3 cards to swap (1-5), then 'draw' > ",
+                                     keys=["1", "2", "3", "4", "5", "draw"])
+                    if pick in ("draw", "d", ""):
+                        break
+                    for part in pick.split():
+                        if part.isdigit() and 1 <= int(part) <= 5:
+                            i = int(part) - 1
+                            if i in marked:
+                                marked.discard(i)
+                            elif len(marked) < 3:
+                                marked.add(i)
+                            else:
+                                say("Three cards at most.")
+                for i in marked:
+                    you[i] = deck.pop()
+                swaps = poker_discards(her)
+                for i in swaps:
+                    her[i] = deck.pop()
+                say(f"You draw {len(marked)}. Ide draws {len(swaps)}." if swaps else
+                    f"You draw {len(marked)}. Ide stands pat.")
+
+        if result == "you_fold":
+            player.caps -= you_in
+            say(f"You fold. -{you_in} caps.")
+        elif result == "her_fold":
+            player.caps += her_in
+            say(f"+{her_in} caps.")
+        else:
+            mine, hers = poker_rank(you), poker_rank(her)
+            say(f"Showdown. You: {numbered_hand(you)} ({POKER_HANDS[mine[0]]})")
+            say(f"Ide: {' '.join(card_name(c) for c in her)} ({POKER_HANDS[hers[0]]})")
+            if mine > hers:
+                player.caps += her_in
+                say(f"You win {her_in} caps. Ide writes something down in the armoury ledger.")
+            elif hers > mine:
+                player.caps -= you_in
+                say(f"Ide wins. -{you_in} caps. \"The Covenant thanks you.\"")
+            else:
+                say("A split pot. Ide looks almost offended.")
+
+
+ROULETTE_RED = {1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36}
+ROULETTE_BETS = {  # name: (pays, wins on number)
+    "red": (1, lambda n: n in ROULETTE_RED), "black": (1, lambda n: n and n not in ROULETTE_RED),
+    "odd": (1, lambda n: n and n % 2), "even": (1, lambda n: n and not n % 2),
+    "low": (1, lambda n: 1 <= n <= 18), "high": (1, lambda n: 19 <= n <= 36),
+    "1st": (2, lambda n: 1 <= n <= 12), "2nd": (2, lambda n: 13 <= n <= 24), "3rd": (2, lambda n: 25 <= n <= 36),
+}
+
+
+async def roulette(player):
+    say("\nMadame Zero runs the wheel in the corner of The Last Drop: a pre-war roulette wheel with a bullet hole "
+        "through the 13. Single zero. A number pays 35 to 1. Red, black, odd, even, low (1-18) and high (19-36) "
+        "pay even money. Dozens (1st, 2nd, 3rd) pay 2 to 1. She also keeps a revolver under the table, for "
+        "the dead man's spin.")
+    while True:
+        say(f"\nYou have {player.caps} caps.")
+        bet = await ask("Bet on red, black, odd, even, low, high, 1st, 2nd, 3rd or a number 0-36. "
+                        "Or 'dead' or 'leave' > ",
+                        keys=["red", "black", "odd", "even", "low", "high", "1st", "2nd", "3rd", "17", "dead", "leave"])
+        if bet in ("leave", "q", ""):
+            say("Madame Zero doesn't look up. \"The wheel will be here. So will I.\"")
+            return
+        if bet in ("dead", "spin"):
+            await dead_mans_spin(player)
+            if player.hp <= 0:
+                return
+            continue
+        if bet.isdigit() and 0 <= int(bet) <= 36:
+            pays, wins = 35, (lambda n, pick=int(bet): n == pick)
+        elif bet in ROULETTE_BETS:
+            pays, wins = ROULETTE_BETS[bet]
+        else:
+            say("That's not a bet on this wheel.")
+            continue
+        stake_s = await ask("Stake (5-100 caps) > ", keys=["5", "10", "25", "50"])
+        if not stake_s.isdigit() or not 5 <= int(stake_s) <= 100:
+            say("Stakes are 5 to 100 caps.")
+            continue
+        stake = int(stake_s)
+        if stake > player.caps:
+            say("You don't have that many caps.")
+            continue
+        n = random.randint(0, 36)
+        colour = "green" if n == 0 else "red" if n in ROULETTE_RED else "black"
+        say(f"Madame Zero spins. The ball rattles, skips, and drops into {n} {colour}.")
+        if wins(n):
+            player.caps += stake * pays
+            say(f"You win {stake * pays} caps.")
+        else:
+            player.caps -= stake
+            say(f"-{stake} caps." + (" Zero. The house always eats." if n == 0 else ""))
+
+
+async def dead_mans_spin(player):
+    say("\nMadame Zero lays a revolver on the felt. One round. Six chambers. \"Spin it, put it to your head, "
+        "pull. If you're still here, I pay five times your stake. It's the only game in the wastes where the "
+        "house can't cheat.\"")
+    stake_s = await ask("Stake (10-100 caps, or 'no') > ", keys=["10", "50", "100", "no"])
+    if not stake_s.isdigit() or not 10 <= int(stake_s) <= 100 or int(stake_s) > player.caps:
+        say("Madame Zero puts the revolver away. \"Most people find a reason not to.\"")
+        return
+    stake = int(stake_s)
+    if await choose(player, ["Put it to your head", "Put it down"]) == 2:
+        say("Madame Zero shrugs. \"Most people put it down.\"")
+        return
+    say("You spin the cylinder. It clicks round and stops. The barrel is cold against your temple. The bar goes "
+        "quiet. You pull the trigger.")
+    if random.randint(1, 6) == 1:
+        if getattr(player, "practice", False):
+            say("BANG.\n\nIn the wasteland, that's the end of your story. Practice chips don't bleed. This time.")
+            return
+        say("BANG.")
+        player.hp = 0
+        player.killer = "the dead man's spin"
+        return
+    player.caps += stake * 5
+    say(f"Click. Madame Zero pays you {stake * 5} caps. Your hands won't stop shaking. Someone at the bar starts "
+        "to clap, then thinks better of it.")
+
+
+SIDE_GAMES = {
+    "blackjack": ("Blackjack with Lucky Pete", blackjack),
+    "liars_dice": ("Liar's dice with Brother Cole", liars_dice),
+    "poker": ("Poker with Quartermaster Ide", poker),
+    "roulette": ("Roulette with Madame Zero", roulette),
+}
+
+
 async def gamble(player):
     town = town_here(player)
     if not town:
         say("Nobody out here plays for anything but your life.")
         return
-    await (blackjack(player) if TOWNS[town]["game"] == "blackjack" else liars_dice(player))
+    games = TOWNS[town]["games"]
+    pick = await choose(player, [SIDE_GAMES[g][0] for g in games] + ["Never mind"])
+    if pick <= len(games):
+        await SIDE_GAMES[games[pick - 1]][1](player)
 
 
 # ================================================================ logic puzzles
@@ -3130,6 +3382,7 @@ async def play(player):
 async def practice_table(game_fn, name):
     """Side games from the start menu: practice chips, nothing to do with your character or save."""
     player = Player("You", {s: 5 for s in STATS})
+    player.practice = True
     player.caps = 100
     say(f"\n-- {name}: practice table. You get 100 chips. Nothing here touches your save. --")
     await game_fn(player)
@@ -3177,22 +3430,26 @@ async def practice_puzzle(kind):
 async def start_menu():
     """Returns once the player chooses to enter the wasteland."""
     while True:
-        say("\n  1. Enter the wasteland")
-        say("  2. Blackjack with Lucky Pete (practice table)")
-        say("  3. Liar's dice with Brother Cole (practice table)")
-        say("  4. Logic puzzle: terminal hacking")
-        say("  5. Logic puzzle: safe cracking")
-        say("  6. Logic puzzle: the liar in the cage")
-        say("  7. Logic puzzle: the Tollman's water riddle")
-        pick = await ask("Choose > ", keys=[str(n) for n in range(1, 8)])
-        if pick in ("4", "5", "6", "7"):
-            await practice_puzzle({"4": "hack", "5": "safe", "6": "cage", "7": "jugs"}[pick])
-        elif pick == "2":
-            await practice_table(blackjack, "Blackjack")
-        elif pick == "3":
-            await practice_table(liars_dice, "Liar's dice")
-        elif pick == "1":
+        menu = [("Enter the wasteland", None)]
+        menu += [(f"{label} (practice table)", ("game", key)) for key, (label, _) in SIDE_GAMES.items()]
+        menu += [("Logic puzzle: terminal hacking", ("puzzle", "hack")),
+                 ("Logic puzzle: safe cracking", ("puzzle", "safe")),
+                 ("Logic puzzle: the liar in the cage", ("puzzle", "cage")),
+                 ("Logic puzzle: the Tollman's water riddle", ("puzzle", "jugs"))]
+        say("")
+        for n, (label, _) in enumerate(menu, 1):
+            say(f"  {n}. {label}")
+        pick = await ask("Choose > ", keys=[str(n) for n in range(1, len(menu) + 1)])
+        if not pick.isdigit() or not 1 <= int(pick) <= len(menu):
+            continue
+        action = menu[int(pick) - 1][1]
+        if action is None:
             return
+        if action[0] == "game":
+            label, fn = SIDE_GAMES[action[1]]
+            await practice_table(fn, label.split(" with ")[0])
+        else:
+            await practice_puzzle(action[1])
 
 
 async def main():

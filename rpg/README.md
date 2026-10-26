@@ -34,8 +34,11 @@ Iron Covenant offer to help. Their help has a price.
   armor wear down, and worn guns jam. Repair them with scrap metal or at a trader.
 - **Survival:** hunger, thirst and radiation (which lowers your max HP). Rush gives a damage boost but is addictive.
 - **Two towns and two factions:** Dustwater and Rivet. Side with the Covenant, expose its leader, or blackmail him.
-- **Side games:** blackjack with Lucky Pete in Dustwater (when you're broke, you can bet a pint of blood), and
-  liar's dice against Brother Cole in Rivet's barracks. Use the `gamble` command in either town.
+- **Side games:** use the `gamble` command in either town, or play them from the start menu with practice chips.
+  - Dustwater: blackjack with Lucky Pete (when you're broke, you can bet a pint of blood), and roulette with
+    Madame Zero, who also offers the dead man's spin: one bullet, six chambers, five times your stake.
+    With permadeath, losing it ends your run.
+  - Rivet: liar's dice with Brother Cole, and five-card draw poker with Quartermaster Ide.
 - **Logic puzzles:** a password game on terminals, where each wrong guess shows how many letters are in the right
   place. Combination safes you crack from scratched clues. A cage of prisoners where you work out which one is
   the liar. A water-jug riddle from the Tollman on the north bridge. Puzzles are random, but each has exactly
