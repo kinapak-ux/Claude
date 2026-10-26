@@ -31,8 +31,8 @@
   [hidden] { display: none !important; }
   body { margin: 0; background: var(--sky-top); color: var(--ink); font-family: var(--font-body); overflow: hidden; }
   .game { position: relative; height: 100%; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
-  canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; }
-  canvas.dragging { cursor: grabbing; }
+  #court { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; }
+  #court.dragging { cursor: grabbing; }
   .hud {
     position: absolute; top: 0; left: 0; right: 0;
     display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
@@ -43,8 +43,9 @@
   }
   .brand { font-family: var(--font-display); font-size: 1.15rem; letter-spacing: 0.02em; color: var(--ink); line-height: 1; }
   .brand small { display: block; margin-top: 6px; font-family: var(--font-body); font-weight: 500; font-size: 0.85rem; letter-spacing: 0.04em; color: var(--ink-dim); }
+  .hud-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
   .help-btn {
-    pointer-events: auto; margin-top: 10px;
+    pointer-events: auto;
     font: 700 0.78rem/1 var(--font-body); letter-spacing: 0.12em; text-transform: uppercase;
     color: var(--ink); background: transparent; border: 1.5px solid var(--ink-dim); border-radius: 999px;
     padding: 6px 12px; cursor: pointer;
@@ -98,6 +99,22 @@
   .help li { display: grid; grid-template-columns: 4.5rem 1fr; gap: 12px; align-items: baseline; font-size: 1.02rem; line-height: 1.35; }
   .help li .tag { font-family: var(--font-display); font-size: 0.8rem; color: var(--c, var(--gold)); }
   .help li em { font-style: normal; color: var(--ink-dim); }
+  .help .sub { margin: 0; font-size: 1.02rem; line-height: 1.4; color: var(--ink-dim); max-width: 60ch; }
+  .balls { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+  .ball-card {
+    display: grid; grid-template-columns: 56px 1fr; gap: 12px; align-items: center; text-align: left;
+    font: inherit; color: var(--ink); background: rgba(255, 255, 255, 0.04);
+    border: 1.5px solid rgba(255, 255, 255, 0.12); border-radius: 8px; padding: 12px; cursor: pointer;
+  }
+  .ball-card:hover { border-color: var(--ink-dim); }
+  .ball-card:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  .ball-card[aria-pressed="true"] { border-color: var(--gold); background: rgba(255, 200, 87, 0.08); }
+  .ball-card canvas { display: block; width: 56px; height: 56px; }
+  .bc-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .bc-text strong { font-family: var(--font-display); font-weight: 400; font-size: 1rem; }
+  .bc-text .note { font-size: 0.95rem; line-height: 1.3; color: var(--ink-dim); }
+  .meters { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 4px; font-weight: 700; font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-dim); }
+  .meters i { font-style: normal; letter-spacing: 0.05em; color: var(--gold); }
   .close-btn {
     align-self: flex-start;
     font: 700 0.9rem/1 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase;
@@ -117,7 +134,10 @@
   <canvas id="court" aria-label="Basketball court. Drag back from anywhere and release to shoot at the hoop. Hit passing birds for power-ups." role="img"></canvas>
   <div class="hud">
     <div class="brand">Hoop Shot<small>Drag back anywhere, aim, let go. Hit birds for power-ups.</small>
-      <div><button class="help-btn" id="help-open" type="button">Power-ups &amp; rules</button></div>
+      <div class="hud-buttons">
+        <button class="help-btn" id="picker-open" type="button">Ball: <span id="ball-name">Basketball</span></button>
+        <button class="help-btn" id="help-open" type="button">Power-ups &amp; rules</button>
+      </div>
     </div>
     <div class="board">
       <div class="stat main"><div class="label">Points</div><div class="val" id="score">0</div></div>
@@ -149,10 +169,19 @@
       </ul>
       <h3>It gets harder</h3>
       <ul>
-        <li><span class="tag">8</span><span>After 8 baskets the hoop starts sliding side to side.</span></li>
+        <li><span class="tag">20</span><span>Reach a streak of 20 and the hoop starts sliding slowly side to side. It speeds up the longer your streak runs and stops when you miss.</span></li>
         <li><span class="tag">15</span><span>After 15 baskets wind pushes the ball. The aim guide includes it.</span></li>
       </ul>
       <button class="close-btn" id="help-close" type="button">Back to the court</button>
+    </div>
+  </div>
+
+  <div class="help" id="picker" hidden>
+    <div class="help-inner">
+      <h2>Choose your ball</h2>
+      <p class="sub">Each ball flies and bounces in its own way. The aim guide always shows the path of the ball you pick.</p>
+      <div class="balls" id="ball-list"></div>
+      <button class="close-btn" id="picker-close" type="button">Back to the court</button>
     </div>
   </div>
 </div>
@@ -181,7 +210,21 @@
   };
   for (const k in POWERS) POWERS[k].color = C('--p-' + k);
   const POWER_KEYS = Object.keys(POWERS);
-  const MOVE_AT = 8, WIND_AT = 15;
+  const MOVE_STREAK = 20, WIND_AT = 15;
+
+  // size: radius vs a basketball; grav, wind, bounce: multipliers; drag: air slowdown per second; speed: throw power
+  const BALLS = {
+    basketball: { name: 'Basketball',   note: 'The all-rounder. Steady flight and a soft bounce off the rim.',      size: 1,    grav: 1,    bounce: 1,    wind: 1,   drag: 0,   speed: 1,    meters: { bounce: 3, weight: 3, wind: 2 } },
+    tennis:     { name: 'Tennis ball',  note: 'Small and lively. Pops off the rim and catches more wind.',          size: 0.62, grav: 1,    bounce: 1.3,  wind: 1.6, drag: 0.1, speed: 1.03, meters: { bounce: 4, weight: 2, wind: 3 } },
+    bowling:    { name: 'Bowling ball', note: 'Heavy. Needs a hard throw, barely bounces and shrugs off the wind.', size: 1.12, grav: 1.3,  bounce: 0.35, wind: 0.2, drag: 0,   speed: 1.14, meters: { bounce: 1, weight: 5, wind: 1 } },
+    beach:      { name: 'Beach ball',   note: 'Huge and floaty. Slows down in the air and drifts with the wind.',  size: 1.5,  grav: 0.45, bounce: 1.3,  wind: 2.6, drag: 0.5, speed: 0.9,  meters: { bounce: 4, weight: 1, wind: 5 } },
+    super:      { name: 'Super ball',   note: 'Tiny rubber ball that bounces almost forever.',                     size: 0.5,  grav: 1,    bounce: 1.75, wind: 1.2, drag: 0,   speed: 1,    meters: { bounce: 5, weight: 2, wind: 3 } },
+  };
+  let ballType = 'basketball', nextBall = 'basketball';
+  try { const saved = localStorage.getItem('hoopshot-ball'); if (BALLS[saved]) ballType = nextBall = saved; } catch (e) {}
+  const ballDef = () => BALLS[ballType];
+  const br = () => R * ballDef().size;
+  const launchK = () => maxSpeed * ballDef().speed / maxPull;
 
   let W, H, R, G, floorY, launch, maxPull, maxSpeed;
   let hoop = null, shot = null, drag = null, phase = 'aim', phaseT = 0, clock = 0, paused = false;
@@ -227,8 +270,8 @@
   }
 
   function newHoop() {
-    const moving = st.makes >= MOVE_AT;
-    const amp = moving ? Math.min(0.16, 0.04 + (st.makes - MOVE_AT) * 0.012) : 0;
+    const over = st.streak - MOVE_STREAK;
+    const amp = over >= 0 ? Math.min(0.14, 0.03 + over * 0.006) : 0;
     const minFx = Math.max(0.42, (launch.x + R * 12) / W) + amp;
     const maxFx = Math.max(minFx, 1 - (R * 7) / W - amp);
     let fx, fy, tries = 0;
@@ -241,7 +284,7 @@
     const windMax = Math.min(1, 0.45 + (st.makes - WIND_AT) * 0.05);
     hoop = {
       baseFx: fx, fx, fy, appear: 0,
-      amp, speed: 0.7 + Math.random() * 0.5 + amp * 3, ph: Math.random() * Math.PI * 2,
+      amp, speed: Math.min(1.4, 0.35 + Math.max(0, over) * 0.04) + Math.random() * 0.15, ph: Math.random() * Math.PI * 2,
       wind: windOn ? (Math.random() * 2 - 1) * windMax : 0,
     };
     layoutHoop();
@@ -255,7 +298,8 @@
   }
 
   function resetShot() {
-    shot = { balls: [makeBall(launch.x, launch.y)], t: 0, scoredAt: null, fire: false, hits: 0 };
+    ballType = nextBall;
+    shot ={ balls: [makeBall(launch.x, launch.y)], t: 0, scoredAt: null, fire: false, hits: 0 };
     phase = 'aim'; phaseT = 0;
   }
 
@@ -282,7 +326,7 @@
     drag = null;
     cv.classList.remove('dragging');
     if (p.d < maxPull * 0.08) return;   // too small a pull counts as a cancel
-    shoot(p.dx * maxSpeed / maxPull, p.dy * maxSpeed / maxPull);
+    shoot(p.dx * launchK(), p.dy * launchK());
   });
   cv.addEventListener('pointercancel', e => { if (drag && e.pointerId === drag.id) { drag = null; cv.classList.remove('dragging'); } });
 
@@ -301,7 +345,7 @@
   // ---- physics ----
   function hitPoint(b, px, py, pr, e) {
     const dx = b.x - px, dy = b.y - py;
-    const d = Math.hypot(dx, dy), min = R + pr;
+    const d = Math.hypot(dx, dy), min = br() + pr;
     if (d >= min || d === 0) return false;
     const nx = dx / d, ny = dy / d;
     b.x = px + nx * min; b.y = py + ny * min;
@@ -311,9 +355,11 @@
   }
 
   function step(b, dt) {
+    const bd = ballDef(), r = br();
     b.prevY = b.y;
-    b.vy += G * dt;
-    b.vx += windAccel() * dt;
+    b.vy += G * bd.grav * dt;
+    b.vx += windAccel() * bd.wind * dt;
+    if (bd.drag) { const k = 1 - bd.drag * dt; b.vx *= k; b.vy *= k; }
     if (has('magnet') && !b.scored) {
       const cx = (hoop.l + hoop.r) / 2, cy = hoop.y - R * 0.6;
       const dx = cx - b.x, dy = cy - b.y, d = Math.hypot(dx, dy);
@@ -321,15 +367,16 @@
     }
     b.x += b.vx * dt;
     b.y += b.vy * dt;
-    b.spin += b.vx / R * dt * 0.15;
+    b.spin += b.vx / r * dt * 0.15;
 
     const rimR = Math.max(2, R * 0.2);
-    if (hitPoint(b, hoop.l, hoop.y, rimR, 0.5)) b.touched = true;
-    if (hitPoint(b, hoop.r, hoop.y, rimR, 0.5)) b.touched = true;
+    const e = k => Math.min(0.92, k * bd.bounce);
+    if (hitPoint(b, hoop.l, hoop.y, rimR, e(0.5))) b.touched = true;
+    if (hitPoint(b, hoop.r, hoop.y, rimR, e(0.5))) b.touched = true;
     const px = Math.max(hoop.bx, Math.min(b.x, hoop.bx + hoop.bw));
     const py = Math.max(hoop.bt, Math.min(b.y, hoop.bb));
-    if (hitPoint(b, px, py, 0, 0.6)) b.touched = true;
-    if (b.y > hoop.bb) hitPoint(b, hoop.bx + hoop.bw / 2, b.y, R * 0.2, 0.4);
+    if (hitPoint(b, px, py, 0, e(0.6))) b.touched = true;
+    if (b.y > hoop.bb) hitPoint(b, hoop.bx + hoop.bw / 2, b.y, R * 0.2, e(0.4));
 
     if (!b.scored && b.prevY < hoop.y && b.y >= hoop.y && b.vy > 0 && b.x > hoop.l && b.x < hoop.r) {
       b.scored = true;
@@ -338,18 +385,18 @@
     }
 
     for (const bird of birds) {
-      if (!bird.hit && Math.hypot(b.x - bird.x, b.y - bird.y) < R + bird.s * 1.2) hitBird(bird);
+      if (!bird.hit && Math.hypot(b.x - bird.x, b.y - bird.y) < r + bird.s * 1.2) hitBird(bird);
     }
 
-    if (b.y + R > floorY) {
-      b.y = floorY - R;
-      b.vy *= -0.55;
+    if (b.y + r > floorY) {
+      b.y = floorY - r;
+      b.vy *= -e(0.55);
       b.vx *= 0.8;
       if (Math.abs(b.vy) < G * 0.04) b.vy = 0;
     }
-    if (b.x - R < 0) { b.x = R; b.vx = Math.abs(b.vx) * 0.6; }
-    if (b.x + R > W) { b.x = W - R; b.vx = -Math.abs(b.vx) * 0.6; }
-    b.rest = b.vy === 0 && Math.abs(b.vx) < R * 0.5 && b.y >= floorY - R - 0.5;
+    if (b.x - r < 0) { b.x = r; b.vx = Math.abs(b.vx) * e(0.6); }
+    if (b.x + r > W) { b.x = W - r; b.vx = -Math.abs(b.vx) * e(0.6); }
+    b.rest = b.vy === 0 && Math.abs(b.vx) < R * 0.5 && b.y >= floorY - r - 0.5;
   }
 
   // ---- scoring and power-ups ----
@@ -365,7 +412,7 @@
     netSway = 1;
     burst((hoop.l + hoop.r) / 2, hoop.y, 26, [COL.gold, COL.rim, COL.paint, COL.ball]);
     if (first && st.streak === 3) showToast('On fire!', 'Points x2 until you miss', COL.fire);
-    if (st.makes === MOVE_AT) showToast('Moving hoops', 'From the next basket on, the hoop slides', COL.gold);
+    if (first && st.streak === MOVE_STREAK) showToast('Streak of 20', 'The hoop starts moving. Keep the streak going.', COL.gold);
     if (st.makes === WIND_AT) showToast('Wind picks up', 'Watch the arrow at the top', COL.gold);
     updateHud(true);
   }
@@ -401,8 +448,10 @@
 
   function miss() {
     const b = shot.balls[0];
-    if (st.streak >= 3) showToast('Fire is out', 'Make 3 in a row to light it again', COL.dim);
+    if (st.streak >= MOVE_STREAK) showToast('Streak over', 'The hoop stops moving', COL.dim);
+    else if (st.streak >= 3) showToast('Fire is out', 'Make 3 in a row to light it again', COL.dim);
     st.streak = 0;
+    if (hoop.amp) { hoop.baseFx = hoop.fx; hoop.amp = 0; }
     flash = { text: 'Miss', t: 0, x: b.x, y: b.y - R * 3, color: COL.dim };
     updateHud(false);
   }
@@ -439,9 +488,50 @@
     toastTimer = setTimeout(() => el.toast.classList.remove('show'), 2200);
   }
 
-  document.getElementById('help-open').addEventListener('click', () => { el.help.hidden = false; paused = true; drag = null; document.getElementById('help-close').focus(); });
-  document.getElementById('help-close').addEventListener('click', () => { el.help.hidden = true; paused = false; });
-  window.addEventListener('keydown', e => { if (e.key === 'Escape' && !el.help.hidden) { el.help.hidden = true; paused = false; } });
+  const picker = document.getElementById('picker');
+  function openPanel(panel, focusEl) { panel.hidden = false; paused = true; drag = null; cv.classList.remove('dragging'); focusEl.focus(); }
+  function closePanels() { el.help.hidden = true; picker.hidden = true; paused = false; }
+  document.getElementById('help-open').addEventListener('click', () => openPanel(el.help, document.getElementById('help-close')));
+  document.getElementById('help-close').addEventListener('click', closePanels);
+  document.getElementById('picker-open').addEventListener('click', () => {
+    openPanel(picker, picker.querySelector(`[data-type="${nextBall}"]`));
+  });
+  document.getElementById('picker-close').addEventListener('click', closePanels);
+  window.addEventListener('keydown', e => { if (e.key === 'Escape') closePanels(); });
+
+  function buildPicker() {
+    const list = document.getElementById('ball-list');
+    const pips = n => '●'.repeat(n) + '○'.repeat(5 - n);
+    list.innerHTML = Object.entries(BALLS).map(([k, b]) => `
+      <button class="ball-card" type="button" data-type="${k}" aria-pressed="false">
+        <canvas width="112" height="112" aria-hidden="true"></canvas>
+        <span class="bc-text">
+          <strong>${b.name}</strong>
+          <span class="note">${b.note}</span>
+          <span class="meters"><span>Bounce <i>${pips(b.meters.bounce)}</i></span><span>Weight <i>${pips(b.meters.weight)}</i></span><span>Wind <i>${pips(b.meters.wind)}</i></span></span>
+        </span>
+      </button>`).join('');
+    list.querySelectorAll('.ball-card').forEach(card => {
+      const g = card.querySelector('canvas').getContext('2d');
+      drawBall(56, 56, -0.4, card.dataset.type, 40, g);
+      card.addEventListener('click', () => chooseBall(card.dataset.type));
+    });
+    markPicker();
+  }
+
+  function markPicker() {
+    document.querySelectorAll('.ball-card').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.type === nextBall)));
+    document.getElementById('ball-name').textContent = BALLS[nextBall].name;
+  }
+
+  function chooseBall(type) {
+    nextBall = type;
+    try { localStorage.setItem('hoopshot-ball', type); } catch (e) {}
+    if (phase === 'aim') resetShot();   // mid-shot, the new ball arrives with the next throw
+    markPicker();
+    closePanels();
+    showToast(BALLS[type].name, BALLS[type].note, COL.gold);
+  }
 
   // ---- birds ----
   function spawnBird() {
@@ -605,36 +695,64 @@
     ctx.fillText(p.tag, b.x, b.y - s * 1.6);
   }
 
-  function drawBall(x, y, rot) {
-    ctx.save();
-    ctx.translate(x, y); ctx.rotate(rot);
-    ctx.fillStyle = COL.ball;
-    ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = 'rgba(30, 18, 10, 0.75)'; ctx.lineWidth = Math.max(1, R * 0.09);
-    ctx.beginPath(); ctx.moveTo(-R, 0); ctx.lineTo(R, 0); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, -R); ctx.lineTo(0, R); ctx.stroke();
-    ctx.beginPath(); ctx.arc(-R * 1.25, 0, R * 0.85, -0.85, 0.85); ctx.stroke();
-    ctx.beginPath(); ctx.arc(R * 1.25, 0, R * 0.85, Math.PI - 0.85, Math.PI + 0.85); ctx.stroke();
-    ctx.restore();
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
-    ctx.beginPath(); ctx.arc(x - R * 0.35, y - R * 0.35, R * 0.35, 0, Math.PI * 2); ctx.fill();
+  function drawBall(x, y, rot, type = ballType, r = br(), g = ctx) {
+    const TAU = Math.PI * 2;
+    const disc = color => { g.fillStyle = color; g.beginPath(); g.arc(0, 0, r, 0, TAU); g.fill(); };
+    const line = (color, w) => { g.strokeStyle = color; g.lineWidth = Math.max(1, r * w); };
+    g.save();
+    g.translate(x, y); g.rotate(rot);
+    if (type === 'tennis') {
+      disc('#d4e157');
+      line('#f7f9e8', 0.13);
+      g.beginPath(); g.arc(-r * 1.15, 0, r * 0.78, -1.05, 1.05); g.stroke();
+      g.beginPath(); g.arc(r * 1.15, 0, r * 0.78, Math.PI - 1.05, Math.PI + 1.05); g.stroke();
+    } else if (type === 'bowling') {
+      disc('#2e3d63');
+      g.fillStyle = '#121a2e';
+      for (const [hx, hy, hr] of [[0.18, -0.4, 0.13], [0.48, -0.18, 0.13], [0.18, 0.08, 0.15]]) {
+        g.beginPath(); g.arc(r * hx, r * hy, r * hr, 0, TAU); g.fill();
+      }
+    } else if (type === 'beach') {
+      const panels = ['#e5432f', '#f5efe6', '#2f7fe0', '#f5efe6', '#ffc857', '#f5efe6'];
+      panels.forEach((c, i) => {
+        g.fillStyle = c; g.beginPath(); g.moveTo(0, 0);
+        g.arc(0, 0, r, (i / panels.length) * TAU, ((i + 1) / panels.length) * TAU); g.closePath(); g.fill();
+      });
+      g.fillStyle = '#f5efe6'; g.beginPath(); g.arc(0, 0, r * 0.18, 0, TAU); g.fill();
+    } else if (type === 'super') {
+      disc('#e04fd0');
+      line('#ffc9f4', 0.22);
+      g.beginPath(); g.ellipse(0, 0, r * 0.98, r * 0.32, 0, 0, TAU); g.stroke();
+    } else {
+      disc(COL.ball);
+      line('rgba(30, 18, 10, 0.75)', 0.09);
+      g.beginPath(); g.moveTo(-r, 0); g.lineTo(r, 0); g.stroke();
+      g.beginPath(); g.moveTo(0, -r); g.lineTo(0, r); g.stroke();
+      g.beginPath(); g.arc(-r * 1.25, 0, r * 0.85, -0.85, 0.85); g.stroke();
+      g.beginPath(); g.arc(r * 1.25, 0, r * 0.85, Math.PI - 0.85, Math.PI + 0.85); g.stroke();
+    }
+    g.restore();
+    g.fillStyle = type === 'bowling' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.18)';
+    g.beginPath(); g.arc(x - r * 0.35, y - r * 0.35, r * 0.35, 0, TAU); g.fill();
   }
 
   function drawTrail(b) {
     const color = shot.fire ? COL.fire : POWERS.slow.color;
+    const r = br();
     b.trail.forEach(([x, y], i) => {
       const k = (i + 1) / b.trail.length;
       ctx.globalAlpha = k * 0.45; ctx.fillStyle = color;
-      ctx.beginPath(); ctx.arc(x, y, R * (0.4 + k * 0.6), 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x, y, r * (0.4 + k * 0.6), 0, Math.PI * 2); ctx.fill();
     });
     ctx.globalAlpha = 1;
   }
 
   function drawShadow(x, y) {
-    const h = Math.max(0, floorY - (y + R));
+    const r = br();
+    const h = Math.max(0, floorY - (y + r));
     const s = Math.max(0.25, 1 - h / H);
     ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
-    ctx.beginPath(); ctx.ellipse(x, floorY + 3, R * s, R * 0.3 * s, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x, floorY + 3, r * s, r * 0.3 * s, 0, 0, Math.PI * 2); ctx.fill();
   }
 
   function drawAim() {
@@ -645,7 +763,7 @@
     ctx.beginPath(); ctx.moveTo(launch.x, launch.y); ctx.lineTo(bx, by); ctx.stroke();
     ctx.setLineDash([]); ctx.globalAlpha = 1;
 
-    const k = maxSpeed / maxPull;
+    const k = launchK(), bd = ballDef();
     const laser = has('laser');
     const dots = laser ? 70 : 16, dt = laser ? 0.03 : 0.045;
     const angles = has('triple') ? [-0.08, 0, 0.08] : [0];
@@ -653,7 +771,11 @@
       let x = launch.x, y = launch.y;
       let vx = (p.dx * Math.cos(a) - p.dy * Math.sin(a)) * k, vy = (p.dx * Math.sin(a) + p.dy * Math.cos(a)) * k;
       for (let i = 1; i <= dots; i++) {
-        for (let j = 0; j < 3; j++) { vy += G * dt / 3; vx += windAccel() * dt / 3; x += vx * dt / 3; y += vy * dt / 3; }
+        for (let j = 0; j < 3; j++) {
+          vy += G * bd.grav * dt / 3; vx += windAccel() * bd.wind * dt / 3;
+          if (bd.drag) { const f = 1 - bd.drag * dt / 3; vx *= f; vy *= f; }
+          x += vx * dt / 3; y += vy * dt / 3;
+        }
         if (y > floorY || x < 0 || x > W) break;
         ctx.globalAlpha = laser ? 0.85 - (i / dots) * 0.4 : (1 - i / dots) * 0.9;
         ctx.fillStyle = laser ? POWERS.laser.color : COL.gold;
@@ -661,10 +783,11 @@
       }
     }
     ctx.globalAlpha = 1;
+    const ring = Math.max(R * 2.1, br() * 1.5);
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.arc(launch.x, launch.y, R * 2.1, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(launch.x, launch.y, ring, 0, Math.PI * 2); ctx.stroke();
     ctx.strokeStyle = power > 0.92 ? COL.rim : COL.gold;
-    ctx.beginPath(); ctx.arc(launch.x, launch.y, R * 2.1, -Math.PI / 2, -Math.PI / 2 + power * Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(launch.x, launch.y, ring, -Math.PI / 2, -Math.PI / 2 + power * Math.PI * 2); ctx.stroke();
     drawShadow(bx, by);
     drawBall(bx, by, 0);
   }
@@ -727,14 +850,16 @@
       st.score = saved.score; st.streak = saved.streak || 0; st.makes = saved.makes || 0;
       st.best = Math.max(st.best, saved.best || 0);
       if (saved.active) active = saved.active;
+      if (BALLS[saved.ball]) ballType = nextBall = saved.ball;
     }
     resize();
+    buildPicker();
     updateHud(false);
     window.addEventListener('resize', resize);
     requestAnimationFrame(frame);
   }
 
-  window.claude?.hot?.snapshot?.(() => ({ score: st.score, streak: st.streak, best: st.best, makes: st.makes, active }));
+  window.claude?.hot?.snapshot?.(() => ({ score: st.score, streak: st.streak, best: st.best, makes: st.makes, active, ball: nextBall }));
   window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
 </script>
