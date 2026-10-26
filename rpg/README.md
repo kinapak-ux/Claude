@@ -34,6 +34,17 @@ Iron Covenant offer to help. Their help has a price.
   armor wear down, and worn guns jam. Repair them with scrap metal or at a trader.
 - **Survival:** hunger, thirst and radiation (which lowers your max HP). Rush gives a damage boost but is addictive.
 - **Two towns and two factions:** Dustwater and Rivet. Side with the Covenant, expose its leader, or blackmail him.
+- **Side games:** blackjack with Lucky Pete in Dustwater (when you're broke, you can bet a pint of blood), and
+  liar's dice against Brother Cole in Rivet's barracks. Use the `gamble` command in either town.
+- **Logic puzzles:** a password game on terminals, where each wrong guess shows how many letters are in the right
+  place. Combination safes you crack from scratched clues. A cage of prisoners where you work out which one is
+  the liar. A water-jug riddle from the Tollman on the north bridge. Puzzles are random, but each has exactly
+  one solution, and it's stored in your save, so reloading can't re-roll it.
+- **Day and night:** each turn is one hour. Nights bring more encounters, and resting sleeps until 07:00.
+- **Radstorms** roll in at random. Every step outside costs rads until they pass.
+- **Perks** every second level: Toughness, Bloody Mess, Field Medic, Iron Gut, Steady Hands, Night Owl,
+  Scrounger, Cannibal, Card Sharp, Hacker and Rad Child.
+- **Bounty board** in Dustwater: kill contracts you can repeat.
 - **Moral choices with no clean answers:** they affect your karma and an ending made of short epilogue passages.
   The ending covers each town, each faction, the shelter that exiled you, and every companion.
 
@@ -42,9 +53,9 @@ Iron Covenant offer to help. Their help has a price.
     0123456789A
   0 ggg.fff~.^^      S Shelter 41    D Dustwater     R Rivet
   1 gXg.fMf~.^R      C Crossroads    K Slaver pen    M Hollis farm
-  2 gg..=V=B==^      T Radio tower   V Caravan       W School bus
+  2 gg..=V=Q==^      T Radio tower   V Caravan       W School bus
   3 ...=.T.~.^.      X Glow crater   H St. Agnes     P The Pit
-  4 S==C...~.H.      U Storm drain   B Bridge        ~ River
+  4 S==C...~.H.      U Storm drain   B Bridge        Q Tollman's bridge
   5 ..D..^^~...
   6 .f..K^^B=P.
   7 ff.W...~..U

@@ -45,9 +45,10 @@ def say(text=""):
         out(para)
 
 
-async def ask(prompt="> ", raw=False):
+async def ask(prompt="> ", raw=False, keys=None):
+    """keys: suggested answers, shown as buttons in the browser."""
     if BROWSER:
-        text = str(await js.gameIO.ask(prompt))
+        text = str(await js.gameIO.ask(prompt, "|".join(keys or [])))
     else:
         try:
             text = input(prompt)
@@ -98,7 +99,7 @@ async def choose(player, options):
             text = f"[{req[0]} {req[1]}] {text}" + ("" if ok else " (locked)")
         say(f"  {n}. {text}")
     while True:
-        pick = await ask("Choose > ")
+        pick = await ask("Choose > ", keys=[str(n) for n in range(1, len(options) + 1)])
         if pick.isdigit() and 1 <= int(pick) <= len(options):
             opt = options[int(pick) - 1]
             if not isinstance(opt, str) and opt[1] and player.stats[opt[1][0]] < opt[1][1]:
@@ -197,30 +198,34 @@ ENEMIES = {
                   "drops": ["dog_meat"]},
     "wolf":      {"name": "Ash Wolf", "hp": 28, "atk": 9, "def": 1, "xp": 14, "caps": (0, 0),
                   "drops": ["dog_meat"]},
-    "raider":    {"name": "Red Teeth Raider", "hp": 30, "atk": 9, "def": 2, "xp": 18, "caps": (5, 15),
+    "raider":    {"name": "Red Teeth Raider", "hp": 30, "atk": 9, "def": 2, "xp": 18, "human": True, "caps": (5, 15),
                   "drops": ["rush", "stimpak", "raider_armor", "ammo_10mm", "ammo_shells", "teeth"]},
-    "butcher":   {"name": "Red Teeth Butcher", "hp": 48, "atk": 12, "def": 3, "xp": 30, "caps": (10, 25),
+    "butcher":   {"name": "Red Teeth Butcher", "hp": 48, "atk": 12, "def": 3, "xp": 30, "human": True, "caps": (10, 25),
                   "drops": ["ammo_shells", "rush", "cleaver"]},
     "pit_hound": {"name": "Pit Hound", "hp": 28, "atk": 10, "def": 1, "xp": 14, "caps": (0, 0)},
-    "slaver":    {"name": "Slaver", "hp": 34, "atk": 10, "def": 3, "xp": 20, "caps": (10, 20),
+    "slaver":    {"name": "Slaver", "hp": 34, "atk": 10, "def": 3, "xp": 20, "human": True, "caps": (10, 20),
                   "drops": ["stimpak", "pistol", "ammo_10mm"]},
     "husk":      {"name": "Husk", "hp": 26, "atk": 9, "def": 1, "xp": 15, "caps": (0, 5), "rads": 6,
                   "drops": ["ring", "watch"]},
     "stinger":   {"name": "Stingback", "hp": 45, "atk": 13, "def": 5, "xp": 30, "caps": (0, 0), "rads": 4},
     "brute":     {"name": "Ash Brute", "hp": 60, "atk": 15, "def": 4, "xp": 45, "caps": (5, 15), "rads": 8,
                   "drops": ["ammo_cells", "super_stim"]},
-    "hollis":    {"name": "Hollis Boy", "hp": 36, "atk": 11, "def": 2, "xp": 22, "caps": (2, 10),
+    "hollis":    {"name": "Hollis Boy", "hp": 36, "atk": 11, "def": 2, "xp": 22, "human": True, "caps": (2, 10),
                   "drops": ["mystery_meat"]},
-    "harvester": {"name": "Harvester Orderly", "hp": 38, "atk": 12, "def": 3, "xp": 26, "caps": (5, 15),
+    "harvester": {"name": "Harvester Orderly", "hp": 38, "atk": 12, "def": 3, "xp": 26, "human": True, "caps": (5, 15),
                   "drops": ["stimpak", "super_stim", "ammo_10mm"]},
     "failed":    {"name": "Failed Subject", "hp": 30, "atk": 11, "def": 1, "xp": 18, "caps": (0, 0), "rads": 5},
-    "brennan":   {"name": "Brennan the Slaver", "hp": 80, "atk": 15, "def": 4, "xp": 50, "caps": (80, 80),
+    "zealot":    {"name": "Covenant Zealot", "hp": 45, "atk": 13, "def": 5, "xp": 32, "human": True,
+                  "caps": (10, 20), "drops": ["ammo_cells", "water"]},
+    "tollman":   {"name": "The Tollman", "hp": 95, "atk": 16, "def": 4, "xp": 70, "human": True, "caps": (40, 80),
+                  "boss": True, "special": "The Tollman swings his sack of heads like a flail!"},
+    "brennan":   {"name": "Brennan the Slaver", "hp": 80, "atk": 15, "def": 4, "xp": 50, "human": True, "caps": (80, 80),
                   "boss": True},
-    "surgeon":   {"name": "The Surgeon", "hp": 160, "atk": 24, "def": 5, "xp": 150, "caps": (60, 60),
+    "surgeon":   {"name": "The Surgeon", "hp": 160, "atk": 24, "def": 5, "xp": 150, "human": True, "caps": (60, 60),
                   "boss": True, "special": "The Surgeon's bonesaw bites down to the bone!"},
     "mother":    {"name": "The Mother", "hp": 190, "atk": 25, "def": 5, "xp": 180, "caps": (0, 0),
                   "boss": True, "rads": 8, "special": "The Mother vomits a stream of glowing larvae over you!"},
-    "kessler":   {"name": "Warlord Kessler", "hp": 220, "atk": 24, "def": 6, "xp": 250, "caps": (200, 200),
+    "kessler":   {"name": "Warlord Kessler", "hp": 220, "atk": 24, "def": 6, "xp": 250, "human": True, "caps": (200, 200),
                   "boss": True, "special": "Kessler rakes you with the chainsaw!"},
 }
 
@@ -246,7 +251,7 @@ COMPANIONS = {
 WORLD = [
     "ggg.fff~.^^",
     "gXg.fMf~.^R",
-    "gg..=V=B==^",
+    "gg..=V=Q==^",
     "...=.T.~.^.",
     "S==C...~.H.",
     "..D..^^~...",
@@ -347,6 +352,13 @@ LOCATIONS = {
     "U": {"name": "Storm Drain", "event": "drain", "repeat_event": True,
           "desc": "A concrete storm drain in a gully, grated over. Water trickles out of it, and so does "
                   "the sound of a crowd, very far away, chanting."},
+    "Q": {"name": "Tollman's Bridge", "event": "tollman", "repeat_event": True, "rads": 2,
+          "desc": lambda p: (
+              "The north bridge. The Tollman's gibbet still hangs from the middle span, empty now."
+              if "tollman_dead" in p.flags or "toll_free" in p.flags else
+              "The north bridge over the black river. A gibbet hangs from the middle span. Under it sits the "
+              "Tollman: a huge man in a stovepipe hat, a sack of heads at his feet. Each one got his riddle "
+              "wrong.")},
     "X": {"name": "Glow Crater - Rim", "dungeon": ("crater", "x_rim"), "rads": 10,
           "desc": "The edge of the bomb crater. The ground drops away into a green-lit bowl of glass. "
                   "Something huge has crashed at the bottom: a military transport."},
@@ -362,13 +374,16 @@ TOWNS = {
     "dustwater": {
         "shop": ["stimpak", "beans", "jerky", "dirty_water", "water", "radaway", "rush", "grenade",
                  "ammo_10mm", "ammo_shells", "machete", "pistol", "shotgun", "leathers", "combat_armor"],
-        "trader": "Vee", "rest": 10,
+        "trader": "Vee", "rest": 10, "game": "blackjack",
         "npcs": ["okafor", "vee", "doc", "mara", "tomas", "ash"],
     },
     "rivet": {
         "shop": ["stimpak", "super_stim", "water", "radaway", "ammo_10mm", "ammo_shells", "ammo_cells",
                  "smg", "lance", "combat_armor", ("covenant_plate", "covenant_allied")],
-        "trader": "Quartermaster Ide", "rest": 15,
+        "trader": "Quartermaster Ide", "rest": 15, "game": "liars_dice",
+        "terminal": {"id": "armoury", "title": "IRON COVENANT ARMOURY - QUARTERMASTER ACCESS",
+                     "reward": ["lance", "ammo_cells", "ammo_cells", "combat_armor"], "alarm": "zealot",
+                     "opens": "The cage door clicks open. Lance, cells, armour. Ide is very busy looking the other way."},
         "npcs": ["vance", "ide", "jory"],
     },
 }
@@ -413,6 +428,7 @@ DUNGEONS = {
                     "people being fattened on slop. North, a refrigerated trailer marked MEAT. East, the "
                     "roar of the arena. A manhole leads down.",
             "exits": {"north": "pit_locker", "east": "pit_arena", "down": "pit_tunnels"},
+            "event": "cage",
             "enemies": ["raider", "pit_hound", "butcher"], "loot": ["ammo_shells", "rush", "jerky"]},
         "pit_locker": {
             "name": "The Meat Locker",
@@ -431,7 +447,10 @@ DUNGEONS = {
                     "On a throne of welded shopping carts sits Warlord Kessler: a giant in a blood-black "
                     "hockey mask, revving a chainsaw.",
             "exits": {"west": "pit_yard", "down": "pit_tunnels"},
-            "boss": "kessler", "loot": ["combat_armor", "super_stim", "ammo_shells"]},
+            "boss": "kessler", "loot": ["combat_armor", "super_stim", "ammo_shells"],
+            "safe": {"id": "kessler_box", "caps": 150, "loot": ["rush", "grenade", "grenade", "super_stim"],
+                     "title": "Kessler's strongbox sits under his throne, with a three-digit combination lock.",
+                     "trap": 30, "trap_text": "The box was wired. The blast throws you across the arena."}},
     },
     "hospital": {
         "h_lobby": {
@@ -439,8 +458,16 @@ DUNGEONS = {
             "desc": "A waiting room. Skeletons in the chairs, still waiting. Clean tile floors, mopped "
                     "recently. Muzak plays from somewhere. A sign: ALL ARE REDEEMED IN SERVICE. Stairs "
                     "lead up to the wards and down to the basement.",
-            "exits": {"up": "h_ward", "down": "h_cold"},
+            "exits": {"up": "h_ward", "down": "h_cold", "east": "h_pharmacy"},
+            "gates": {"east": "open_st_agnes"},
+            "terminal": {"id": "st_agnes", "title": "ST. AGNES RECORDS - PHARMACY LOCK", "alarm": "harvester",
+                         "opens": "Somewhere east, a lock thunks open."},
             "enemies": ["harvester"], "loot": ["stimpak", "ammo_10mm"]},
+        "h_pharmacy": {
+            "name": "St. Agnes - Pharmacy",
+            "desc": "Shelves of pink serum in neat rows. Each vial is labelled with a name and a date. Donors.",
+            "exits": {"west": "h_lobby"},
+            "loot": ["super_stim", "super_stim", "radaway", "radaway", "rush", "ammo_cells"]},
         "h_ward": {
             "name": "St. Agnes - Recovery Ward",
             "desc": "Twelve beds. Twelve people kept alive with tubes and leather straps, pieces of them "
@@ -484,7 +511,11 @@ DUNGEONS = {
             "name": "Transport Wreck - Cockpit", "rads": 8,
             "desc": "Two pilots, still strapped in, mummified by heat. A sealed crate is marked "
                     "WATER PURIFICATION - PRIORITY CIVILIAN RELIEF. A holotape blinks on the console.",
-            "exits": {"south": "x_wreck"}, "event": "pilot_log", "loot": ["purifier", "radaway"]},
+            "exits": {"south": "x_wreck"}, "event": "pilot_log", "loot": ["purifier", "radaway"],
+            "safe": {"id": "cockpit_safe", "caps": 80, "loot": ["ammo_cells", "ammo_cells", "super_stim", "grenade"],
+                     "title": "An officer's safe is bolted under the co-pilot's seat. Three-digit dial.",
+                     "trap": 25, "trap_text": "A canister in the door hisses. Nerve gas. You claw your way out, "
+                                              "vomiting."}},
     },
 }
 ROOMS = {rid: room for rooms in DUNGEONS.values() for rid, room in rooms.items()}
@@ -558,6 +589,11 @@ class Player:
         self.pending_fight = None
         self.companion = None
         self.comp_hp = {}
+        self.perks = []
+        self.perk_points = 0
+        self.puzzles = {}           # generated puzzles, kept so reloading can't re-roll them
+        self.bounty = None
+        self.prev_pos = list(START)
         self.reveal()
 
     # ---- derived stats
@@ -588,11 +624,13 @@ class Player:
             a += ITEMS["rush"]["power"]
         elif self.addicted:
             a -= 3
+        if "night_owl" in self.perks and is_night(self):
+            a += 3
         return max(1, a)
 
     @property
     def defense(self):
-        return 1 + (self.level - 1) // 2 + self.gear_power(self.armor)
+        return 1 + (self.level - 1) // 2 + self.gear_power(self.armor) + (2 if "toughness" in self.perks else 0)
 
     def price(self, item_id, selling=False):
         base = ITEMS[item_id]["price"]
@@ -625,9 +663,12 @@ class Player:
             self.stat_points += 1
             self.hp = self.cap_hp
             say(f"*** LEVEL {self.level}. You heal, and something in you hardens. (+1 stat point) ***")
+            if self.level % 2 == 0:
+                self.perk_points += 1
+                say("*** You can pick a new perk. ***")
 
     def add_rads(self, n, source="radiation sickness"):
-        n = round(n * max(0.4, 1 - 0.06 * (self.stats["END"] - 3)))
+        n = round(n * max(0.4, 1 - 0.06 * (self.stats["END"] - 3)) * (0.7 if "rad_child" in self.perks else 1))
         if n <= 0:
             return
         before = self.rads
@@ -675,14 +716,15 @@ class Player:
 
     def give(self, item_id, n=1, quiet=False):
         item = ITEMS[item_id]
+        count = round(item.get("count", 1) * (1.5 if "scrounger" in self.perks else 1))
         for _ in range(n):
             if item["kind"] == "ammo":
-                self.ammo[item["ammo"]] += item["count"]
+                self.ammo[item["ammo"]] += count
             else:
                 self.inventory.append(item_id)
         if not quiet:
             if item["kind"] == "ammo":
-                say(f"+ {item['count'] * n} {item['ammo']} ammo")
+                say(f"+ {count * n} {item['ammo']} ammo")
             else:
                 say(f"+ {item['name']}" + (f" x{n}" if n > 1 else ""))
 
@@ -708,13 +750,19 @@ class Player:
             say("You are addicted to Rush." + (" You're high." if self.high else " Withdrawal: -3 attack."))
         elif self.high:
             say("You're high on Rush.")
+        say(f"Time:   {time_label(self)}")
+        if self.perks:
+            say("Perks:  " + ", ".join(PERKS[p][0] for p in self.perks))
+        if self.bounty:
+            b = BOUNTY_BY_ID[self.bounty["id"]]
+            say(f"Bounty: {b['short']} ({self.bounty['count']}/{b['n']})")
 
     def to_dict(self):
         return dict(self.__dict__)
 
     @classmethod
     def from_dict(cls, data):
-        p = cls.__new__(cls)
+        p = cls("x", {s: 3 for s in STATS})  # defaults for anything added since the save was made
         p.__dict__.update(data)
         return p
 
@@ -777,14 +825,17 @@ def player_attack(player, e):
         return dmg
     if w["type"] == "gun":
         player.ammo[w["ammo"]] = max(0, player.ammo[w["ammo"]] - w.get("ammo_use", 1))
-        jam = max(0.0, (50 - player.cond.get(player.weapon, 100)) / 150)
-        player.wear(player.weapon, random.randint(1, 2))
+        steady = "steady" in player.perks
+        jam = 0 if steady else max(0.0, (50 - player.cond.get(player.weapon, 100)) / 150)
+        player.wear(player.weapon, random.randint(0, 1) if steady else random.randint(1, 2))
         if random.random() < jam:
             say(f"Your {w['name']} jams! You claw at it while the {e['name']} closes in.")
             return 0
     else:
         player.wear(player.weapon, random.randint(0, 1))
     dmg = max(1, player.atk + random.randint(-2, 2) - e["def"])
+    if "bloody_mess" in player.perks:
+        dmg = round(dmg * 1.15)
     if random.random() < 0.04 + 0.015 * player.stats["LCK"]:
         dmg *= 2
         say("Critical hit!")
@@ -898,6 +949,12 @@ async def fight(player, enemy_id, enemy_hp=None):
         player.give(random.choice(e["drops"]))
     if player.companion == "tomas" and player.hp < player.cap_hp and random.random() < 0.3:
         say(f"Tomas patches you up with a field dressing. +{player.heal(10)} HP.")
+    count_bounty(player, enemy_id)
+    if "cannibal" in player.perks and e.get("human"):
+        if await ask("Eat from the body? (y/n) > ", keys=["y", "no"]) == "y":
+            player.hunger = min(100, player.hunger + 40)
+            say(f"You eat. +{player.heal(25)} HP. It gets easier every time.")
+            player.karma_shift(-1)
     player.gain_xp(e["xp"])
     return "won"
 
@@ -909,7 +966,8 @@ def consume(player, item_id):
         return False
     player.inventory.remove(item_id)
     if kind == "heal":
-        say(f"You jab the {item['name']}. +{player.heal(item['power'])} HP.")
+        power = round(item["power"] * (1.5 if "medic" in player.perks else 1))
+        say(f"You jab the {item['name']}. +{player.heal(power)} HP.")
     elif kind == "food":
         player.hunger = min(100, player.hunger + item["power"])
         say(f"You eat the {item['name']}. +{player.heal(5)} HP. (Food {player.hunger})")
@@ -930,7 +988,7 @@ def consume(player, item_id):
         if not player.addicted and random.random() < 0.35 - 0.03 * player.stats["END"]:
             player.addicted = True
             say("...and you already want more. You're addicted to Rush.")
-    if kind in ("food", "drink") and item.get("rads"):
+    if kind in ("food", "drink") and item.get("rads") and "iron_gut" not in player.perks:
         player.add_rads(item["rads"], source=f"bad {item['name'].lower()}")
     return True
 
@@ -1673,6 +1731,10 @@ def describe(player):
         say(room["desc"])
         exits = list(room["exits"]) + (["out"] if room.get("out") else [])
         say("Exits: " + ", ".join(exits))
+        if room.get("terminal") and player.puzzles.get(room["terminal"]["id"], {}).get("done") is None:
+            say("A terminal glows in the corner. (hack)")
+        if room.get("safe") and not player.puzzles.get(room["safe"]["id"], {}).get("done"):
+            say("There's a safe here. (crack)")
         return
     x, y = player.pos
     ch = player.tile()
@@ -1687,13 +1749,17 @@ def describe(player):
         t = TERRAIN[ch]
         say(f"\n== {t['name']} ==")
         say(t["flavor"][(x * 7 + y * 13) % len(t["flavor"])])
+    say(f"[{time_label(player)}]")
+    if is_night(player) and not town_here(player):
+        say(random.choice(NIGHT_LINES))
     paths = [d for d, (dx, dy) in DIRS.items()
              if 0 <= x + dx < WIDTH and 0 <= y + dy < HEIGHT and WORLD[y + dy][x + dx] != "~"]
     say("You can go: " + ", ".join(paths))
     town = town_here(player)
     if town:
         people = [NPCS[n][0] for n in TOWNS[town]["npcs"] if npc_here(player, n)]
-        say("People: " + ", ".join(people) + ".  (talk, shop, rest)")
+        extra = ", board" if town == "dustwater" else ", hack"
+        say("People: " + ", ".join(people) + f".  (talk, shop, rest, gamble{extra})")
     elif LOCATIONS.get(ch, {}).get("dungeon"):
         say("(enter)")
 
@@ -1750,12 +1816,17 @@ async def overworld_move(player, direction):
     if WORLD[y][x] == "~":
         say("The river is black and thick as oil. Things move under the surface. Find a bridge.")
         return
+    player.prev_pos = list(player.pos)
     player.pos = [x, y]
     player.reveal()
     tick(player, 2, 3)
     if player.hp <= 0:
         return
     describe(player)
+    if not town_here(player):
+        weather(player)
+        if player.hp <= 0:
+            return
     ch = player.tile()
     loc = LOCATIONS.get(ch)
     rads = loc.get("rads", 0) if loc else TERRAIN[ch]["rads"]
@@ -1771,7 +1842,7 @@ async def overworld_move(player, direction):
                 await run_event(player, loc["event"])
         return
     t = TERRAIN[ch]
-    await encounter(player, t["enc"], t["enemies"])
+    await encounter(player, t["enc"] * (1.6 if is_night(player) else 1), t["enemies"])
 
 
 async def enter(player):
@@ -1871,6 +1942,10 @@ async def dungeon_move(player, direction):
     if direction not in room["exits"]:
         say("You can't go that way.")
         return
+    gate = room.get("gates", {}).get(direction)
+    if gate and gate not in player.flags:
+        say("A steel door, locked. The terminal here controls it. (hack)")
+        return
     tick(player, 1, 2)
     if player.hp <= 0:
         return
@@ -1915,7 +1990,7 @@ def drink(player):
         say("No river here. Buy water from a trader.")
         return
     x, y = player.pos
-    near = player.tile() == "B" or any(
+    near = player.tile() in ("B", "Q") or any(
         0 <= x + dx < WIDTH and 0 <= y + dy < HEIGHT and WORLD[y + dy][x + dx] == "~"
         for dx in (-1, 0, 1) for dy in (-1, 0, 1))
     if not near:
@@ -1923,7 +1998,8 @@ def drink(player):
         return
     player.thirst = min(100, player.thirst + 30)
     say(f"You kneel and drink the black river water. It tastes like batteries. (Water {player.thirst})")
-    player.add_rads(14, source="river water")
+    if "iron_gut" not in player.perks:
+        player.add_rads(14, source="river water")
 
 
 def show_inventory(player):
@@ -2066,6 +2142,8 @@ def rest(player):
         say(f"A bed costs {cost} caps.")
         return
     player.caps -= cost
+    hour = clock(player)[1]
+    player.turns += ((7 - hour) % 24 or 24) - 1  # sleep until 07:00
     tick(player, 8, 8)
     player.hp = player.cap_hp
     for cid in player.comp_hp:
@@ -2091,6 +2169,663 @@ async def spend_points(player):
             if pick == "END":
                 player.hp += 4
             say(f"{pick} is now {player.stats[pick]}.")
+
+
+# ================================================================ time and weather
+
+
+def clock(player):
+    """Every turn is an hour. You leave the shelter at 06:00 on day 1."""
+    t = 6 + player.turns
+    return 1 + t // 24, t % 24
+
+
+def is_night(player):
+    hour = clock(player)[1]
+    return hour >= 20 or hour < 5
+
+
+def time_label(player):
+    day, hour = clock(player)
+    return f"Day {day}, {hour:02d}:00" + (" - night" if is_night(player) else "")
+
+
+NIGHT_LINES = [
+    "It's dark. Things move out here at night that don't move in daylight.",
+    "No moon. Somewhere close, something is eating something else.",
+    "Night. Every shadow could be a raider. Some of them are.",
+    "A campfire flickers on the horizon, then goes out. Someone put it out.",
+]
+
+
+def weather(player):
+    """Radstorms roll in at random and cost rads on every step outdoors until they pass."""
+    end = player.timers.get("storm", 0)
+    if end > player.turns:
+        player.add_rads(6, source="a radstorm")
+        if end == player.turns + 1:
+            say("The radstorm moves on, grumbling green to the east.")
+        else:
+            say("The radstorm howls around you. Green lightning. Get under a roof.")
+    elif random.random() < 0.03:
+        player.timers["storm"] = player.turns + 5
+        say("\nThe sky turns the colour of a bruise. A radstorm is rolling in. Every step outside will cost "
+            "rads until it passes. Towns and buildings are shelter.")
+
+
+# ================================================================ perks
+
+PERKS = {
+    "toughness":   ("Toughness", "+2 defense."),
+    "bloody_mess": ("Bloody Mess", "+15% damage. People come apart more."),
+    "medic":       ("Field Medic", "Stimpaks and Super Stims heal 50% more."),
+    "iron_gut":    ("Iron Gut", "Food and water never give you rads."),
+    "steady":      ("Steady Hands", "Your guns never jam and wear half as fast."),
+    "night_owl":   ("Night Owl", "+3 attack at night."),
+    "scrounger":   ("Scrounger", "Ammo comes in bigger bundles (+50%)."),
+    "cannibal":    ("Cannibal", "Eat from the people you kill. It heals and feeds you. It costs karma."),
+    "card_sharp":  ("Card Sharp", "See the dealer's hole card at blackjack. Read tells at liar's dice."),
+    "hacker":      ("Hacker", "Two extra attempts on terminals."),
+    "rad_child":   ("Rad Child", "Take 30% fewer rads."),
+}
+
+
+async def choose_perk(player):
+    while player.perk_points > 0:
+        options = [p for p in PERKS if p not in player.perks]
+        if not options:
+            player.perk_points = 0
+            return
+        offer = random.sample(options, min(3, len(options)))
+        say("\nPick a perk:")
+        pick = offer[await choose(player, [f"{PERKS[p][0]} - {PERKS[p][1]}" for p in offer]) - 1]
+        player.perks.append(pick)
+        player.perk_points -= 1
+        say(f"You gain {PERKS[pick][0]}.")
+
+
+# ================================================================ bounty board (Dustwater)
+
+BOUNTIES = [
+    {"id": "rats", "targets": ["rat"], "n": 4, "reward": 35, "short": "4 bloat rats",
+     "text": "BLOAT RATS IN THE GRAIN STORE. FOUR TAILS. 35 CAPS."},
+    {"id": "dogs", "targets": ["dog", "wolf"], "n": 4, "reward": 50, "short": "4 dogs or wolves",
+     "text": "A PACK TOOK THE MORROW BABY. KILL FOUR. 50 CAPS. DON'T BRING BACK WHAT'S LEFT OF HER."},
+    {"id": "husks", "targets": ["husk", "failed"], "n": 4, "reward": 80, "short": "4 husks",
+     "text": "THE HUSKS WERE OUR NEIGHBOURS. PUT FOUR OF THEM DOWN. 80 CAPS."},
+    {"id": "raiders", "targets": ["raider", "butcher"], "n": 5, "reward": 120, "short": "5 Red Teeth",
+     "text": "RED TEETH. FIVE PAIRS OF EARS. 120 CAPS. - OKAFOR"},
+    {"id": "slavers", "targets": ["slaver"], "n": 3, "reward": 110, "short": "3 slavers",
+     "text": "SLAVERS TOOK MY SON. THREE OF THEM. 110 CAPS. MAKE IT HURT."},
+    {"id": "glow", "targets": ["stinger", "brute"], "n": 3, "reward": 150, "short": "3 Glow beasts",
+     "text": "THINGS ARE CRAWLING OUT OF THE GLOW. THREE OF THEM. 150 CAPS. PROOF REQUIRED."},
+]
+BOUNTY_BY_ID = {b["id"]: b for b in BOUNTIES}
+
+
+def count_bounty(player, enemy_id):
+    if not player.bounty:
+        return
+    b = BOUNTY_BY_ID[player.bounty["id"]]
+    if enemy_id in b["targets"] and player.bounty["count"] < b["n"]:
+        player.bounty["count"] += 1
+        done = player.bounty["count"] == b["n"]
+        say(f"(Bounty: {player.bounty['count']}/{b['n']}" + (" - collect it at the Dustwater board)" if done else ")"))
+
+
+async def bounty_board(player):
+    if town_here(player) != "dustwater":
+        say("The bounty board is in Dustwater.")
+        return
+    if player.bounty:
+        b = BOUNTY_BY_ID[player.bounty["id"]]
+        if player.bounty["count"] >= b["n"]:
+            player.caps += b["reward"]
+            player.bounty = None
+            say(f"You nail your proof to the board. Okafor pays {b['reward']} caps and doesn't look at it too "
+                "closely.")
+            player.gain_xp(20)
+        else:
+            say(f"Your contract: {b['text']} ({player.bounty['count']}/{b['n']})")
+            if await choose(player, ["Keep it", "Tear it up"]) == 2:
+                player.bounty = None
+                say("You tear it up. Someone else can do it. Or no one.")
+            return
+    say("\nThe bounty board is a door nailed to a post, covered in notes:")
+    offers = random.sample(BOUNTIES, 3)
+    pick = await choose(player, [f"{o['text']} ({o['reward']}c)" for o in offers] + ["Leave it"])
+    if pick <= len(offers):
+        player.bounty = {"id": offers[pick - 1]["id"], "count": 0}
+        say("You tear the note off the board and pocket it.")
+
+
+# ================================================================ side games
+
+
+SUITS = "♠♥♦♣"
+
+
+def card_name(card):
+    rank, suit = card
+    return {1: "A", 11: "J", 12: "Q", 13: "K"}.get(rank, str(rank)) + suit
+
+
+def hand_value(hand):
+    total = sum(11 if r == 1 else min(r, 10) for r, _ in hand)
+    aces = sum(1 for r, _ in hand if r == 1)
+    while total > 21 and aces:
+        total -= 10
+        aces -= 1
+    return total
+
+
+def show_hand(hand):
+    return " ".join(card_name(c) for c in hand) + f"  ({hand_value(hand)})"
+
+
+async def blackjack(player):
+    say("\nLucky Pete deals blackjack at the back of The Last Drop. He has seven fingers. \"Lost the other "
+        "three on a bad hand,\" he says. \"Not my hand.\" Dealer stands on 17. Blackjack pays 3 to 2.")
+    while True:
+        say(f"\nYou have {player.caps} caps and {player.hp} HP.")
+        bet_s = await ask("Bet (5-100 caps, 'blood', or 'leave') > ", keys=["10", "25", "50", "blood", "leave"])
+        if bet_s in ("leave", "q", "0", ""):
+            say("Pete shuffles. \"Come back when you're desperate.\"")
+            return
+        blood = bet_s == "blood"
+        if blood:
+            if player.hp <= 20:
+                say("Pete looks you over. \"You ain't got a pint to spare. You'd die on my table. Bad for business.\"")
+                continue
+            bet = 30
+            say("Pete ties off your arm and sets an empty jar on the table. \"A pint's worth 30. Doc buys it. "
+                "Don't ask what for.\"")
+        elif bet_s.isdigit() and 5 <= int(bet_s) <= 100:
+            bet = int(bet_s)
+            if bet > player.caps:
+                say("You don't have that many caps. (You could bet blood.)")
+                continue
+        else:
+            say("Bets are 5 to 100 caps, or 'blood'.")
+            continue
+
+        deck = [(r, s) for r in range(1, 14) for s in SUITS]
+        random.shuffle(deck)
+        you, dealer = [deck.pop(), deck.pop()], [deck.pop(), deck.pop()]
+        peek = f" You can see his hole card: {card_name(dealer[1])}." if "card_sharp" in player.perks else ""
+        say(f"Pete shows {card_name(dealer[0])}.{peek}")
+        say(f"You: {show_hand(you)}")
+        outcome = None
+        if hand_value(you) == 21:
+            outcome = "push" if hand_value(dealer) == 21 else "blackjack"
+        else:
+            first = True
+            while True:
+                can_double = first and not blood and player.caps >= bet * 2
+                keys = ["h", "s"] + (["d"] if can_double else [])
+                act = await ask("(h)it  (s)tand" + ("  (d)ouble" if can_double else "") + " > ", keys=keys)
+                if act in ("s", "stand"):
+                    break
+                if act in ("h", "hit") or (act in ("d", "double") and can_double):
+                    if act.startswith("d"):
+                        bet *= 2
+                        say(f"You double down. {bet} caps on the table.")
+                    you.append(deck.pop())
+                    say(f"You: {show_hand(you)}")
+                    if hand_value(you) > 21:
+                        outcome = "bust"
+                        break
+                    if act.startswith("d"):
+                        break
+                    first = False
+            if not outcome:
+                say(f"Pete flips {card_name(dealer[1])}. Dealer: {show_hand(dealer)}")
+                while hand_value(dealer) < 17:
+                    dealer.append(deck.pop())
+                    say(f"Pete draws. Dealer: {show_hand(dealer)}")
+                d, y = hand_value(dealer), hand_value(you)
+                outcome = "win" if d > 21 or y > d else "push" if y == d else "lose"
+
+        if outcome in ("win", "blackjack"):
+            won = round(bet * 1.5) if outcome == "blackjack" else bet
+            player.caps += won
+            say(("Blackjack! " if outcome == "blackjack" else "You win. ")
+                + (f"You keep your blood, and Pete pays {won} caps." if blood else f"+{won} caps."))
+        elif outcome == "push":
+            say("Push. Nobody wins. Pete looks disappointed.")
+        else:
+            say("Bust. " if outcome == "bust" else "Pete wins. ")
+            if blood:
+                player.hp -= 15
+                say("Pete fills the jar from your arm. The room tilts. -15 HP.")
+            else:
+                player.caps -= bet
+                say(f"-{bet} caps.")
+
+
+def at_least(k, n=5, p=1 / 6):
+    """Chance that at least k of n hidden dice show a given face."""
+    if k <= 0:
+        return 1.0
+    from math import comb
+    return sum(comb(n, i) * p ** i * (1 - p) ** (n - i) for i in range(k, n + 1))
+
+
+async def liars_dice(player):
+    say("\nIn the barracks, Brother Cole plays liar's dice for caps, and sometimes for confessions. Five dice "
+        "each under a cup. Bid how many dice of a face are on the whole table, counting his and yours. Each bid "
+        "must beat the last. Call 'liar' if you think the last bid is false.")
+    while True:
+        say(f"\nYou have {player.caps} caps.")
+        stake_s = await ask("Stake (10-80 caps, or 'leave') > ", keys=["10", "25", "50", "leave"])
+        if stake_s in ("leave", "q", "0", ""):
+            say("Cole nods. \"Go with purity.\"")
+            return
+        if not stake_s.isdigit() or not 10 <= int(stake_s) <= 80:
+            say("Stakes are 10 to 80 caps.")
+            continue
+        stake = int(stake_s)
+        if stake > player.caps:
+            say("You don't have that many caps.")
+            continue
+
+        mine = sorted(random.randint(1, 6) for _ in range(5))
+        his = [random.randint(1, 6) for _ in range(5)]
+        say(f"You lift your cup: {' '.join(map(str, mine))}")
+        bid, caller, turn = None, None, "you"
+        while caller is None:
+            if turn == "you":
+                text = await ask("Bid like '3 4' (three 4s)" + (" or 'liar'" if bid else "") + " > ",
+                                 keys=["liar"] if bid else [])
+                if text == "liar" and bid:
+                    caller = "you"
+                    break
+                parts = text.split()
+                if len(parts) != 2 or not all(p.isdigit() for p in parts):
+                    say("Bid two numbers: how many dice, then which face.")
+                    continue
+                q, f = int(parts[0]), int(parts[1])
+                if not (1 <= f <= 6 and 1 <= q <= 10):
+                    say("Faces run 1 to 6, and there are 10 dice on the table.")
+                    continue
+                if bid and not (q > bid[0] or (q == bid[0] and f > bid[1])):
+                    say(f"You have to beat {bid[0]} x {bid[1]}: more dice, or the same count of a higher face.")
+                    continue
+                bid, turn = (q, f), "cole"
+                say(f"You bid {q} x {f}.")
+            else:
+                q, f = bid
+                if q >= 10 or at_least(q - his.count(f)) < 0.4 + random.uniform(-0.1, 0.1):
+                    say("Cole smiles thinly. \"Liar.\"")
+                    caller = "cole"
+                    break
+                options = []
+                for f2 in range(1, 7):
+                    q2 = q if f2 > f else q + 1
+                    if q2 <= 10:
+                        options.append((at_least(q2 - his.count(f2)), q2, f2))
+                chance, q2, f2 = max(options)
+                if random.random() < 0.2:
+                    chance, q2, f2 = random.choice(options)  # a bluff
+                elif chance < 0.3:
+                    say("Cole smiles thinly. \"Liar.\"")
+                    caller = "cole"
+                    break
+                bid, turn = (q2, f2), "you"
+                say(f"Cole bids {q2} x {f2}.")
+                if "card_sharp" in player.perks:
+                    say("His thumb taps the cup. He's bluffing." if chance < 0.5 else "He's calm. He believes it.")
+
+        q, f = bid
+        total = mine.count(f) + his.count(f)
+        say(f"Cups up. Cole had {' '.join(map(str, sorted(his)))}. There are {total} x {f} on the table.")
+        bidder_honest = total >= q
+        you_win = bidder_honest if caller == "cole" else not bidder_honest
+        if you_win:
+            player.caps += stake
+            say(f"You win {stake} caps. Cole pays, and writes your name in a little black book.")
+        else:
+            player.caps -= stake
+            say(f"You lose {stake} caps. \"The Covenant thanks you for your tithe.\"")
+
+
+async def gamble(player):
+    town = town_here(player)
+    if not town:
+        say("Nobody out here plays for anything but your life.")
+        return
+    await (blackjack(player) if TOWNS[town]["game"] == "blackjack" else liars_dice(player))
+
+
+# ================================================================ logic puzzles
+
+
+HACK_WORDS = ["BURNING", "CORPSES", "SHELTER", "MARTYRS", "FURNACE", "SCALPEL", "HARVEST", "BLESSED",
+              "CRUSADE", "PENANCE", "SURGEON", "CARCASS", "PURGING", "RADIANT", "SINNERS", "TRAITOR",
+              "WARDENS", "PRAYERS", "RITUALS", "MORTALS", "BANDAGE", "SUTURES", "DONATED", "REDEEMS",
+              "CLEANSE", "MARROWS", "SERVICE", "TITHING", "BURIALS", "WEEPING", "HANGING", "CHAPELS"]
+assert all(len(w) == 7 for w in HACK_WORDS)
+
+
+def likeness(a, b):
+    return sum(x == y for x, y in zip(a, b))
+
+
+async def hack(player, term):
+    """Guess the password from the list. Each miss shows how many letters sit in the right place.
+    Returns 'open', 'locked', or None if you log off."""
+    st = player.puzzles.get(term["id"])
+    if not st:
+        answer = random.choice(HACK_WORDS)
+        others = sorted((w for w in HACK_WORDS if w != answer), key=lambda w: -likeness(w, answer))
+        words = [answer] + others[:4] + random.sample(others[4:], 3)
+        random.shuffle(words)
+        tries = 4 + (2 if "hacker" in player.perks else 0) + (1 if player.stats["WIT"] >= 7 else 0)
+        st = player.puzzles[term["id"]] = {"words": words, "answer": answer, "left": tries, "tried": [], "done": None}
+    if st["done"]:
+        say("ACCESS ALREADY GRANTED." if st["done"] == "open" else "TERMINAL LOCKED. PERMANENTLY.")
+        return st["done"]
+    say(f"\n> {term['title']}")
+    say(f"> PASSWORD REQUIRED. {st['left']} ATTEMPT(S) BEFORE LOCKOUT.")
+    say("Each wrong guess shows its likeness: how many letters match the password in the same position.")
+    while st["left"] > 0:
+        say("  " + "  ".join(st["words"]))
+        for word, like in st["tried"]:
+            say(f"  > {word}: likeness {like}/7")
+        guess = (await ask("Password > ", keys=[w.lower() for w in st["words"]] + ["exit"])).upper()
+        if guess == "EXIT":
+            say("You log off. The attempts you used stay used.")
+            return None
+        if guess not in st["words"]:
+            say("Type one of the listed words.")
+            continue
+        if guess == st["answer"]:
+            st["done"] = "open"
+            say("> ACCESS GRANTED.")
+            return "open"
+        st["left"] -= 1
+        st["words"].remove(guess)
+        st["tried"].append((guess, likeness(guess, st["answer"])))
+        say(f"> {guess}: ENTRY DENIED. LIKENESS {st['tried'][-1][1]}/7. {st['left']} ATTEMPT(S) LEFT.")
+        save_game(player)
+    st["done"] = "locked"
+    say("> TERMINAL LOCKED. SECURITY NOTIFIED.")
+    return "locked"
+
+
+async def hack_here(player):
+    if player.room:
+        term = ROOMS[player.room].get("terminal")
+    else:
+        term = TOWNS.get(town_here(player) or "", {}).get("terminal")
+    if not term:
+        say("No terminal here.")
+        return
+    result = await hack(player, term)
+    flag = f"open_{term['id']}"
+    if result == "open" and flag not in player.flags:
+        player.flags.append(flag)
+        say(term["opens"])
+        for item_id in term.get("reward", []):
+            player.give(item_id)
+    elif result == "locked" and f"alarm_{term['id']}" not in player.flags:
+        player.flags.append(f"alarm_{term['id']}")
+        say("An alarm bell clangs. Boots on the stairs.")
+        await fight(player, term["alarm"])
+
+
+def code_feedback(guess, code):
+    well = sum(g == c for g, c in zip(guess, code))
+    return well, len(set(guess) & set(code)) - well
+
+
+def make_code_puzzle(rng=random):
+    """A 3-digit code (distinct digits) and clues that pin it down to exactly one answer."""
+    codes = [a + b + c for a in "0123456789" for b in "0123456789" for c in "0123456789" if len({a, b, c}) == 3]
+    while True:
+        code = rng.choice(codes)
+        clues, left = [], codes
+        while len(left) > 1 and len(clues) < 6:
+            best = None
+            for g in rng.sample(codes, 12):
+                fb = code_feedback(g, code)
+                if fb == (3, 0):
+                    continue
+                remaining = [c for c in left if code_feedback(g, c) == fb]
+                if best is None or len(remaining) < len(best[2]):
+                    best = (g, fb, remaining)
+            if best and len(best[2]) < len(left):
+                clues.append((best[0], best[1]))
+                left = best[2]
+        if len(left) == 1:
+            return code, clues
+
+
+def feedback_text(well, wrong):
+    if well == 0 and wrong == 0:
+        return "nothing is correct"
+    total = well + wrong
+    words = {1: "one", 2: "two", 3: "three"}
+    text = f"{words[total]} number{'s are' if total > 1 else ' is'} correct"
+    if well == total:
+        return text + (" and well placed" if total == 1 else ", both well placed")
+    if well == 0:
+        return text + " but wrongly placed"
+    return text + f"; {words[well]} {'is' if well == 1 else 'are'} well placed"
+
+
+async def crack_safe(player):
+    safe = ROOMS[player.room].get("safe") if player.room else None
+    if not safe:
+        say("There's no safe here.")
+        return
+    boss = ROOMS[player.room].get("boss")
+    if boss and f"{boss}_dead" not in player.flags:
+        say("Not while that thing is alive.")
+        return
+    st = player.puzzles.get(safe["id"])
+    if not st:
+        code, clues = make_code_puzzle()
+        st = player.puzzles[safe["id"]] = {"code": code, "clues": clues, "left": 3, "done": None}
+    if st["done"]:
+        say("The safe hangs open, empty." if st["done"] == "open" else "The safe is a melted lump now.")
+        return
+    say(f"\n{safe['title']}")
+    say("Scratched into the paint beside the dial, someone's notes:")
+    for guess, (well, wrong) in st["clues"]:
+        say(f"  {' '.join(guess)}  - {feedback_text(well, wrong)}")
+    say("The code is three different digits.")
+    while st["left"] > 0:
+        guess = (await ask(f"Code ({st['left']} tries) > ", keys=["exit"])).replace(" ", "")
+        if guess in ("exit", "leave", "q"):
+            say("You leave the dial alone, for now.")
+            return
+        if len(guess) != 3 or not guess.isdigit() or len(set(guess)) != 3:
+            say("Three different digits, like 507.")
+            continue
+        if guess == st["code"]:
+            st["done"] = "open"
+            say("The tumblers fall. The door swings open.")
+            player.caps += safe["caps"]
+            say(f"+ {safe['caps']} caps")
+            for item_id in safe["loot"]:
+                player.give(item_id)
+            return
+        st["left"] -= 1
+        say("The dial grinds. Wrong." + (" Something inside the door clicks, like a warning." if st["left"] == 1 else ""))
+        save_game(player)
+    st["done"] = "trapped"
+    player.hp -= safe["trap"]
+    say(f"{safe['trap_text']} -{safe['trap']} HP. Whatever was inside is ruined.")
+    if player.hp <= 0:
+        player.killer = "a booby-trapped safe"
+
+
+PRISONERS = ["the boy with burned hands", "the old woman", "the man with one ear"]
+
+
+def statement_true(kind, target, rat):
+    return (target == rat) if kind in ("is", "lies") else (target != rat)
+
+
+def make_knaves(rng=random):
+    """Three prisoners, one of them a liar. Each makes one claim about another, and exactly one choice
+    of liar fits every claim."""
+    while True:
+        claims = [(rng.choice(["is", "isnt", "truth", "lies"]), rng.choice([t for t in range(3) if t != s]))
+                  for s in range(3)]
+        fits = [rat for rat in range(3)
+                if all(statement_true(k, t, rat) == (s != rat) for s, (k, t) in enumerate(claims))]
+        if len(fits) == 1:
+            return claims, fits[0]
+
+
+def claim_text(kind, target):
+    who = PRISONERS[target]
+    return {"is": f"{who.capitalize()} is the rat.",
+            "isnt": f"{who.capitalize()} isn't the rat.",
+            "truth": f"{who.capitalize()} is telling you the truth.",
+            "lies": f"{who.capitalize()} is lying to you."}[kind]
+
+
+async def event_cage(player):
+    st = player.puzzles.get("cage")
+    if not st:
+        claims, rat = make_knaves()
+        st = player.puzzles["cage"] = {"claims": claims, "rat": rat}
+    say("\nIn the fattening cage, three prisoners press against the bars. A raider laughs as he walks past: one "
+        "of them is a Red Teeth rat, planted to listen for escape plans. The rat always lies. The other two "
+        "tell the truth. They're desperate for you to believe them.")
+    for s, (kind, target) in enumerate(st["claims"]):
+        say(f"  {PRISONERS[s].capitalize()}: \"{claim_text(kind, target)}\"")
+    pick = await choose(player, [f"Point at {p}" for p in PRISONERS] + ["Walk away"])
+    if pick == 4:
+        return False
+    accused = pick - 1
+    if accused == st["rat"]:
+        say(f"You point at {PRISONERS[accused]}. The other two exhale. You jam the lock with your knife and the "
+            "cage swings open. The two you freed vanish into the smoke. The last thing they tell you is that a "
+            "storm drain south-east of here leads under the stadium.")
+        if pos_key(loc_pos("U")) not in player.seen:
+            player.seen.append(pos_key(loc_pos("U")))
+        say(f"{PRISONERS[accused].capitalize()} watches you through the bars. \"They'll let me out. They always do.\"")
+        if await choose(player, ["Leave the rat in the cage", "Make sure they don't"]) == 2:
+            say("It's quick. Nobody in the yard even looks up.")
+        player.give("stimpak")
+        player.karma_shift(1)
+    else:
+        say(f"You point at {PRISONERS[accused]}. Behind you, the real rat starts screaming for the guards. "
+            f"Two raiders drag {PRISONERS[accused]} out of the cage toward the arena. You can hear the crowd "
+            "start to cheer. The third raider comes for you.")
+        player.karma_shift(-1)
+        await fight(player, "butcher")
+    return True
+
+
+JUG_PUZZLES = [(3, 5, 4), (5, 7, 6), (4, 9, 6), (5, 8, 2)]
+
+
+async def jug_puzzle(player):
+    a_cap, b_cap, goal = random.choice(JUG_PUZZLES)
+    say(f"\nThe Tollman sets two rusted cans on the bridge. \"Can A holds {a_cap} litres. Can B holds {b_cap}. "
+        f"River's right there. Bring me exactly {goal} litres in one can. Twelve moves.\"")
+    a = b = 0
+    for moves_left in range(12, 0, -1):
+        say(f"Can A: {a}/{a_cap}   Can B: {b}/{b_cap}   ({moves_left} move{'s' if moves_left > 1 else ''} left)")
+        move = await ask("Jugs (fill a, empty b, pour a b...) > ",
+                         keys=["fill a", "fill b", "empty a", "empty b", "pour a b", "pour b a", "give up"])
+        words = move.split()
+        if move in ("give up", "quit", "q"):
+            return False
+        if words[:1] == ["fill"] and words[1:] in (["a"], ["b"]):
+            a, b = (a_cap, b) if words[1] == "a" else (a, b_cap)
+        elif words[:1] == ["empty"] and words[1:] in (["a"], ["b"]):
+            a, b = (0, b) if words[1] == "a" else (a, 0)
+        elif move == "pour a b":
+            n = min(a, b_cap - b)
+            a, b = a - n, b + n
+        elif move == "pour b a":
+            n = min(b, a_cap - a)
+            a, b = a + n, b - n
+        else:
+            say("\"Fill, empty or pour. Try again. That one's free.\"")
+            continue
+        if goal in (a, b):
+            say(f"Can A: {a}/{a_cap}   Can B: {b}/{b_cap}")
+            return True
+    return False
+
+
+async def event_tollman(player):
+    f = player.flags
+    if "toll_free" in f or "tollman_dead" in f:
+        return False
+    say("\nThe Tollman stands up, and keeps standing up. \"Toll's thirty caps. Or answer my riddle and walk "
+        "free forever. Or try your luck.\" He pats the sack. Something in it is still blinking.")
+    while True:
+        pick = await choose(player, [f"Pay 30 caps (you have {player.caps})", "Take the riddle",
+                                     "Fight him", "Turn back"])
+        if pick == 1:
+            if player.caps < 30:
+                say("\"That's not thirty.\"")
+                continue
+            player.caps -= 30
+            say("He bites each cap before he lets you pass.")
+            return False
+        if pick == 2:
+            if await jug_puzzle(player):
+                say("The Tollman stares at the can for a long time. Then he laughs, a sound like a landslide. "
+                    "\"Clever meat. Cross whenever you like.\" He even pays you for the entertainment.")
+                player.caps += 40
+                f.append("toll_free")
+                player.gain_xp(40)
+                return True
+            say("\"Wrong.\" He opens the sack a little wider, just to show you the room in it. \"Pay, fight, "
+                "or walk.\"")
+            continue
+        if pick == 3:
+            if await fight(player, "tollman") == "won":
+                f.append("tollman_dead")
+                say("You open the sack. You count nineteen heads before you stop counting. One of them still "
+                    "has a Shelter 41 haircut.")
+                player.give("grenade")
+            return True
+        say("You back off the bridge.")
+        player.pos = list(player.prev_pos)
+        player.reveal()
+        describe(player)
+        return False
+
+
+EVENTS.update(cage=event_cage, tollman=event_tollman)
+
+
+# ================================================================ quick keys for the browser
+
+
+def context_keys(player):
+    keys = []
+    if player.room:
+        room = ROOMS[player.room]
+        keys += [d for d in ("north", "south", "east", "west", "up", "down") if d in room["exits"]]
+        if room.get("out"):
+            keys.append("out")
+        keys.append("search")
+        if room.get("terminal"):
+            keys.append("hack")
+        if room.get("safe"):
+            keys.append("crack")
+    else:
+        x, y = player.pos
+        keys += [d[0] for d, (dx, dy) in DIRS.items()
+                 if 0 <= x + dx < WIDTH and 0 <= y + dy < HEIGHT and WORLD[y + dy][x + dx] != "~"]
+        keys += ["map", "search"]
+        town = town_here(player)
+        if town:
+            keys += ["talk", "shop", "rest", "gamble"] + (["board"] if town == "dustwater" else ["hack"])
+        elif LOCATIONS.get(player.tile(), {}).get("dungeon") or player.tile() == "U":
+            keys.append("enter")
+    return keys + ["look", "inv", "stats", "help"]
 
 
 # ================================================================ ending
@@ -2223,7 +2958,9 @@ HELP = """Commands:
   inv (i)           inventory           use <item>   eat, drink, equip, heal
   stats (c)         your condition      repair       patch gear with scrap
   drink             drink from a river (rads!)
-  talk / shop / rest                    in towns
+  talk / shop / rest / gamble           in towns
+  board             Dustwater's bounty board
+  hack / crack      break into terminals and safes
   party             your companion      dismiss      send them back to Dustwater
   quit              save and stop
 Food and water drop as you travel. There is no load. When you die, you stay dead."""
@@ -2291,8 +3028,10 @@ async def play(player):
     while player.hp > 0 and "ended" not in player.flags:
         if player.stat_points:
             await spend_points(player)
+        if player.perk_points:
+            await choose_perk(player)
         save_game(player)
-        raw = await ask("\n> ")
+        raw = await ask("\n> ", keys=context_keys(player))
         verb, _, arg = raw.partition(" ")
         verb = ALIASES.get(verb, verb)
         if verb == "go":
@@ -2332,6 +3071,16 @@ async def play(player):
             await talk(player)
         elif verb == "rest":
             rest(player)
+        elif verb == "gamble":
+            await gamble(player)
+        elif verb in ("board", "bounty"):
+            await bounty_board(player)
+        elif verb == "hack":
+            await hack_here(player)
+        elif verb in ("crack", "safe"):
+            await crack_safe(player)
+        elif verb == "perks":
+            say(", ".join(f"{PERKS[p][0]} ({PERKS[p][1]})" for p in player.perks) or "No perks yet.")
         elif verb == "party":
             if player.companion:
                 c = COMPANIONS[player.companion]

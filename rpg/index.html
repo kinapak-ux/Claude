@@ -168,7 +168,8 @@ let pending = null;
 function classify(text) {
   if (/^== .* ==$/.test(text) || /^(EPILOGUE|  HERE LIES)/.test(text)) return "h";
   if (/^!!!|hits you for|^You're (starving|dying)|Critical hit|jams!|goes down with|steps into the blow|yelps once/.test(text)) return "danger";
-  if (/^\(Karma|^\(Marked|^Your rad counter|^You can go|^Exits:|^People:/.test(text)) return "dim";
+  if (/^\(Karma|^\(Marked|^\(Bounty|^\[Day |^Your rad counter|^You can go|^Exits:|^People:/.test(text)) return "dim";
+  if (/^> (ACCESS|PASSWORD|TERMINAL|[A-Z]+: ENTRY)|^> [A-Z ]+ - /.test(text)) return "h";
   return "";
 }
 
@@ -204,10 +205,22 @@ function keysFor(prompt) {
   return KEYSETS.explore;
 }
 
-function renderKeys(prompt) {
+const LABELS = {
+  n: "N", s: "S", e: "E", w: "W", y: "Yes", h: "Hit", d: "Double", inv: "Inv",
+  "pour a b": "Pour A→B", "pour b a": "Pour B→A", "fill a": "Fill A", "fill b": "Fill B",
+  "empty a": "Empty A", "empty b": "Empty B",
+};
+
+function label(value) {
+  return LABELS[value] || value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function renderKeys(prompt, suggested) {
   keys.replaceChildren();
   const fight = prompt.startsWith("(a)ttack");
-  for (const k of keysFor(prompt)) {
+  if (prompt.startsWith("(h)it")) suggested = suggested.map((v) => v === "s" ? "stand" : v);
+  const set = suggested && suggested.length ? suggested.map((v) => [v, label(v)]) : keysFor(prompt);
+  for (const k of set) {
     if (!k) { const g = document.createElement("span"); g.className = "gap"; keys.appendChild(g); continue; }
     const b = document.createElement("button");
     b.type = "button";
@@ -236,10 +249,10 @@ function storageKey(name) { return "ashlands:" + name; }
 
 window.gameIO = {
   write(text) { line(String(text)); scrollDown(); },
-  ask(prompt) {
+  ask(prompt, suggested) {
     const p = String(prompt).replace(/^\n+/, "");
     promptEl.textContent = p.trim() || ">";
-    renderKeys(p);
+    renderKeys(p, suggested ? String(suggested).split("|").filter(Boolean) : []);
     cmd.disabled = false;
     if (window.matchMedia("(pointer: fine)").matches) cmd.focus();
     scrollDown();
@@ -303,6 +316,6 @@ async function boot() {
   }
 }
 
-renderKeys(">");
+renderKeys(">", []);
 boot();
 </script>
