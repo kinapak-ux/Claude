@@ -175,7 +175,7 @@ body {
 .modal-card h2 { margin: 0; font-family: var(--f-display); font-weight: 800; font-size: 44px; line-height: 1; text-wrap: balance; }
 .modal-card p { margin: 0; color: var(--muted); font-size: 15px; }
 .promo-row { display: flex; gap: 8px; justify-content: center; }
-.promo-row button { font-size: 34px !important; width: 62px; height: 62px; padding: 0 !important; display: grid; place-items: center; }
+.promo-row .pick { font-size: 34px !important; width: 62px; height: 62px; padding: 0 !important; display: grid; place-items: center; }
 
 .hint {
   position: absolute;
@@ -206,7 +206,7 @@ body {
   .tray-label { font-size: 10px; }
   .glyphs { font-size: 16px; min-height: 18px; }
   .log { display: none; }
-  .caption { font-size: 16px; top: auto; bottom: calc(150px + env(safe-area-inset-bottom, 0px)); white-space: normal; text-align: center; width: max-content; max-width: calc(100vw - 32px); }
+  .caption { font-size: 16px; top: auto; bottom: calc(200px + env(safe-area-inset-bottom, 0px)); white-space: normal; text-align: center; width: max-content; max-width: calc(100vw - 32px); }
   .dock { gap: 8px 10px; padding: 8px 10px; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
   .hud button { padding: 7px 9px; font-size: 13px; }
 }
@@ -223,7 +223,7 @@ body {
     <h1>Skirmish Chess</h1>
     <p>Every capture is a duel</p>
   </header>
-  <p class="hint">Click a piece, then a glowing square. Drag to orbit the board, scroll or pinch to zoom.</p>
+  <p class="hint">Click a piece, then a glowing square. Capture something to start a duel. Drag to orbit, scroll or pinch to zoom.</p>
 
   <section class="status panel" aria-live="polite">
     <div class="turn" id="turnRow"><span class="dot" id="turnDot"></span><span id="statusText">White to move</span></div>
@@ -247,6 +247,11 @@ body {
       <button id="spFull" data-speed="full" aria-pressed="true">Full</button>
       <button id="spQuick" data-speed="quick" aria-pressed="false">Quick</button>
       <button id="spOff" data-speed="off" aria-pressed="false">Off</button>
+    </div>
+    <div class="seg" role="group" aria-label="Piece style">
+      <span class="seg-label">Pieces</span>
+      <button id="stFantasy" data-style="fantasy" aria-pressed="true">Fantasy</button>
+      <button id="stClassic" data-style="classic" aria-pressed="false">Classic</button>
     </div>
     <div class="actions">
       <button id="btnUndo">Undo</button>
@@ -286,6 +291,8 @@ const GLYPH = { p: "♟", n: "♞", b: "♝", r: "♜", q: "♛", k: "♚" };
 const VAL = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
 const SIDE = { w: "White", b: "Black" };
 const reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+let theme = "fantasy";
+try { const saved = localStorage.getItem("skirmish-theme"); if (saved === "classic" || saved === "fantasy") theme = saved; } catch (e) {}
 
 /* =====================================================================
    Chess rules
@@ -553,15 +560,19 @@ const sqPos = (sq, y = 0) => new THREE.Vector3((sq & 7) - 3.5, y, 3.5 - (sq >> 3
 const defaultYaw = (c) => (c === "w" ? Math.PI : 0);
 
 /* ---------- board ---------- */
-function boardTexture() {
+const BOARD = {
+  classic: { dark: ["#4b505d", "#3c404c"], light: ["#ddd1b8", "#cdbfa2"], ember: 0xff8a4a },
+  fantasy: { dark: ["#34503f", "#263d31"], light: ["#dccb9c", "#c8b282"], ember: 0xc6ff8a },
+};
+function boardTexture(pal) {
   const c = document.createElement("canvas");
   c.width = c.height = 1024;
   const x = c.getContext("2d");
   for (let r = 0; r < 8; r++) for (let f = 0; f < 8; f++) {
     const dark = (r + f) % 2 === 0;
     const g = x.createLinearGradient(f * 128, (7 - r) * 128, f * 128 + 128, (7 - r) * 128 + 128);
-    g.addColorStop(0, dark ? "#4b505d" : "#ddd1b8");
-    g.addColorStop(1, dark ? "#3c404c" : "#cdbfa2");
+    g.addColorStop(0, dark ? pal.dark[0] : pal.light[0]);
+    g.addColorStop(1, dark ? pal.dark[1] : pal.light[1]);
     x.fillStyle = g;
     x.fillRect(f * 128, (7 - r) * 128, 128, 128);
   }
@@ -637,7 +648,7 @@ world.add(frameTop);
 const slab = new THREE.Mesh(new THREE.BoxGeometry(8, 0.2, 8), new THREE.MeshStandardMaterial({ color: 0x24262d, roughness: 0.5 }));
 slab.position.y = -0.1;
 world.add(slab);
-const boardTop = new THREE.Mesh(new THREE.PlaneGeometry(8, 8), new THREE.MeshStandardMaterial({ map: boardTexture(), roughness: 0.38, metalness: 0.05 }));
+const boardTop = new THREE.Mesh(new THREE.PlaneGeometry(8, 8), new THREE.MeshStandardMaterial({ map: boardTexture(BOARD[theme]), roughness: 0.38, metalness: 0.05 }));
 boardTop.rotation.x = -Math.PI / 2;
 boardTop.position.y = 0.001;
 boardTop.receiveShadow = true;
@@ -696,62 +707,228 @@ function knightHead() {
 }
 const torusGeo = new THREE.TorusGeometry(0.3, 0.024, 8, 40);
 const sphereGeo = new THREE.SphereGeometry(1, 24, 16);
+const halfSphereGeo = new THREE.SphereGeometry(1, 20, 10, 0, TAU, 0, Math.PI / 2);
+const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+const cylGeo = new THREE.CylinderGeometry(1, 1, 1, 16);
+const geoCache = {};
+const cached = (key, make) => geoCache[key] || (geoCache[key] = make());
+const latheOf = (key, pts) => cached(key, () => new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), 32));
+const cone = (rt, rb, h, seg = 14) => cached(`cone${rt}_${rb}_${h}_${seg}`, () => new THREE.CylinderGeometry(rt, rb, h, seg));
 
-function buildPiece(t, c) {
-  const g = new THREE.Group();
-  g.rotation.order = "YXZ";
-  const body = new THREE.MeshStandardMaterial(c === "w"
-    ? { color: 0xefe7d7, roughness: 0.3, metalness: 0.04 }
-    : { color: 0x22222a, roughness: 0.26, metalness: 0.35 });
-  const trim = new THREE.MeshStandardMaterial(c === "w"
-    ? { color: 0xc9a35a, roughness: 0.3, metalness: 0.85 }
-    : { color: 0x9a2418, roughness: 0.35, metalness: 0.5, emissive: 0x3a0804 });
-  const add = (geo, mat, pos, scale, rot) => {
-    const m = new THREE.Mesh(geo, mat || body);
-    if (pos) m.position.set(pos[0], pos[1], pos[2]);
-    if (scale) m.scale.set(scale[0], scale[1], scale[2]);
-    if (rot) m.rotation.set(rot[0], rot[1], rot[2]);
-    m.castShadow = true; m.receiveShadow = true;
-    g.add(m);
-    return m;
+const PALETTE = {
+  w: { body: 0xefe7d7, trim: 0xc9a35a, skin: 0xe9c6a2, metal: 0xd5dae2, cloth: 0x2d5aa6, hair: 0xf1efe9, wood: 0x7a5232, glow: 0x7fe0ff, fire: 0xffa040 },
+  b: { body: 0x22222a, trim: 0x9a2418, skin: 0x6f8b4c, metal: 0x4b4d57, cloth: 0x5c1430, hair: 0x26262c, wood: 0x3b2618, glow: 0xff3d78, fire: 0xb44cff },
+};
+function makeMats(c) {
+  const P = PALETTE[c], S = THREE.MeshStandardMaterial;
+  const lin = (hex) => new THREE.Color(hex).convertSRGBToLinear();
+  return {
+    body: new S(c === "w" ? { color: P.body, roughness: 0.3, metalness: 0.04 } : { color: P.body, roughness: 0.26, metalness: 0.35 }),
+    trim: new S(c === "w" ? { color: P.trim, roughness: 0.3, metalness: 0.85 } : { color: P.trim, roughness: 0.35, metalness: 0.5, emissive: 0x3a0804 }),
+    skin: new S({ color: lin(P.skin), roughness: 0.65 }),
+    metal: new S({ color: lin(P.metal), roughness: 0.22, metalness: 0.9 }),
+    cloth: new S({ color: lin(P.cloth), roughness: 0.75, side: THREE.DoubleSide }),
+    hair: new S({ color: lin(P.hair), roughness: 0.8 }),
+    wood: new S({ color: lin(P.wood), roughness: 0.7 }),
+    glow: new THREE.MeshBasicMaterial({ color: P.glow }),
   };
+}
+
+/* Classic Staunton-style pieces. */
+function classicPiece(t, add, M) {
   add(latheFor(t));
-  add(torusGeo, trim, [0, 0.075, 0], null, [Math.PI / 2, 0, 0]);
+  add(torusGeo, M.trim, [0, 0.075, 0], null, [Math.PI / 2, 0, 0]);
   if (t === "p") add(sphereGeo, null, [0, 0.63, 0], [0.15, 0.15, 0.15]);
   if (t === "r") {
-    const cren = new THREE.BoxGeometry(0.1, 0.1, 0.09);
+    const cren = cached("cren", () => new THREE.BoxGeometry(0.1, 0.1, 0.09));
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * TAU;
       add(cren, null, [Math.sin(a) * 0.235, 0.87, Math.cos(a) * 0.235], null, [0, a, 0]);
     }
-    add(torusGeo, trim, [0, 0.64, 0], [0.76, 0.76, 0.76], [Math.PI / 2, 0, 0]);
+    add(torusGeo, M.trim, [0, 0.64, 0], [0.76, 0.76, 0.76], [Math.PI / 2, 0, 0]);
   }
   if (t === "n") {
     add(knightHead(), null, [0, 0.26, 0]);
-    const eye = new THREE.SphereGeometry(0.028, 10, 8);
-    add(eye, trim, [0.12, 0.88, 0.2]);
-    add(eye, trim, [-0.12, 0.88, 0.2]);
+    const eye = cached("eye", () => new THREE.SphereGeometry(0.028, 10, 8));
+    add(eye, M.trim, [0.12, 0.88, 0.2]);
+    add(eye, M.trim, [-0.12, 0.88, 0.2]);
   }
   if (t === "b") {
     add(sphereGeo, null, [0, 0.86, 0], [0.17, 0.23, 0.17]);
-    add(sphereGeo, trim, [0, 1.1, 0], [0.05, 0.05, 0.05]);
-    add(new THREE.BoxGeometry(0.035, 0.16, 0.36), trim, [0, 0.93, 0], null, [0, 0, 0.55]);
-    add(torusGeo, trim, [0, 0.655, 0], [0.66, 0.66, 0.66], [Math.PI / 2, 0, 0]);
+    add(sphereGeo, M.trim, [0, 1.1, 0], [0.05, 0.05, 0.05]);
+    add(boxGeo, M.trim, [0, 0.93, 0], [0.035, 0.16, 0.36], [0, 0, 0.55]);
+    add(torusGeo, M.trim, [0, 0.655, 0], [0.66, 0.66, 0.66], [Math.PI / 2, 0, 0]);
   }
   if (t === "q") {
     for (let i = 0; i < 8; i++) {
       const a = (i / 8) * TAU;
-      add(sphereGeo, trim, [Math.sin(a) * 0.19, 1.03, Math.cos(a) * 0.19], [0.04, 0.04, 0.04]);
+      add(sphereGeo, M.trim, [Math.sin(a) * 0.19, 1.03, Math.cos(a) * 0.19], [0.04, 0.04, 0.04]);
     }
     add(sphereGeo, null, [0, 1.1, 0], [0.075, 0.075, 0.075]);
-    add(torusGeo, trim, [0, 0.8, 0], [0.76, 0.76, 0.76], [Math.PI / 2, 0, 0]);
+    add(torusGeo, M.trim, [0, 0.8, 0], [0.76, 0.76, 0.76], [Math.PI / 2, 0, 0]);
   }
   if (t === "k") {
-    add(new THREE.BoxGeometry(0.065, 0.26, 0.065), trim, [0, 1.25, 0]);
-    add(new THREE.BoxGeometry(0.19, 0.065, 0.065), trim, [0, 1.28, 0]);
-    add(torusGeo, trim, [0, 0.88, 0], [0.83, 0.83, 0.83], [Math.PI / 2, 0, 0]);
+    add(boxGeo, M.trim, [0, 1.25, 0], [0.065, 0.26, 0.065]);
+    add(boxGeo, M.trim, [0, 1.28, 0], [0.19, 0.065, 0.065]);
+    add(torusGeo, M.trim, [0, 0.88, 0], [0.83, 0.83, 0.83], [Math.PI / 2, 0, 0]);
   }
-  g.userData = { t, c, mats: [body, trim], baseEm: [body.emissive.clone(), trim.emissive.clone()], h: HEIGHT[t] };
+}
+
+/* Fantasy army: footman, lancer, wizard, golem, sorceress, warlord. Each faces +z. */
+function fantasyBase(add, M) {
+  add(latheOf("fbase", [[0,0],[0.34,0],[0.35,0.03],[0.34,0.07],[0.3,0.1],[0,0.1]]), M.body);
+  add(torusGeo, M.trim, [0, 0.06, 0], [1.13, 1.13, 1], [Math.PI / 2, 0, 0]);
+}
+const FANTASY = {
+  p(add, M) {
+    add(latheOf("fp", [[0,0.1],[0.17,0.1],[0.15,0.28],[0.12,0.42],[0.15,0.5],[0.13,0.56],[0.06,0.6],[0,0.6]]), M.cloth);
+    add(torusGeo, M.trim, [0, 0.3, 0], [0.47, 0.47, 0.6], [Math.PI / 2, 0, 0]);
+    add(sphereGeo, M.skin, [0, 0.67, 0], [0.085, 0.085, 0.085]);
+    add(halfSphereGeo, M.metal, [0, 0.685, 0], [0.097, 0.097, 0.097]);
+    add(boxGeo, M.metal, [0, 0.66, 0.085], [0.018, 0.07, 0.02]);
+    add(cylGeo, M.trim, [0.17, 0.4, 0.05], [0.13, 0.025, 0.13], [Math.PI / 2, 0, 0]);
+    add(sphereGeo, M.metal, [0.17, 0.4, 0.07], [0.035, 0.035, 0.035]);
+  },
+  n(add, M) {
+    add(sphereGeo, M.body, [0, 0.42, -0.02], [0.15, 0.135, 0.27]);
+    for (const sx of [-0.08, 0.08]) for (const sz of [-0.15, 0.13]) add(cone(0.032, 0.026, 0.26, 8), M.body, [sx, 0.23, sz]);
+    add(knightHead(), M.body, [0, 0.36, 0.14], [0.55, 0.55, 0.55]);
+    add(cylGeo, M.hair, [0, 0.42, -0.3], [0.03, 0.22, 0.03], [-0.7, 0, 0]);
+    add(boxGeo, M.cloth, [0, 0.545, -0.03], [0.3, 0.04, 0.24]);
+    add(cone(0.085, 0.1, 0.22), M.metal, [0, 0.67, -0.06]);
+    add(sphereGeo, M.skin, [0, 0.84, -0.06], [0.07, 0.07, 0.07]);
+    add(cone(0.01, 0.085, 0.17), M.metal, [0, 0.93, -0.06]);
+    add(sphereGeo, M.cloth, [0, 1.0, -0.1], [0.025, 0.05, 0.07]);
+    add(cylGeo, M.trim, [0.11, 0.64, -0.04], [0.1, 0.02, 0.1], [0, 0, Math.PI / 2]);
+  },
+  b(add, M) {
+    add(latheOf("fb", [[0,0.1],[0.25,0.1],[0.2,0.25],[0.14,0.5],[0.12,0.62],[0.15,0.66],[0,0.68]]), M.cloth);
+    add(torusGeo, M.trim, [0, 0.42, 0], [0.5, 0.5, 0.6], [Math.PI / 2, 0, 0]);
+    add(sphereGeo, M.skin, [0, 0.76, 0], [0.085, 0.085, 0.085]);
+    add(cone(0.07, 0.005, 0.22, 10), M.hair, [0, 0.64, 0.055], null, [0.25, 0, 0]);
+    add(cylGeo, M.cloth, [0, 0.83, 0], [0.17, 0.015, 0.17]);
+    add(cone(0.005, 0.11, 0.36), M.cloth, [0, 1.0, -0.01], null, [-0.12, 0, 0]);
+    add(torusGeo, M.trim, [0, 0.855, 0], [0.34, 0.34, 0.6], [Math.PI / 2, 0, 0]);
+  },
+  r(add, M) {
+    for (const sx of [-0.09, 0.09]) add(boxGeo, M.body, [sx, 0.2, 0], [0.11, 0.22, 0.13]);
+    add(boxGeo, M.body, [0, 0.47, 0], [0.42, 0.32, 0.27]);
+    add(boxGeo, M.glow, [0, 0.5, 0.137], [0.09, 0.09, 0.01], [0, 0, Math.PI / 4]);
+    for (const sx of [-0.23, 0.23]) add(cached("dodeca", () => new THREE.DodecahedronGeometry(0.11)), M.trim, [sx, 0.62, 0]);
+    add(boxGeo, M.body, [0, 0.71, 0.02], [0.16, 0.14, 0.16]);
+    for (const sx of [-0.04, 0.04]) add(boxGeo, M.glow, [sx, 0.72, 0.102], [0.035, 0.02, 0.01]);
+    add(boxGeo, M.body, [0.27, 0.41, 0], [0.11, 0.32, 0.12]);
+    add(boxGeo, M.body, [-0.27, 0.43, 0.03], [0.11, 0.3, 0.12]);
+  },
+  q(add, M, ud) {
+    add(latheOf("fq", [[0,0.1],[0.27,0.1],[0.2,0.24],[0.13,0.5],[0.1,0.7],[0.13,0.78],[0.07,0.85],[0,0.86]]), M.cloth);
+    add(torusGeo, M.trim, [0, 0.56, 0], [0.38, 0.38, 0.5], [Math.PI / 2, 0, 0]);
+    add(torusGeo, M.trim, [0, 0.8, 0], [0.4, 0.4, 0.5], [Math.PI / 2, 0, 0]);
+    add(sphereGeo, M.skin, [0, 0.93, 0], [0.08, 0.08, 0.08]);
+    add(sphereGeo, M.hair, [0, 0.95, -0.025], [0.088, 0.09, 0.085]);
+    add(torusGeo, M.trim, [0, 1.0, 0], [0.23, 0.23, 0.6], [Math.PI / 2, 0, 0]);
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * TAU;
+      add(cone(0, 0.017, 0.08, 6), M.trim, [Math.sin(a) * 0.068, 1.05, Math.cos(a) * 0.068]);
+    }
+    ud.orb = add(sphereGeo, M.glow, [0.22, 0.72, 0.08], [0.045, 0.045, 0.045]);
+  },
+  k(add, M) {
+    add(latheOf("fk", [[0,0.1],[0.25,0.1],[0.19,0.32],[0.15,0.62],[0.21,0.78],[0.16,0.86],[0,0.88]]), M.metal);
+    add(boxGeo, M.cloth, [0, 0.46, 0.165], [0.17, 0.4, 0.02], [-0.1, 0, 0]);
+    add(cached("cape", () => new THREE.CylinderGeometry(0.17, 0.28, 0.72, 20, 1, true, Math.PI / 2, Math.PI)), M.cloth, [0, 0.47, -0.01]);
+    add(torusGeo, M.trim, [0, 0.35, 0], [0.66, 0.66, 0.6], [Math.PI / 2, 0, 0]);
+    for (const sx of [-0.19, 0.19]) add(sphereGeo, M.trim, [sx, 0.82, 0], [0.08, 0.07, 0.08]);
+    add(sphereGeo, M.skin, [0, 0.97, 0], [0.095, 0.095, 0.095]);
+    add(cone(0.06, 0.02, 0.1, 8), M.hair, [0, 0.89, 0.07], null, [0.3, 0, 0]);
+    add(cached("crown", () => new THREE.CylinderGeometry(0.1, 0.09, 0.08, 18, 1, true)), M.trim, [0, 1.07, 0]);
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * TAU;
+      add(cone(0, 0.02, 0.08, 6), M.trim, [Math.sin(a) * 0.095, 1.14, Math.cos(a) * 0.095]);
+    }
+    add(sphereGeo, M.glow, [0, 1.07, 0.1], [0.022, 0.022, 0.022]);
+  },
+};
+
+/* Weapons are modelled with the grip at the origin, pointing up (+y).
+   Rotating the weapon group about x swings the tip forward (+z). */
+const CLASSIC_GRIP = [-0.28, 0.42, 0.06];
+const WEAPON = {
+  p: { grip: [-0.2, 0.38, 0.06], rest: 0.1, build(add, M) {        // spear
+    add(cylGeo, M.wood, [0, 0.2, 0], [0.016, 0.9, 0.016]);
+    add(cone(0, 0.04, 0.14, 8), M.metal, [0, 0.72, 0]);
+    return 0.79;
+  } },
+  n: { grip: [-0.17, 0.66, -0.02], rest: 0.35, build(add, M) {     // lance
+    add(cone(0.01, 0.045, 1.0, 10), M.trim, [0, 0.38, 0]);
+    add(cone(0.02, 0.085, 0.13, 12), M.metal, [0, -0.03, 0]);
+    return 0.88;
+  } },
+  b: { grip: [-0.21, 0.42, 0.06], rest: 0.05, build(add, M) {      // staff
+    add(cylGeo, M.wood, [0, 0.2, 0], [0.019, 1.0, 0.019]);
+    add(torusGeo, M.trim, [0, 0.77, 0], [0.24, 0.24, 0.8]);
+    add(sphereGeo, M.glow, [0, 0.77, 0], [0.055, 0.055, 0.055]);
+    return 0.77;
+  } },
+  r: { grip: [-0.3, 0.42, 0.06], rest: -0.5, scale: 1.15, build(add, M) { // war hammer
+    add(cylGeo, M.wood, [0, 0.3, 0], [0.028, 0.86, 0.028]);
+    add(boxGeo, M.metal, [0, 0.72, 0], [0.34, 0.18, 0.2]);
+    for (const sx of [-0.11, 0.11]) add(boxGeo, M.trim, [sx, 0.72, 0], [0.03, 0.2, 0.22]);
+    return 0.72;
+  } },
+  q: { grip: [-0.19, 0.6, 0.08], rest: 0.5, build(add, M) {        // crystal wand
+    add(cylGeo, M.trim, [0, 0.13, 0], [0.014, 0.32, 0.014]);
+    add(cached("crystal", () => new THREE.OctahedronGeometry(0.05)), M.glow, [0, 0.33, 0], [1, 1.6, 1]);
+    return 0.36;
+  } },
+  k: { grip: [-0.23, 0.5, 0.1], rest: 0.2, scale: 1.12, build(add, M) {  // greatsword
+    add(cylGeo, M.wood, [0, -0.02, 0], [0.02, 0.14, 0.02]);
+    add(sphereGeo, M.trim, [0, -0.1, 0], [0.03, 0.03, 0.03]);
+    add(boxGeo, M.trim, [0, 0.06, 0], [0.2, 0.035, 0.05]);
+    add(boxGeo, M.metal, [0, 0.42, 0], [0.055, 0.7, 0.014]);
+    add(cone(0, 0.0275, 0.06, 4), M.metal, [0, 0.8, 0], [1, 1, 0.25]);
+    return 0.8;
+  } },
+};
+
+function buildPiece(t, c) {
+  const g = new THREE.Group();
+  g.rotation.order = "YXZ";
+  const M = makeMats(c);
+  const add = (geo, mat, pos, scale, rot, parent) => {
+    const m = new THREE.Mesh(geo, mat || M.body);
+    if (pos) m.position.set(pos[0], pos[1], pos[2]);
+    if (scale) m.scale.set(scale[0], scale[1], scale[2]);
+    if (rot) m.rotation.set(rot[0], rot[1], rot[2]);
+    m.castShadow = true; m.receiveShadow = true;
+    (parent || g).add(m);
+    return m;
+  };
+  const ud = { t, c, theme, h: HEIGHT[t] };
+  if (theme === "fantasy") { fantasyBase(add, M); FANTASY[t](add, M, ud); }
+  else classicPiece(t, add, M);
+
+  // In the fantasy set weapons are always carried; classic pieces conjure them for a duel.
+  const spec = WEAPON[t];
+  const weapon = new THREE.Group();
+  weapon.position.fromArray(theme === "fantasy" ? spec.grip : CLASSIC_GRIP);
+  const inner = new THREE.Group();
+  inner.scale.setScalar(spec.scale || 1);
+  weapon.add(inner);
+  const tip = new THREE.Object3D();
+  tip.position.y = spec.build((geo, mat, pos, scale, rot) => add(geo, mat, pos, scale, rot, inner), M);
+  inner.add(tip);
+  weapon.rotation.x = spec.rest;
+  weapon.userData = { rest: spec.rest, tip };
+  g.add(weapon);
+
+  const mats = [M.body, M.trim, M.skin, M.metal, M.cloth, M.hair, M.wood];
+  const main = theme !== "fantasy" || t === "r" || t === "n" ? M.body : t === "k" ? M.metal : M.cloth;
+  Object.assign(ud, {
+    mats, baseEm: mats.map((m) => m.emissive.clone()), weapon,
+    shards: theme === "fantasy" ? [[main, 34], [M.body, 12], [M.trim, 10]] : [[M.body, 46], [M.trim, 12]],
+  });
+  g.userData = ud;
   return g;
 }
 
@@ -763,7 +940,7 @@ function syncPieces(s) {
     if (!p) continue;
     seen.add(p.id);
     let g = meshes.get(p.id);
-    if (!g || g.userData.t !== p.t || g.userData.c !== p.c) {
+    if (!g || g.userData.t !== p.t || g.userData.c !== p.c || g.userData.theme !== theme) {
       if (g) world.remove(g);
       g = buildPiece(p.t, p.c);
       world.add(g);
@@ -774,6 +951,10 @@ function syncPieces(s) {
     g.rotation.set(0, defaultYaw(p.c), 0);
     g.scale.set(1, 1, 1);
     g.visible = true;
+    const w = g.userData.weapon;
+    w.rotation.set(w.userData.rest, 0, 0);
+    w.visible = theme === "fantasy";
+    w.scale.setScalar(theme === "fantasy" ? 1 : 0.001);
   }
   for (const [id, g] of meshes) if (!seen.has(id)) { world.remove(g); meshes.delete(id); }
 }
@@ -838,7 +1019,7 @@ function updateEffects(dt) {
     if (!fx.update(fx.age, dt)) {
       world.remove(fx.obj);
       if (fx.obj.geometry && fx.obj.userData.ownGeo) fx.obj.geometry.dispose();
-      if (fx.obj.material) fx.obj.material.dispose();
+      disposeTree(fx.obj);
       effects.splice(i, 1);
     }
   }
@@ -901,12 +1082,10 @@ const shardGeos = [new THREE.TetrahedronGeometry(0.075), new THREE.BoxGeometry(0
 function shatter(g, dir, power = 1) {
   g.visible = false;
   const h = g.userData.h;
-  [0, 1].forEach((mi) => {
-    const src = g.userData.mats[mi];
+  g.userData.shards.forEach(([src, n]) => {
     const mat = new THREE.MeshStandardMaterial({ color: src.color, roughness: src.roughness, metalness: src.metalness, transparent: true });
     const holder = new THREE.Group();
     const parts = [];
-    const n = mi === 0 ? 46 : 12;
     for (let i = 0; i < n; i++) {
       const m = new THREE.Mesh(shardGeos[i % shardGeos.length], mat);
       const a = Math.random() * TAU, r = Math.random() * 0.24;
@@ -948,9 +1127,9 @@ let shakeAmt = 0, shakeT = 0;
 function shake(amt, dur) { if (reduceMotion) return; shakeAmt = Math.max(shakeAmt * (shakeT > 0 ? 1 : 0), amt); shakeT = Math.max(shakeT, dur); }
 
 function flash(g, color = 0xff4a22, dur = 0.35) {
-  const [m0, m1] = g.userData.mats, [b0, b1] = g.userData.baseEm;
+  const mats = g.userData.mats, base = g.userData.baseEm;
   const c = new THREE.Color(color);
-  return tween(dur, (k) => { m0.emissive.copy(c).lerp(b0, k); m1.emissive.copy(c).lerp(b1, k); }, E.out, true);
+  return tween(dur, (k) => { mats.forEach((m, i) => m.emissive.copy(c).lerp(base[i], k)); }, E.out, true);
 }
 function recoil(g, src, amt = 0.14) {
   const home = g.position.clone();
@@ -965,6 +1144,8 @@ function recoil(g, src, amt = 0.14) {
 
 const EMBER = 0xff6a2b, GOLD = 0xffcc6a, WHITE = 0xfff4e0, CRIMSON = 0xff3b30;
 const hitColor = (g) => (g.userData.c === "w" ? GOLD : CRIMSON);
+const magic = (g) => PALETTE[g.userData.c].glow;
+const fireOf = (g) => PALETTE[g.userData.c].fire;
 const mid = (a, b, t = 0.6, y = 0.55) => a.position.clone().lerp(b.position, t).setY(y);
 
 function hitFx(target, src, pt, color) {
@@ -985,100 +1166,282 @@ function kill(target, dir, power, color) {
   shake(0.1 * power, 0.35);
 }
 
-/* One blow: wind up, lunge, hit or kill, step back. */
-async function strike(X, Y, opt = {}) {
-  const q = opt.quick ? 0.7 : 1;
-  const home = X.position.clone();
-  const dir = Y.position.clone().sub(home).setY(0).normalize();
-  const reach = Math.min(0.4, Math.max(0, home.distanceTo(Y.position) - 0.45));
-  const fwd = home.clone().addScaledVector(dir, reach);
-  await tween(0.16 * q, (k) => { X.rotation.x = -0.28 * k; }, E.out);
-  await tween(0.1 * q, (k) => { X.position.lerpVectors(home, fwd, k); X.rotation.x = lerp(-0.28, 0.42, k); }, E.in);
-  const color = opt.color || hitColor(X);
-  if (opt.final) kill(Y, dir, opt.power || 1, color);
-  else hitFx(Y, X, mid(X, Y), color);
-  await tween(0.2 * q, (k) => { X.position.lerpVectors(fwd, home, k); X.rotation.x = 0.42 * (1 - k); }, E.out);
+/* ---------- weapons ---------- */
+const UP = new THREE.Vector3(0, 1, 0), FWD = new THREE.Vector3(0, 0, 1);
+const weaponOf = (g) => g.userData.weapon;
+function wpose(g, x, dur, ease = E.inOut) {
+  const w = weaponOf(g), x0 = w.rotation.x;
+  return tween(dur, (k) => { w.rotation.x = lerp(x0, x, k); }, ease);
+}
+function tipPos(g) {
+  const p = new THREE.Vector3();
+  weaponOf(g).userData.tip.getWorldPosition(p);
+  return world.worldToLocal(p);
+}
+function arm(g) {
+  if (g.userData.theme === "fantasy") return Promise.resolve();
+  const w = weaponOf(g);
+  w.visible = true;
+  sparks(g.position.clone().setY(0.6), magic(g), 12, 1, 0.4);
+  return tween(0.24, (k) => w.scale.setScalar(Math.max(0.001, k)), E.back);
+}
+function disarm(g) {
+  const w = weaponOf(g);
+  if (g.userData.theme === "fantasy") return wpose(g, w.userData.rest, 0.2);
+  return tween(0.2, (k) => w.scale.setScalar(Math.max(0.001, 1 - k)), E.in).then(() => { w.visible = false; w.rotation.x = w.userData.rest; });
 }
 
-/* Finishing moves, one per attacking piece type. */
-const FINISHERS = {
-  async p(A, D) {
-    await strike(A, D, { quick: true });
-    await strike(A, D, { quick: true, final: true, power: 0.9 });
-  },
-  async n(A, D, dir) {
-    const color = hitColor(A);
-    await tween(0.14, (k) => { A.rotation.x = -0.3 * k; A.position.y = -0.04 * k; }, E.out);
-    await glide(A, D.position.clone(), 0.5, { arc: 1.5, ease: E.inOut, tilt: (k) => lerp(-0.3, 0.55, k) });
-    kill(D, dir, 1.2, color);
-    shockwave(D.position, WHITE, 4, 0.4);
-    await tween(0.22, (k) => { A.rotation.x = 0.55 * (1 - k); A.position.y = Math.sin(k * Math.PI) * 0.18; }, E.out);
-  },
-  async b(A, D, dir) {
-    const color = hitColor(A);
-    const home = A.position.clone(), fwd = home.clone().addScaledVector(dir, 0.32);
-    const y0 = A.rotation.y;
-    let hits = 0;
-    await tween(0.62, (k) => {
-      A.rotation.y = y0 + TAU * 2 * k;
-      A.position.lerpVectors(home, fwd, Math.min(1, k * 1.6));
-      A.position.y = Math.sin(k * Math.PI) * 0.12;
-      if (hits === 0 && k > 0.33) { hits++; hitFx(D, A, mid(A, D, 0.7), color); }
-      if (hits === 1 && k > 0.66) { hits++; sparks(mid(A, D, 0.7, 0.7), color, 20, 2.2); slash(mid(A, D, 0.7, 0.7), A.rotation.y, color); flash(D); }
-    }, E.inOut);
-    A.rotation.y = y0;
-    kill(D, dir, 1.1, color);
-    slash(D.position.clone().setY(0.6), y0, WHITE);
-    await glide(A, home, 0.18);
-  },
-  async r(A, D, dir) {
-    const color = hitColor(A);
-    const home = A.position.clone();
-    const back = home.clone().addScaledVector(dir, -0.45);
-    await glide(A, back, 0.3, { ease: E.out, tilt: (k) => -0.18 * k });
-    shake(0.02, 0.2);
-    await wait(0.12);
-    const hitPt = D.position.clone().addScaledVector(dir, -0.36);
-    await glide(A, hitPt, 0.15, { ease: E.in, tilt: (k) => lerp(-0.18, 0.22, k) });
-    kill(D, dir, 1.7, color);
-    await glide(A, hitPt.clone().addScaledVector(dir, -0.12), 0.2, { ease: E.out, tilt: (k) => 0.22 * (1 - k) });
-  },
-  async q(A, D, dir) {
-    const color = hitColor(A);
-    await tween(0.3, (k) => { A.position.y = 0.42 * k; A.rotation.x = -0.15 * k; }, E.out);
-    for (let i = 0; i < 3; i++) {
-      const orb = new THREE.Mesh(sphereGeo, new THREE.MeshBasicMaterial({ color: i === 2 ? WHITE : color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
-      orb.scale.setScalar(0.09);
-      const from = A.position.clone().add(new THREE.Vector3(0, A.userData.h + 0.05, 0));
-      const to = D.position.clone().setY(0.55);
-      world.add(orb);
-      await tween(0.17, (k) => {
-        orb.position.lerpVectors(from, to, k);
-        orb.position.y += Math.sin(k * Math.PI) * 0.25;
-        impactLight.position.copy(orb.position);
-        impactLight.color.set(color);
-        lightPulse = Math.max(lightPulse, 1.6);
-      }, E.in);
-      world.remove(orb);
-      orb.material.dispose();
-      if (i < 2) hitFx(D, A, to, color);
-      else kill(D, dir, 1.3, color);
-      await wait(i < 2 ? 0.12 : 0.05);
+/* ---------- spell effects ---------- */
+function disposeTree(o) { o.traverse((c) => { if (c.material) c.material.dispose(); }); }
+const additive = (color, opacity = 1) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false });
+function glowBall(color, r) {
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(sphereGeo, additive(0xffffff)), new THREE.Mesh(sphereGeo, additive(color, 0.75)));
+  setGlowSize(g, r);
+  return g;
+}
+function setGlowSize(b, r) { b.children[0].scale.setScalar(r * 0.5); b.children[1].scale.setScalar(r); }
+const rodGeo = new THREE.CylinderGeometry(1, 1, 1, 8);
+rodGeo.rotateX(Math.PI / 2);
+function rod(color, core = true) {
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(rodGeo, additive(color, 0.8)));
+  if (core) { const c = new THREE.Mesh(rodGeo, additive(0xffffff)); c.scale.set(0.4, 0.4, 1); g.add(c); }
+  return g;
+}
+// Place a z-aligned object so it spans from a to b.
+function stretch(o, a, b) {
+  const d = b.clone().sub(a);
+  o.position.copy(a).addScaledVector(d, 0.5);
+  o.scale.z = d.length();
+  o.quaternion.setFromUnitVectors(FWD, d.normalize());
+  return o;
+}
+function glowLight(pos, color, amount) {
+  impactLight.position.copy(pos);
+  impactLight.color.set(color);
+  lightPulse = Math.max(lightPulse, amount);
+}
+
+function laserBolt(from, to, color) {
+  const b = rod(color);
+  b.quaternion.setFromUnitVectors(FWD, to.clone().sub(from).normalize());
+  b.scale.set(0.024, 0.024, 0.42);
+  world.add(b);
+  return tween(from.distanceTo(to) / 15, (k) => { b.position.lerpVectors(from, to, k); glowLight(b.position, color, 1.4); }, E.linear)
+    .then(() => { world.remove(b); disposeTree(b); });
+}
+function fireball(from, to, color, r, dur, arc) {
+  const b = glowBall(color, r);
+  world.add(b);
+  let lastSpark = 0;
+  return tween(dur, (k) => {
+    b.position.lerpVectors(from, to, k);
+    b.position.y += arc * 4 * k * (1 - k);
+    b.children[1].scale.setScalar(r * (1 + Math.sin(k * 40) * 0.12));
+    glowLight(b.position, color, 2);
+    if (k - lastSpark > 0.1) { lastSpark = k; sparks(b.position.clone(), color, 5, 0.7, 0.35); }
+  }, E.linear).then(() => { world.remove(b); disposeTree(b); });
+}
+function explosion(pos, color, size = 1) {
+  const b = glowBall(color, 0.18 * size);
+  b.position.copy(pos);
+  addEffect(b, (age) => {
+    const k = Math.min(1, age / 0.45);
+    b.scale.setScalar(1 + E.out(k) * 3.5);
+    b.children[0].material.opacity = 1 - k;
+    b.children[1].material.opacity = 0.75 * (1 - k);
+    return age < 0.45;
+  });
+  sparks(pos, color, 60, 3.6, 0.9);
+  impact(pos, color, 6 * size);
+}
+function lightning(from, to, color, life = 0.35, width = 0.03) {
+  const g = new THREE.Group();
+  const N = 10;
+  let prev = from.clone();
+  for (let i = 1; i <= N; i++) {
+    const p = from.clone().lerp(to, i / N);
+    if (i < N) { p.x += (Math.random() - 0.5) * 0.45; p.z += (Math.random() - 0.5) * 0.45; }
+    const seg = stretch(rod(color), prev, p);
+    seg.scale.x = seg.scale.y = width;
+    g.add(seg);
+    if (i > 2 && i < N - 1 && Math.random() < 0.35) {
+      const end = p.clone().add(new THREE.Vector3((Math.random() - 0.5) * 0.9, -0.5 - Math.random() * 0.5, (Math.random() - 0.5) * 0.9));
+      const br = stretch(rod(color, false), p, end);
+      br.scale.x = br.scale.y = width * 0.5;
+      g.add(br);
     }
-    await tween(0.25, (k) => { A.position.y = 0.42 * (1 - k); A.rotation.x = -0.15 * (1 - k); }, E.inOut);
+    prev = p;
+  }
+  addEffect(g, (age) => { g.visible = age < 0.08 || Math.random() > 0.3; return age < life; });
+}
+
+/* ---------- basic attacks: the opening blow and the defender's counter ---------- */
+async function basicAttack(X, Y) {
+  const t = X.userData.t, w = weaponOf(X), rest = w.userData.rest;
+  if (t === "b" || t === "q") {
+    // Spellcasters: a quick fire bolt or laser shot.
+    await wpose(X, 1.15, 0.16, E.out);
+    const to = mid(X, Y, 1, 0.5);
+    const color = t === "q" ? magic(X) : fireOf(X);
+    if (t === "q") await laserBolt(tipPos(X), to, color);
+    else await fireball(tipPos(X), to, color, 0.06, 0.22, 0.15);
+    hitFx(Y, X, to, color);
+    await wpose(X, rest, 0.2);
+    return;
+  }
+  // Fighters: thrust (spear, lance) or overhead swing (hammer, sword).
+  const home = X.position.clone();
+  const dir = Y.position.clone().sub(home).setY(0).normalize();
+  const reach = Math.min(1.2, Math.max(0, home.distanceTo(Y.position) - 0.45));
+  const fwd = home.clone().addScaledVector(dir, reach);
+  const thrust = t === "p" || t === "n";
+  const wind = thrust ? -0.25 : -1.7, hit = thrust ? Math.PI / 2 : 1.45;
+  await tween(0.18, (k) => { X.rotation.x = -0.22 * k; w.rotation.x = lerp(rest, wind, k); }, E.out);
+  await tween(0.08 + reach * 0.12, (k) => { X.position.lerpVectors(home, fwd, k); X.rotation.x = lerp(-0.22, 0.35, k); w.rotation.x = lerp(wind, hit, k); }, E.in);
+  hitFx(Y, X, mid(X, Y), hitColor(X));
+  await tween(0.14 + reach * 0.12, (k) => { X.position.lerpVectors(fwd, home, k); X.rotation.x = 0.35 * (1 - k); w.rotation.x = lerp(hit, rest, k); }, E.out);
+}
+
+/* ---------- signature finishing moves ---------- */
+const FINISHERS = {
+  // Pawn: another thrust, then hurls the spear.
+  async p(A, D, dir) {
+    await basicAttack(A, D);
+    const w = weaponOf(A), rest = w.userData.rest, color = hitColor(A);
+    await tween(0.24, (k) => { w.rotation.x = lerp(rest, -0.9, k); A.rotation.x = -0.25 * k; }, E.out);
+    const spear = w.clone();
+    world.add(spear);
+    w.visible = false;
+    const from = A.position.clone().setY(0.62), to = D.position.clone().setY(0.42), tan = new THREE.Vector3();
+    await tween(0.24, (k) => {
+      tan.copy(to).sub(from);
+      tan.y += 0.3 * 4 * (1 - 2 * k);
+      tan.normalize();
+      spear.quaternion.setFromUnitVectors(UP, tan);
+      spear.position.lerpVectors(from, to, k);
+      spear.position.y += 0.3 * 4 * k * (1 - k);
+      spear.position.addScaledVector(tan, -0.5);
+      A.rotation.x = lerp(-0.25, 0.3, Math.min(1, k * 3));
+    }, E.linear);
+    kill(D, dir, 1.0, color);
+    world.remove(spear);
+    w.visible = true;
+    w.rotation.x = rest;
+    w.scale.setScalar(0.001);
+    await tween(0.3, (k) => { w.scale.setScalar(Math.max(0.001, k)); A.rotation.x = 0.3 * (1 - k); }, E.back);
   },
+  // Knight: falls back, lowers the lance and charges straight through.
+  async n(A, D, dir) {
+    const w = weaponOf(A), rest = w.userData.rest, color = hitColor(A);
+    const back = A.position.clone().addScaledVector(dir, -0.45);
+    await glide(A, back, 0.3, { ease: E.out, bob: 1 });
+    await tween(0.22, (k) => { w.rotation.x = lerp(rest, Math.PI / 2 - 0.06, k); A.rotation.x = -0.32 * Math.sin(k * Math.PI); });
+    const hitPt = D.position.clone().addScaledVector(dir, -0.32);
+    await tween(0.26, (k) => {
+      A.position.lerpVectors(back, hitPt, k);
+      A.position.y = Math.abs(Math.sin(k * Math.PI * 3)) * 0.08;
+      A.rotation.x = 0.12 * k;
+    }, E.in);
+    kill(D, dir, 1.6, color);
+    sparks(D.position.clone().setY(0.6), WHITE, 30, 3, 0.5);
+    await tween(0.4, (k) => { A.rotation.x = lerp(0.12, 0, k) - 0.45 * Math.sin(k * Math.PI); A.position.y = 0; }, E.out);
+    await wpose(A, rest, 0.2);
+  },
+  // Bishop: charges a fireball on the staff and launches it.
+  async b(A, D, dir) {
+    const w = weaponOf(A), rest = w.userData.rest, fire = fireOf(A);
+    await wpose(A, -0.35, 0.25, E.out);
+    const orb = glowBall(fire, 0.04);
+    world.add(orb);
+    await tween(0.5, (k) => {
+      setGlowSize(orb, 0.04 + 0.11 * k);
+      orb.position.copy(tipPos(A));
+      glowLight(orb.position, fire, 2.5 * k);
+      if (Math.random() < 0.35) sparks(orb.position.clone(), fire, 3, 0.9, 0.3);
+    }, E.in);
+    await tween(0.12, (k) => { w.rotation.x = lerp(-0.35, 1.0, k); orb.position.copy(tipPos(A)); }, E.in);
+    world.remove(orb);
+    disposeTree(orb);
+    const to = D.position.clone().setY(0.5);
+    await fireball(tipPos(A), to, fire, 0.15, 0.36, 0.35);
+    explosion(to, fire, 1.2);
+    kill(D, dir, 1.3, fire);
+    await wait(0.12);
+    await wpose(A, rest, 0.25);
+  },
+  // Rook: winds the giant hammer all the way back and brings it down.
+  async r(A, D, dir) {
+    const w = weaponOf(A), rest = w.userData.rest, color = hitColor(A);
+    const home = A.position.clone(), fwd = home.clone().addScaledVector(dir, 0.22);
+    const x0 = w.rotation.x;
+    await tween(0.5, (k) => { w.rotation.x = lerp(x0, -2.6, k); A.rotation.x = -0.25 * k; A.position.y = 0.1 * k; }, E.out);
+    shake(0.03, 0.2);
+    await wait(0.15);
+    await tween(0.15, (k) => { w.rotation.x = lerp(-2.6, 1.75, k); A.rotation.x = lerp(-0.25, 0.4, k); A.position.lerpVectors(home, fwd, k); }, E.in);
+    await tween(0.05, (k) => D.scale.set(1 + 0.35 * k, 1 - 0.65 * k, 1 + 0.35 * k), E.out);
+    kill(D, dir, 2, color);
+    shockwave(D.position, WHITE, 9, 0.7);
+    sparks(D.position.clone().setY(0.1), 0x9a8f7c, 50, 3, 1);
+    shake(0.3, 0.55);
+    await wait(0.3);
+    await tween(0.35, (k) => { w.rotation.x = lerp(1.75, rest, k); A.rotation.x = 0.4 * (1 - k); A.position.lerpVectors(fwd, home, k); });
+  },
+  // Queen: levitates, fires a volley of laser bolts, then a full beam.
+  async q(A, D, dir) {
+    const w = weaponOf(A), rest = w.userData.rest, col = magic(A);
+    await tween(0.3, (k) => { A.position.y = 0.4 * k; }, E.out);
+    await wpose(A, 1.2, 0.14);
+    for (let i = 0; i < 6; i++) {
+      const to = D.position.clone().add(new THREE.Vector3((Math.random() - 0.5) * 0.14, 0.3 + Math.random() * 0.45, (Math.random() - 0.5) * 0.14));
+      laserBolt(tipPos(A), to, col).then(() => { sparks(to, col, 10, 1.8, 0.4); flash(D, col, 0.15); impact(to, col, 1.6); });
+      await wait(0.075);
+    }
+    await wait(0.15);
+    const to = D.position.clone().setY(0.5);
+    const beam = stretch(rod(col), tipPos(A), to);
+    beam.scale.x = beam.scale.y = 0.001;
+    world.add(beam);
+    await tween(0.1, (k) => { beam.scale.x = beam.scale.y = 0.001 + 0.065 * k; });
+    await tween(0.5, (k) => {
+      beam.scale.x = beam.scale.y = 0.065 + Math.sin(k * 50) * 0.014;
+      D.rotation.x = -0.18 + (Math.random() - 0.5) * 0.08;
+      glowLight(to, col, 3);
+      if (Math.random() < 0.5) sparks(to, col, 4, 2, 0.3);
+    }, E.linear);
+    kill(D, dir, 1.2, col);
+    await tween(0.15, (k) => { beam.scale.x = beam.scale.y = 0.001 + 0.065 * (1 - k); });
+    world.remove(beam);
+    disposeTree(beam);
+    await wpose(A, rest, 0.18);
+    await tween(0.25, (k) => { A.position.y = 0.4 * (1 - k); });
+  },
+  // King: raises the greatsword to catch lightning, then strikes it down on the foe.
   async k(A, D, dir) {
-    const color = hitColor(A);
-    const home = A.position.clone();
-    const up = home.clone().addScaledVector(dir, -0.1); up.y = 0.6;
-    await glide(A, up, 0.28, { ease: E.out, tilt: (k) => -0.38 * k });
-    const down = home.clone().addScaledVector(dir, 0.28); down.y = 0;
-    await glide(A, down, 0.12, { ease: E.in, tilt: (k) => lerp(-0.38, 0.8, k) });
-    kill(D, dir, 1.5, color);
-    shockwave(down, WHITE, 6, 0.6);
-    await tween(0.3, (k) => { A.rotation.x = 0.8 * (1 - k); }, E.out);
+    const w = weaponOf(A), rest = w.userData.rest, col = magic(A);
+    await tween(0.32, (k) => { w.rotation.x = lerp(rest, -0.1, k); A.position.y = 0.12 * k; A.rotation.x = -0.12 * k; }, E.out);
+    const tip = tipPos(A);
+    lightning(tip.clone().add(new THREE.Vector3(0.4, 7, -0.3)), tip, col, 0.32, 0.03);
+    sparks(tip, col, 24, 2, 0.45);
+    impact(tip, col, 5);
+    shake(0.05, 0.2);
+    flash(A, col, 0.6);
+    await wait(0.35);
+    await tween(0.16, (k) => { w.rotation.x = lerp(-0.1, 1.8, k); A.rotation.x = lerp(-0.12, 0.35, k); A.position.y = 0.12 * (1 - k); }, E.in);
+    const top = D.position.clone().setY(0.45);
+    lightning(D.position.clone().add(new THREE.Vector3(-0.3, 7, 0.2)), top, col, 0.42, 0.055);
+    lightning(D.position.clone().add(new THREE.Vector3(0.5, 7, -0.4)), top, WHITE, 0.3, 0.025);
+    slash(mid(A, D, 0.75, 0.55), Math.atan2(dir.x, dir.z), WHITE);
+    kill(D, dir, 1.6, col);
+    shockwave(D.position, col, 7, 0.6);
+    await wait(0.25);
+    await tween(0.3, (k) => { w.rotation.x = lerp(1.8, rest, k); A.rotation.x = 0.35 * (1 - k); }, E.out);
   },
 };
+const VERBS = { p: "skewers", n: "rides down", b: "hurls a fireball at", r: "hammers", q: "fires lasers at", k: "calls lightning on" };
+const FANTASY_NAMES = { p: "Footman", n: "Lancer", b: "Wizard", r: "Golem", q: "Sorceress", k: "Warlord" };
+const pieceName = (t) => (theme === "fantasy" ? FANTASY_NAMES : NAMES)[t];
 
 /* ---------- move animations ---------- */
 const caption = document.getElementById("caption");
@@ -1108,7 +1471,8 @@ async function battle(m, s) {
   const A = meshes.get(atk.id), D = meshes.get(def.id);
   const pT = sqPos(m.to);
   const dir = D.position.clone().sub(A.position).setY(0).normalize();
-  showCaption(`${SIDE[atk.c]} ${NAMES[atk.t]} attacks ${SIDE[def.c]} ${NAMES[def.t]} on ${sqName(m.cap)}`, speed === "off" ? 1200 : 3600 * timeScale + 600);
+  const verb = speed === "off" ? "takes" : VERBS[atk.t];
+  showCaption(`${SIDE[atk.c]} ${pieceName(atk.t)} ${verb} ${SIDE[def.c]} ${pieceName(def.t)}`, speed === "off" ? 1200 : 4200 * timeScale + 600);
 
   if (speed === "off") {
     const dur = 0.3 + A.position.distanceTo(pT) * 0.05;
@@ -1119,28 +1483,31 @@ async function battle(m, s) {
     return;
   }
 
-  // Face off.
-  await Promise.all([faceTo(A, D.position), faceTo(D, A.position)]);
-  // Close the distance.
-  const engage = D.position.clone().addScaledVector(dir, -0.82);
+  // Face off and draw weapons.
+  await Promise.all([faceTo(A, D.position), faceTo(D, A.position), arm(A), arm(D)]);
+  // Close the distance. Spellcasters keep theirs.
+  const gap = atk.t === "b" || atk.t === "q" ? 1.7 : 0.82;
+  const engage = D.position.clone().addScaledVector(dir, -gap);
   const dist = A.position.distanceTo(engage);
-  if (A.position.distanceTo(D.position) > 0.9 && dist > 0.05)
-    await glide(A, engage, Math.max(0.3, dist * 0.16), { bob: Math.max(1, Math.round(dist * 1.6)), arc: atk.t === "n" ? 0.5 : 0, ease: E.inOut });
+  if (A.position.distanceTo(D.position) > gap + 0.08 && dist > 0.05)
+    await glide(A, engage, Math.max(0.3, dist * 0.16), { bob: Math.max(1, Math.round(dist * 1.6)), ease: E.inOut });
   // Opening blow, then the defender fights back.
-  await strike(A, D);
+  await basicAttack(A, D);
   await wait(0.08);
-  await strike(D, A);
+  await basicAttack(D, A);
   await wait(0.1);
-  // Finishing move.
+  // Signature finishing move.
   await FINISHERS[atk.t](A, D, dir);
   await wait(0.22);
-  // Take the square.
+  // Put the weapon away and take the square.
+  const sheathe = disarm(A);
   if (A.position.distanceTo(pT) > 0.05) {
     await faceTo(A, pT, 0.15);
     const d = A.position.distanceTo(pT);
     await glide(A, pT, Math.max(0.22, d * 0.2), { bob: 1 });
   }
   await faceYaw(A, defaultYaw(atk.c), 0.25);
+  await sheathe;
 }
 
 function promoteFx(p) {
@@ -1233,6 +1600,7 @@ function renderHUD() {
   $("btnNew").disabled = busy;
   for (const b of document.querySelectorAll("[data-mode]")) b.setAttribute("aria-pressed", String(b.dataset.mode === mode));
   for (const b of document.querySelectorAll("[data-speed]")) b.setAttribute("aria-pressed", String(b.dataset.speed === speed));
+  for (const b of document.querySelectorAll("[data-style]")) { b.setAttribute("aria-pressed", String(b.dataset.style === theme)); b.disabled = busy; }
 }
 
 function renderHighlights() {
@@ -1315,7 +1683,7 @@ function choosePromo(color) {
       b.id = "promo-" + t;
       b.textContent = GLYPH[t];
       b.setAttribute("aria-label", NAMES[t]);
-      b.className = "glyphs";
+      b.className = "glyphs pick";
       b.style.color = color === "w" ? "var(--bone)" : "#1b1b22";
       if (color === "b") b.style.webkitTextStroke = "0.8px var(--brass)";
       b.onclick = (e) => { e.stopPropagation(); close(t); };
@@ -1438,6 +1806,22 @@ function undo() {
   maybeAI();
 }
 
+function applyBoardTheme() {
+  const mat = boardTop.material;
+  if (mat.map) mat.map.dispose();
+  mat.map = boardTexture(BOARD[theme]);
+  mat.needsUpdate = true;
+  embers.material.color.set(BOARD[theme].ember);
+}
+function setTheme(th) {
+  if (busy || th === theme) return;
+  theme = th;
+  try { localStorage.setItem("skirmish-theme", th); } catch (e) {}
+  applyBoardTheme();
+  syncPieces(state);
+  renderHUD();
+}
+
 function setSpeed(sp) {
   speed = sp;
   timeScale = sp === "quick" ? 0.55 : 1;
@@ -1457,6 +1841,7 @@ $("btnUndo").onclick = undo;
 $("btnFlip").onclick = flipView;
 for (const b of document.querySelectorAll("[data-mode]")) b.onclick = () => { mode = b.dataset.mode; gen++; renderHUD(); maybeAI(); };
 for (const b of document.querySelectorAll("[data-speed]")) b.onclick = () => setSpeed(b.dataset.speed);
+for (const b of document.querySelectorAll("[data-style]")) b.onclick = () => setTheme(b.dataset.style);
 
 /* ---------- ambient embers ---------- */
 const EMBERS = 140;
@@ -1467,7 +1852,7 @@ for (let i = 0; i < EMBERS; i++) {
   emberSpd[i] = 0.08 + Math.random() * 0.25;
 }
 emberGeo.setAttribute("position", new THREE.BufferAttribute(emberArr, 3));
-const embers = new THREE.Points(emberGeo, new THREE.PointsMaterial({ color: 0xff8a4a, size: 0.045, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }));
+const embers = new THREE.Points(emberGeo, new THREE.PointsMaterial({ color: BOARD[theme].ember, size: 0.045, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }));
 scene.add(embers);
 
 /* ---------- render loop ---------- */
@@ -1504,6 +1889,12 @@ function loop(now) {
     }
     emberGeo.attributes.position.needsUpdate = true;
   }
+  meshes.forEach((g) => {
+    const o = g.userData.orb;
+    if (!o) return;
+    const a = now / 650 + g.userData.pid;
+    o.position.set(Math.sin(a) * 0.22, 0.72 + Math.sin(now / 380 + g.userData.pid) * 0.04, Math.cos(a) * 0.22);
+  });
   if (selected >= 0) tiles[selected].material.opacity = 0.35 + Math.sin(now / 180) * 0.12;
   controls.update();
   renderer.render(scene, camera);
@@ -1515,11 +1906,12 @@ function start(data) {
   data = data || {};
   if (data.mode) mode = data.mode;
   setSpeed(data.speed || speed);
+  if ((data.theme === "classic" || data.theme === "fantasy") && data.theme !== theme) { theme = data.theme; applyBoardTheme(); }
   newGame(Array.isArray(data.moves) ? data.moves : []);
   requestAnimationFrame(loop);
 }
 const hot = window.claude && window.claude.hot;
-if (hot && hot.snapshot) hot.snapshot(() => ({ moves: moveList.map(({ from, to, promo }) => ({ from, to, promo })), mode, speed }));
+if (hot && hot.snapshot) hot.snapshot(() => ({ moves: moveList.map(({ from, to, promo }) => ({ from, to, promo })), mode, speed, theme }));
 if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
 })();
 </script>
