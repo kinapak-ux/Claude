@@ -171,6 +171,22 @@
   .res-btns { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
   .help .help-btn { padding: 10px 16px; }
 
+  /* Exit button and home screen */
+  .hud-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  .exit-btn {
+    pointer-events: auto;
+    font: 700 0.8rem/1 var(--font-body); letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink); background: rgba(12, 22, 40, 0.6); border: 1.5px solid var(--ink-dim); border-radius: 999px;
+    padding: 8px 14px; cursor: pointer;
+  }
+  .exit-btn:hover { border-color: var(--rim); color: var(--rim); }
+  .exit-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  .home .help-inner { justify-content: center; min-height: 100%; }
+  .home-title { font-size: clamp(2.4rem, 9vw, 4rem) !important; line-height: 1; color: var(--gold); }
+  .home-btns { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+  .home-btns .close-btn { font-size: 1rem; padding: 14px 24px; }
+  .home-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
   @media (max-width: 520px) {
     .brand small { display: none; }
     .board { gap: 12px; }
@@ -193,11 +209,14 @@
         <button class="help-btn" id="help-open" type="button"><span class="pre">Power-ups &amp; </span>Rules</button>
       </div>
     </div>
+    <div class="hud-right">
     <div class="board">
       <div class="stat main"><div class="label">Points</div><div class="val" id="score">0</div></div>
       <div class="stat"><div class="label">Streak</div><div class="val" id="streak">0</div></div>
       <div class="stat" id="best-stat"><div class="label">Record</div><div class="val" id="best">0</div></div>
       <div class="stat timer" id="timer-stat" hidden><div class="label">Time</div><div class="val" id="timer">60</div></div>
+    </div>
+    <button class="exit-btn" id="exit-btn" type="button">Exit</button>
     </div>
   </div>
   <div class="powers" id="powers" aria-live="polite"></div>
@@ -261,6 +280,22 @@
     </div>
   </div>
 
+  <div class="help home" id="home" hidden>
+    <div class="help-inner">
+      <h2 class="home-title">Hoop Shot</h2>
+      <p class="sub" id="home-sub"></p>
+      <div class="home-btns">
+        <button class="close-btn" id="home-free" type="button">Free play</button>
+        <button class="close-btn" id="home-timed" type="button">60-second challenge</button>
+        <div class="home-row">
+          <button class="help-btn" id="home-player" type="button">Change player</button>
+          <button class="help-btn" id="home-ball" type="button">Choose ball</button>
+          <button class="help-btn" id="home-rules" type="button">Rules</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="help" id="results" hidden>
     <div class="help-inner">
       <h2 id="res-title">Time!</h2>
@@ -308,7 +343,7 @@
     bowling:    { name: 'Bowling ball', note: 'Heavy. Needs a hard throw, barely bounces and shrugs off the wind.', size: 1.12, grav: 1.3,  bounce: 0.35, wind: 0.2, drag: 0,   speed: 1.14, meters: { bounce: 1, weight: 5, wind: 1 } },
     beach:      { name: 'Beach ball',   note: 'Huge and floaty. Slows down in the air and drifts with the wind.',  size: 1.5,  grav: 0.45, bounce: 1.3,  wind: 2.6, drag: 0.5, speed: 0.9,  meters: { bounce: 4, weight: 1, wind: 5 } },
     super:      { name: 'Super ball',   note: 'Tiny rubber ball that bounces almost forever.',                     size: 0.5,  grav: 1,    bounce: 1.75, wind: 1.2, drag: 0,   speed: 1,    meters: { bounce: 5, weight: 2, wind: 3 } },
-    netball:    { name: 'Netball',      note: 'A little smaller and lighter than a basketball, with a grippy, softer bounce.', size: 0.9, grav: 0.95, bounce: 0.85, wind: 1.3, drag: 0.03, speed: 0.99, meters: { bounce: 2, weight: 2, wind: 3 } },
+    netball:    { name: 'Netball',      note: 'Lighter, with a softer bounce. Shot at a netball post, so there is no backboard to bank off.', size: 0.9, grav: 0.95, bounce: 0.85, wind: 1.3, drag: 0.03, speed: 0.99, meters: { bounce: 2, weight: 2, wind: 3 } },
     rugby:      { name: 'Rugby ball',   note: 'Tumbles end over end. Its pointy shape makes every bounce unpredictable.', size: 1.05, grav: 1.05, bounce: 0.9, wind: 1.1, drag: 0.04, speed: 1.04, wobble: 0.9, meters: { bounce: 3, weight: 3, wind: 2 } },
     pingpong:   { name: 'Ping pong ball', note: 'Tiny and feather-light. Air slows it fast and the wind throws it around.', size: 0.4, grav: 0.8, bounce: 1.7, wind: 3.5, drag: 0.7, speed: 1.25, meters: { bounce: 5, weight: 1, wind: 5 } },
   };
@@ -512,6 +547,10 @@
     layoutHoop();
   }
 
+  // a netball post has no backboard: just the ring on a bracket and the pole
+  const hasBoard = () => ballType !== 'netball';
+  const poleTop = () => hasBoard() ? hoop.bb : hoop.y + R * 0.4;
+
   const windAccel = () => (hoop ? hoop.wind : 0) * G * 0.14;
 
   // ---- shots and balls ----
@@ -607,8 +646,8 @@
     if (hitPoint(b, hoop.r, hoop.y, rimR, e(0.5))) b.touched = true;
     const px = Math.max(hoop.bx, Math.min(b.x, hoop.bx + hoop.bw));
     const py = Math.max(hoop.bt, Math.min(b.y, hoop.bb));
-    if (hitPoint(b, px, py, 0, e(0.6))) b.touched = true;
-    if (b.y > hoop.bb) hitPoint(b, hoop.bx + hoop.bw / 2, b.y, R * 0.2, e(0.4));
+    if (hasBoard() && hitPoint(b, px, py, 0, e(0.6))) b.touched = true;
+    if (b.y > poleTop()) hitPoint(b, hoop.bx + hoop.bw / 2, b.y, R * 0.2, e(0.4));
 
     if (!b.scored && b.prevY < hoop.y && b.y >= hoop.y && b.vy > 0 && b.x > hoop.l && b.x < hoop.r) {
       b.scored = true;
@@ -747,12 +786,44 @@
   const picker = document.getElementById('picker');
   const family = document.getElementById('family');
   const results = document.getElementById('results');
-  function openPanel(panel, focusEl) { panel.hidden = false; paused = true; drag = null; cv.classList.remove('dragging'); focusEl.focus(); }
+  const home = document.getElementById('home');
+  let fromHome = false;   // panels opened from the home screen close back to it
+  function openPanel(panel, focusEl) {
+    if (panel !== home && !home.hidden) { fromHome = true; home.hidden = true; }
+    panel.hidden = false; paused = true; drag = null; cv.classList.remove('dragging'); focusEl.focus();
+  }
   function closePanels() {
     if (!me()) { openFamily(); return; }   // someone has to be playing
-    el.help.hidden = true; picker.hidden = true; family.hidden = true; results.hidden = true; paused = false;
+    const backHome = fromHome && home.hidden;
+    el.help.hidden = true; picker.hidden = true; family.hidden = true; results.hidden = true; home.hidden = true;
+    fromHome = false;
+    if (backHome) { showHome(); return; }
+    paused = false;
     if (mode === 'timed' && round.over) { resetRound(); updateHud(false); }
   }
+
+  function showHome() {
+    const p = me();
+    document.getElementById('home-sub').textContent = `Playing as ${p ? p.name : 'nobody yet'} with the ${BALLS[nextBall].name.toLowerCase()}.`;
+    document.getElementById('home-free').textContent = mode === 'free' && st.score > 0 ? `Resume free play (${st.score} pts)` : 'Free play';
+    openPanel(home, document.getElementById('home-free'));
+  }
+
+  document.getElementById('exit-btn').addEventListener('click', () => {
+    if (mode === 'timed' && !round.over) resetRound();   // leaving a challenge part-way abandons that round
+    saveFamily();
+    updateHud(false);
+    showHome();
+  });
+  document.getElementById('home-free').addEventListener('click', () => { setMode('free'); closePanels(); });
+  document.getElementById('home-timed').addEventListener('click', () => {
+    if (mode === 'timed') resetRound(); else setMode('timed');
+    updateHud(false);
+    closePanels();
+  });
+  document.getElementById('home-player').addEventListener('click', () => openFamily());
+  document.getElementById('home-ball').addEventListener('click', () => openPanel(picker, picker.querySelector(`[data-type="${nextBall}"]`)));
+  document.getElementById('home-rules').addEventListener('click', () => openPanel(el.help, document.getElementById('help-close')));
   document.getElementById('mode-btn').addEventListener('click', () => setMode(mode === 'timed' ? 'free' : 'timed'));
   document.getElementById('res-again').addEventListener('click', closePanels);
   document.getElementById('res-free').addEventListener('click', () => { setMode('free'); closePanels(); });
@@ -975,11 +1046,20 @@
   function drawHoopBack() {
     ctx.globalAlpha = easeOut(hoop.appear);
     ctx.fillStyle = '#4a5466';
-    ctx.fillRect(hoop.bx + hoop.bw / 2 - R * 0.2, hoop.bb, R * 0.4, floorY - hoop.bb);
-    ctx.fillStyle = COL.paint;
-    ctx.fillRect(hoop.bx, hoop.bt, hoop.bw, hoop.bb - hoop.bt);
-    ctx.fillStyle = COL.rim;
-    ctx.fillRect(hoop.bx - 1, hoop.y - R * 2.2, 2, R * 2.2);
+    const top = hasBoard() ? hoop.bb : hoop.y - R * 0.2;
+    ctx.fillRect(hoop.bx + hoop.bw / 2 - R * 0.2, top, R * 0.4, floorY - top);
+    if (hasBoard()) {
+      ctx.fillStyle = COL.paint;
+      ctx.fillRect(hoop.bx, hoop.bt, hoop.bw, hoop.bb - hoop.bt);
+      ctx.fillStyle = COL.rim;
+      ctx.fillRect(hoop.bx - 1, hoop.y - R * 2.2, 2, R * 2.2);
+    } else {
+      // pole cap and padding band, like a netball post
+      ctx.fillStyle = COL.paint;
+      ctx.beginPath(); ctx.arc(hoop.bx + hoop.bw / 2, top, R * 0.24, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#1f4fa8';
+      ctx.fillRect(hoop.bx + hoop.bw / 2 - R * 0.35, floorY - R * 4, R * 0.7, R * 4);
+    }
     if (has('magnet')) {
       const cx = (hoop.l + hoop.r) / 2, t = (clock * 0.8) % 1;
       ctx.strokeStyle = POWERS.magnet.color; ctx.lineWidth = 2;
