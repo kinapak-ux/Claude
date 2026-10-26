@@ -83,21 +83,6 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--metal); out
 .bpm span { font-family: var(--mono); font-size: 0.62rem; color: var(--dim); padding-left: 5px; }
 .spacer { flex: 1; }
 
-.pats { display: inline-flex; gap: 5px; }
-.pat {
-  position: relative; width: 38px; height: 38px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel);
-  font-family: var(--mono); font-weight: 600; font-size: 0.95rem;
-}
-.pat.has::after { content: ""; position: absolute; right: 5px; top: 5px; width: 5px; height: 5px; border-radius: 50%; background: var(--dim); }
-.pat[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-.pat[aria-pressed="true"].has::after { background: var(--bg); }
-.pat.queued { border-color: var(--metal); animation: blink 0.5s steps(2) infinite; }
-.song { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 0.7rem; color: var(--dim); }
-.song input {
-  width: 9ch; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; color: var(--ink);
-  font-family: var(--mono); font-size: 0.8rem; padding: 6px 7px; text-transform: uppercase; letter-spacing: 0.1em;
-}
-
 .chip {
   background: none; border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; min-height: 28px;
   font-family: var(--mono); font-size: 0.7rem; color: var(--dim);
@@ -206,14 +191,14 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--metal); out
 @media (max-width: 420px) { .sub { display: none; } .vol input { width: 80px; } .tbtn { padding: 7px 9px; } .swing input { width: 70px; } }
 @media (prefers-reduced-motion: reduce) {
   .pad { transition: none; }
-  #rec[aria-pressed="true"] .ico, #edRec[aria-pressed="true"] .ico, .pat.queued { animation: none; }
+  #rec[aria-pressed="true"] .ico, #edRec[aria-pressed="true"] .ico { animation: none; }
 }
 </style>
 </head>
 <body>
 <div class="app">
   <header class="top">
-    <div class="brand"><span class="name">Drum Touch Pad</span><span class="sub">16 pads · 4 patterns · 2-bar loops</span></div>
+    <div class="brand"><span class="name">Drum Touch Pad</span><span class="sub">16 pads · synth kit · 2-bar looper</span></div>
     <label class="vol" for="vol">Vol <input id="vol" type="range" min="0" max="100" value="80"></label>
   </header>
 
@@ -230,12 +215,6 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--metal); out
     <button id="undo" class="tbtn">Undo</button>
     <button id="clear" class="tbtn">Clear</button>
     <button id="export" class="tbtn">Export</button>
-  </section>
-
-  <section class="row" aria-label="Patterns">
-    <div class="pats" id="pats"></div>
-    <label class="song" for="chain">Song <input id="chain" type="text" maxlength="16" spellcheck="false" autocomplete="off" placeholder="AABA"></label>
-    <button id="tSong" class="chip" aria-pressed="false">Play song</button>
   </section>
 
   <section class="row" aria-label="Sound and timing">
@@ -351,7 +330,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--metal); out
   const STORE_KEY = "drum-touch-pad-v2";
   const state = {
     bpm: 92, vol: 80, quant: true, click: true, dyn: true, swing: 54, repeat: 0, kit: "808",
-    patterns: examplePatterns(), cur: "A", chain: "AAAB", songOn: false, example: true,
+    patterns: examplePatterns(), cur: "A", chain: "A", songOn: false, example: true,
     pads: {}, // id -> {pitch, decay, level}
   };
   try {
@@ -366,6 +345,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--metal); out
     }
   } catch (e) { /* storage unavailable: keep defaults */ }
   PATS.forEach(p => { if (!Array.isArray(state.patterns[p])) state.patterns[p] = []; });
+  state.cur = "A"; state.songOn = false; // one loop: pattern buttons were removed
   if (!KITS[state.kit]) state.kit = "808";
   state.sel = state.sel && PAD_INDEX[state.sel] != null ? state.sel : "kick";
 
@@ -799,13 +779,6 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--metal); out
     save(); updateInfo();
   }
 
-  function selectPattern(p) {
-    if (state.songOn) { state.songOn = false; }
-    if (running) queued = (p === state.cur) ? null : p;
-    else state.cur = p;
-    save(); refresh();
-  }
-
   // ---------- Timeline ----------
   const cv = document.getElementById("tl"), g2 = cv.getContext("2d");
   const colors = {};
@@ -1115,7 +1088,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--metal); out
     try {
       const { buf, plan } = await renderAudio();
       const wav = encodeWav(buf);
-      const base = `drum-touch-pad-${plan.join("")}-${state.bpm}bpm`;
+      const base = `drum-touch-pad-${state.bpm}bpm`;
       const desc = `${plan.length * 2} bars`;
       const dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null;
       if (dl) {
@@ -1147,15 +1120,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--metal); out
   const playBtn = document.getElementById("play"), recBtn = document.getElementById("rec");
   const bpmInput = document.getElementById("bpm"), info = document.getElementById("info");
   const undoBtn = document.getElementById("undo"), clearBtn = document.getElementById("clear");
-  const toggles = { tQuant: "quant", tClick: "click", tDyn: "dyn", tSong: "songOn" };
-  const patWrap = document.getElementById("pats");
-  const patEls = PATS.map(p => {
-    const b = document.createElement("button");
-    b.className = "pat"; b.textContent = p; b.setAttribute("aria-label", "Pattern " + p);
-    b.addEventListener("click", () => selectPattern(p));
-    patWrap.appendChild(b);
-    return b;
-  });
+  const toggles = { tQuant: "quant", tClick: "click", tDyn: "dyn" };
   const kitWrap = document.getElementById("kits");
   const kitEls = Object.entries(KITS).map(([k, v]) => {
     const b = document.createElement("button");
@@ -1168,17 +1133,15 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--metal); out
   function updateInfo() {
     const n = pat().length;
     info.classList.toggle("recording", recording);
-    const where = `Pattern ${state.cur}`;
-    if (recording) info.innerHTML = `<b>Recording ${state.cur}</b> · play the pads · ${n} hits`;
-    else if (state.example) info.innerHTML = `<b>Example beats in A and B</b> · press Play`;
-    else if (n === 0) info.innerHTML = `<b>${where} is empty</b> · press Rec or use Steps`;
-    else info.innerHTML = `<b>${where} · ${n} hits</b> · ${state.bpm} BPM`;
+    if (recording) info.innerHTML = `<b>Recording</b> · play the pads · ${n} hits`;
+    else if (state.example) info.innerHTML = `<b>Example beat</b> · press Play`;
+    else if (n === 0) info.innerHTML = `<b>Loop is empty</b> · press Rec or use Steps`;
+    else info.innerHTML = `<b>${n} hits</b> · ${state.bpm} BPM`;
     undoBtn.disabled = history.length === 0;
     clearBtn.disabled = n === 0;
   }
   function refreshLoop() {
     updateInfo();
-    patEls.forEach((b, i) => b.classList.toggle("has", state.patterns[PATS[i]].length > 0));
     if (!stepsView.hidden) renderSteps();
     drawTimeline();
   }
@@ -1191,7 +1154,6 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--metal); out
     const r = document.getElementById("tRepeat");
     r.setAttribute("aria-pressed", state.repeat > 0);
     r.textContent = state.repeat ? `Repeat 1/${state.repeat * 4}` : "Repeat off";
-    patEls.forEach((b, i) => { b.setAttribute("aria-pressed", PATS[i] === state.cur); b.classList.toggle("queued", PATS[i] === queued); });
     kitEls.forEach(([k, b]) => b.setAttribute("aria-pressed", k === state.kit));
     document.getElementById("swing").value = state.swing;
     document.getElementById("swingV").textContent = state.swing + "%";
@@ -1223,22 +1185,9 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--metal); out
   for (const [elId, key] of Object.entries(toggles)) {
     document.getElementById(elId).addEventListener("click", () => {
       state[key] = !state[key];
-      if (key === "songOn" && running) { // restart the chain from its first pattern at the next loop
-        const k = Math.floor((ctx.currentTime - loopStart) / loopLen()) + 1;
-        for (const kk of [...iterPat.keys()]) if (kk >= k) iterPat.delete(kk);
-        songK0 = k;
-      }
       save(); refresh();
     });
   }
-  const chainInput = document.getElementById("chain");
-  chainInput.value = state.chain;
-  chainInput.addEventListener("input", () => {
-    const clean = chainInput.value.toUpperCase().replace(/[^ABCD]/g, "");
-    if (clean !== chainInput.value) chainInput.value = clean;
-    state.chain = clean; save();
-  });
-  chainInput.addEventListener("keydown", e => { if (e.key === "Enter") chainInput.blur(); });
   document.getElementById("tRepeat").addEventListener("click", () => {
     state.repeat = REPEATS[(REPEATS.indexOf(state.repeat) + 1) % REPEATS.length];
     save(); refresh();
