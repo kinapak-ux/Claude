@@ -771,6 +771,8 @@ class Player:
 
 
 def save_game(player):
+    if getattr(player, "practice", False):
+        return
     store_write(SAVE_NAME, json.dumps(player.to_dict()))
 
 
@@ -2534,7 +2536,7 @@ async def hack(player, term):
             say(f"  > {word}: likeness {like}/7")
         guess = (await ask("Password > ", keys=[w.lower() for w in st["words"]] + ["exit"])).upper()
         if guess == "EXIT":
-            say("You log off. The attempts you used stay used.")
+            say("You log off." + ("" if getattr(player, "practice", False) else " The attempts you used stay used."))
             return None
         if guess not in st["words"]:
             say("Type one of the listed words.")
@@ -2601,6 +2603,32 @@ def make_code_puzzle(rng=random):
             return code, clues
 
 
+async def dial_code(player, st):
+    """Show the clues and take up to st['left'] guesses. Returns 'open', 'trapped', or None if you walk away."""
+    say("Scratched into the paint beside the dial, someone's notes:")
+    for guess, (well, wrong) in st["clues"]:
+        say(f"  {' '.join(guess)}  - {feedback_text(well, wrong)}")
+    say("The code is three different digits.")
+    while st["left"] > 0:
+        tries = f"{st['left']} {'try' if st['left'] == 1 else 'tries'} left"
+        guess = (await ask(f"Code ({tries}) > ", keys=["exit"])).replace(" ", "")
+        if guess in ("exit", "leave", "q"):
+            say("You leave the dial alone, for now.")
+            return None
+        if len(guess) != 3 or not guess.isdigit() or len(set(guess)) != 3:
+            say("Three different digits, like 507.")
+            continue
+        if guess == st["code"]:
+            st["done"] = "open"
+            say("The tumblers fall. The door swings open.")
+            return "open"
+        st["left"] -= 1
+        say("The dial grinds. Wrong." + (" Something inside the door clicks, like a warning." if st["left"] == 1 else ""))
+        save_game(player)
+    st["done"] = "trapped"
+    return "trapped"
+
+
 def feedback_text(well, wrong):
     if well == 0 and wrong == 0:
         return "nothing is correct"
@@ -2631,34 +2659,17 @@ async def crack_safe(player):
         say("The safe hangs open, empty." if st["done"] == "open" else "The safe is a melted lump now.")
         return
     say(f"\n{safe['title']}")
-    say("Scratched into the paint beside the dial, someone's notes:")
-    for guess, (well, wrong) in st["clues"]:
-        say(f"  {' '.join(guess)}  - {feedback_text(well, wrong)}")
-    say("The code is three different digits.")
-    while st["left"] > 0:
-        guess = (await ask(f"Code ({st['left']} tries) > ", keys=["exit"])).replace(" ", "")
-        if guess in ("exit", "leave", "q"):
-            say("You leave the dial alone, for now.")
-            return
-        if len(guess) != 3 or not guess.isdigit() or len(set(guess)) != 3:
-            say("Three different digits, like 507.")
-            continue
-        if guess == st["code"]:
-            st["done"] = "open"
-            say("The tumblers fall. The door swings open.")
-            player.caps += safe["caps"]
-            say(f"+ {safe['caps']} caps")
-            for item_id in safe["loot"]:
-                player.give(item_id)
-            return
-        st["left"] -= 1
-        say("The dial grinds. Wrong." + (" Something inside the door clicks, like a warning." if st["left"] == 1 else ""))
-        save_game(player)
-    st["done"] = "trapped"
-    player.hp -= safe["trap"]
-    say(f"{safe['trap_text']} -{safe['trap']} HP. Whatever was inside is ruined.")
-    if player.hp <= 0:
-        player.killer = "a booby-trapped safe"
+    result = await dial_code(player, st)
+    if result == "open":
+        player.caps += safe["caps"]
+        say(f"+ {safe['caps']} caps")
+        for item_id in safe["loot"]:
+            player.give(item_id)
+    elif result == "trapped":
+        player.hp -= safe["trap"]
+        say(f"{safe['trap_text']} -{safe['trap']} HP. Whatever was inside is ruined.")
+        if player.hp <= 0:
+            player.killer = "a booby-trapped safe"
 
 
 PRISONERS = ["the boy with burned hands", "the old woman", "the man with one ear"]
@@ -2688,6 +2699,14 @@ def claim_text(kind, target):
             "lies": f"{who.capitalize()} is lying to you."}[kind]
 
 
+async def accuse(player, st):
+    """Show the prisoners' claims and return the index of the one you accuse, or None."""
+    for s, (kind, target) in enumerate(st["claims"]):
+        say(f"  {PRISONERS[s].capitalize()}: \"{claim_text(kind, target)}\"")
+    pick = await choose(player, [f"Point at {p}" for p in PRISONERS] + ["Walk away"])
+    return None if pick == 4 else pick - 1
+
+
 async def event_cage(player):
     st = player.puzzles.get("cage")
     if not st:
@@ -2696,12 +2715,9 @@ async def event_cage(player):
     say("\nIn the fattening cage, three prisoners press against the bars. A raider laughs as he walks past: one "
         "of them is a Red Teeth rat, planted to listen for escape plans. The rat always lies. The other two "
         "tell the truth. They're desperate for you to believe them.")
-    for s, (kind, target) in enumerate(st["claims"]):
-        say(f"  {PRISONERS[s].capitalize()}: \"{claim_text(kind, target)}\"")
-    pick = await choose(player, [f"Point at {p}" for p in PRISONERS] + ["Walk away"])
-    if pick == 4:
+    accused = await accuse(player, st)
+    if accused is None:
         return False
-    accused = pick - 1
     if accused == st["rat"]:
         say(f"You point at {PRISONERS[accused]}. The other two exhale. You jam the lock with your knife and the "
             "cage swings open. The two you freed vanish into the smoke. The last thing they tell you is that a "
@@ -3120,14 +3136,58 @@ async def practice_table(game_fn, name):
     say(f"You walk away with {player.caps} chips" + (" and less blood than you came with." if player.hp < player.max_hp else "."))
 
 
+async def practice_puzzle(kind):
+    """Logic puzzles from the start menu: a fresh puzzle each time, nothing to do with your save."""
+    player = Player("You", {s: 5 for s in STATS})
+    player.practice = True
+    if kind == "hack":
+        say("\n-- Terminal hacking. Find the password. Each wrong guess shows how many letters are in the right place. --")
+        term = {"id": "practice", "title": "SHELTER 41 OVERSEER'S TERMINAL - PERSONNEL FILES"}
+        result = await hack(player, term)
+        if result == "open":
+            say("> FILE: ASSEMBLY LOTTERY. Every name on the list is the same handwriting. The Overseer picks them himself.")
+        elif result == "locked":
+            say(f"The password was {player.puzzles['practice']['answer']}.")
+    elif kind == "safe":
+        say("\n-- Safe cracking. Work out the 3-digit code from the clues. Three tries. --")
+        code, clues = make_code_puzzle()
+        st = {"code": code, "clues": clues, "left": 3, "done": None}
+        result = await dial_code(player, st)
+        if result == "open":
+            say("Inside: a wedding photo, and a note that says SORRY.")
+        elif result == "trapped":
+            say(f"The safe locks for good. The code was {' '.join(code)}.")
+    elif kind == "cage":
+        say("\n-- The liar in the cage. One prisoner always lies. The other two always tell the truth. Who's lying? --")
+        claims, rat = make_knaves()
+        accused = await accuse(player, {"claims": claims, "rat": rat})
+        if accused == rat:
+            say(f"Right. It was {PRISONERS[rat]}. Every claim fits only that answer.")
+        elif accused is not None:
+            say(f"Wrong. The liar was {PRISONERS[rat]}. If {PRISONERS[accused]} were lying, at least one claim "
+                "wouldn't fit.")
+    else:
+        say("\n-- The Tollman's riddle. Measure an exact amount of water using two cans. --")
+        if await jug_puzzle(player):
+            say("\"Clever meat,\" says the Tollman.")
+        else:
+            say("\"Wrong,\" says the Tollman, and opens his sack a little wider.")
+
+
 async def start_menu():
     """Returns once the player chooses to enter the wasteland."""
     while True:
         say("\n  1. Enter the wasteland")
         say("  2. Blackjack with Lucky Pete (practice table)")
         say("  3. Liar's dice with Brother Cole (practice table)")
-        pick = await ask("Choose > ", keys=["1", "2", "3"])
-        if pick == "2":
+        say("  4. Logic puzzle: terminal hacking")
+        say("  5. Logic puzzle: safe cracking")
+        say("  6. Logic puzzle: the liar in the cage")
+        say("  7. Logic puzzle: the Tollman's water riddle")
+        pick = await ask("Choose > ", keys=[str(n) for n in range(1, 8)])
+        if pick in ("4", "5", "6", "7"):
+            await practice_puzzle({"4": "hack", "5": "safe", "6": "cage", "7": "jugs"}[pick])
+        elif pick == "2":
             await practice_table(blackjack, "Blackjack")
         elif pick == "3":
             await practice_table(liars_dice, "Liar's dice")
