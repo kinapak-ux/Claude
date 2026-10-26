@@ -3111,8 +3111,33 @@ async def play(player):
         die(player)
 
 
+async def practice_table(game_fn, name):
+    """Side games from the start menu: practice chips, nothing to do with your character or save."""
+    player = Player("You", {s: 5 for s in STATS})
+    player.caps = 100
+    say(f"\n-- {name}: practice table. You get 100 chips. Nothing here touches your save. --")
+    await game_fn(player)
+    say(f"You walk away with {player.caps} chips" + (" and less blood than you came with." if player.hp < player.max_hp else "."))
+
+
+async def start_menu():
+    """Returns once the player chooses to enter the wasteland."""
+    while True:
+        say("\n  1. Enter the wasteland")
+        say("  2. Blackjack with Lucky Pete (practice table)")
+        say("  3. Liar's dice with Brother Cole (practice table)")
+        pick = await ask("Choose > ", keys=["1", "2", "3"])
+        if pick == "2":
+            await practice_table(blackjack, "Blackjack")
+        elif pick == "3":
+            await practice_table(liars_dice, "Liar's dice")
+        elif pick == "1":
+            return
+
+
 async def main():
     title()
+    await start_menu()
     player = load_game()
     if player:
         say(f"\n{player.name} is still out there. (Level {player.level}, {player.hp} HP, "
