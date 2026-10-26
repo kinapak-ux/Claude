@@ -309,7 +309,17 @@
     beach:      { name: 'Beach ball',   note: 'Huge and floaty. Slows down in the air and drifts with the wind.',  size: 1.5,  grav: 0.45, bounce: 1.3,  wind: 2.6, drag: 0.5, speed: 0.9,  meters: { bounce: 4, weight: 1, wind: 5 } },
     super:      { name: 'Super ball',   note: 'Tiny rubber ball that bounces almost forever.',                     size: 0.5,  grav: 1,    bounce: 1.75, wind: 1.2, drag: 0,   speed: 1,    meters: { bounce: 5, weight: 2, wind: 3 } },
     netball:    { name: 'Netball',      note: 'A little smaller and lighter than a basketball, with a grippy, softer bounce.', size: 0.9, grav: 0.95, bounce: 0.85, wind: 1.3, drag: 0.03, speed: 0.99, meters: { bounce: 2, weight: 2, wind: 3 } },
+    rugby:      { name: 'Rugby ball',   note: 'Tumbles end over end. Its pointy shape makes every bounce unpredictable.', size: 1.05, grav: 1.05, bounce: 0.9, wind: 1.1, drag: 0.04, speed: 1.04, wobble: 0.9, meters: { bounce: 3, weight: 3, wind: 2 } },
+    pingpong:   { name: 'Ping pong ball', note: 'Tiny and feather-light. Air slows it fast and the wind throws it around.', size: 0.4, grav: 0.8, bounce: 1.7, wind: 3.5, drag: 0.7, speed: 1.25, meters: { bounce: 5, weight: 1, wind: 5 } },
   };
+  // wobble: how far (radians) an odd-shaped ball can kick off line when it bounces
+  function wobble(b) {
+    const w = ballDef().wobble;
+    if (!w) return;
+    const a = (Math.random() - 0.5) * w, c = Math.cos(a), s = Math.sin(a);
+    const vx = b.vx * c - b.vy * s;
+    b.vy = b.vx * s + b.vy * c; b.vx = vx;
+  }
   let ballType = 'basketball', nextBall = 'basketball';
   try { const saved = localStorage.getItem('hoopshot-ball'); if (BALLS[saved]) ballType = nextBall = saved; } catch (e) {}
   const ballDef = () => BALLS[ballType];
@@ -572,7 +582,7 @@
     const nx = dx / d, ny = dy / d;
     b.x = px + nx * min; b.y = py + ny * min;
     const vn = b.vx * nx + b.vy * ny;
-    if (vn < 0) { b.vx -= (1 + e) * vn * nx; b.vy -= (1 + e) * vn * ny; }
+    if (vn < 0) { b.vx -= (1 + e) * vn * nx; b.vy -= (1 + e) * vn * ny; wobble(b); }
     return true;
   }
 
@@ -615,6 +625,7 @@
       b.y = floorY - r;
       b.vy *= -e(0.55);
       b.vx *= 0.8;
+      if (b.vy < -G * 0.04) wobble(b);
       if (Math.abs(b.vy) < G * 0.04) b.vy = 0;
     }
     if (b.x - r < 0) { b.x = r; b.vx = Math.abs(b.vx) * e(0.6); }
@@ -1067,6 +1078,28 @@
       line('rgba(40, 50, 70, 0.35)', 0.06);
       g.beginPath(); g.moveTo(-r * 0.95, -r * 0.3); g.quadraticCurveTo(0, r * 0.1, r * 0.95, -r * 0.3); g.stroke();
       g.beginPath(); g.moveTo(-r * 0.95, r * 0.3); g.quadraticCurveTo(0, r * 0.7, r * 0.95, r * 0.3); g.stroke();
+    } else if (type === 'rugby') {
+      g.fillStyle = '#f2efe6';
+      g.beginPath(); g.ellipse(0, 0, r * 1.3, r * 0.85, 0, 0, TAU); g.fill();
+      g.save(); g.clip();
+      line('#1f4fa8', 0.22);
+      for (const sx of [-0.8, 0.8]) { g.beginPath(); g.ellipse(r * sx, 0, r * 0.16, r, 0, 0, TAU); g.stroke(); }
+      line('#e5432f', 0.1);
+      g.beginPath(); g.moveTo(-r * 0.35, r * 0.42); g.lineTo(r * 0.35, r * 0.42); g.stroke();
+      line('rgba(40, 50, 70, 0.4)', 0.05);
+      g.beginPath(); g.ellipse(0, r * 0.55, r * 1.3, r * 0.75, 0, Math.PI * 1.08, Math.PI * 1.92); g.stroke();
+      g.beginPath(); g.ellipse(0, -r * 0.55, r * 1.3, r * 0.75, 0, Math.PI * 0.08, Math.PI * 0.92); g.stroke();
+      g.restore();
+      g.strokeStyle = 'rgba(40, 50, 70, 0.3)'; g.lineWidth = Math.max(1, r * 0.05);
+      g.beginPath(); g.ellipse(0, 0, r * 1.28, r * 0.83, 0, 0, TAU); g.stroke();
+    } else if (type === 'pingpong') {
+      disc('#fbf8ef');
+      g.strokeStyle = 'rgba(40, 50, 70, 0.25)'; g.lineWidth = Math.max(1, r * 0.05);
+      g.beginPath(); g.arc(0, 0, r * 0.97, 0, TAU); g.stroke();
+      g.fillStyle = '#e5432f';
+      g.beginPath(); g.arc(r * 0.25, r * 0.2, r * 0.28, 0, TAU); g.fill();
+      g.fillStyle = '#fbf8ef';
+      g.beginPath(); g.arc(r * 0.25, r * 0.2, r * 0.13, 0, TAU); g.fill();
     } else if (type === 'super') {
       disc('#e04fd0');
       line('#ffc9f4', 0.22);
