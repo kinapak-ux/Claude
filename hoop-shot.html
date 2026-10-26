@@ -1,0 +1,435 @@
+<title>Hoop Shot</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Semi+Condensed:wght@500;700&display=swap">
+<style>
+  /* Layout: one full-screen dusk court on canvas, a thin scoreboard strip floating over the top. */
+  :root {
+    --sky-top: #0f2140;
+    --sky-low: #2b5a78;
+    --asphalt: #262b36;
+    --paint: #e9e2d0;
+    --ball: #ee7a2b;
+    --rim: #e5432f;
+    --gold: #ffc857;
+    --ink: #f5efe6;
+    --ink-dim: #a9b6c6;
+    --font-display: "Bungee", "Impact", "Arial Black", sans-serif;
+    --font-body: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--sky-top); color: var(--ink); font-family: var(--font-body); overflow: hidden; }
+  .game { position: relative; height: 100%; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; }
+  canvas.dragging { cursor: grabbing; }
+  .hud {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
+    padding-top: 14px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    pointer-events: none;
+  }
+  .brand { font-family: var(--font-display); font-size: 1.15rem; letter-spacing: 0.02em; color: var(--ink); line-height: 1; }
+  .brand small { display: block; margin-top: 6px; font-family: var(--font-body); font-weight: 500; font-size: 0.85rem; letter-spacing: 0.04em; color: var(--ink-dim); }
+  .board { display: flex; gap: 18px; }
+  .stat { text-align: right; }
+  .stat .label { font-weight: 700; font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-dim); }
+  .stat .val { font-family: var(--font-display); font-size: 1.9rem; line-height: 1.05; font-variant-numeric: tabular-nums; }
+  .stat.main .val { color: var(--gold); }
+  .bump { animation: bump 0.45s ease-out; }
+  @keyframes bump { 0% { transform: scale(1); } 35% { transform: scale(1.35); } 100% { transform: scale(1); } }
+  @media (max-width: 520px) {
+    .brand small { display: none; }
+    .board { gap: 12px; }
+    .stat .val { font-size: 1.5rem; }
+  }
+  @media (prefers-reduced-motion: reduce) { .bump { animation: none; } }
+</style>
+
+<div class="game" id="game">
+  <canvas id="court" aria-label="Basketball court. Drag back from anywhere and release to shoot at the hoop." role="img"></canvas>
+  <div class="hud">
+    <div class="brand">Hoop Shot<small>Drag back anywhere, aim, let go</small></div>
+    <div class="board">
+      <div class="stat main"><div class="label">Buckets</div><div class="val" id="score">0</div></div>
+      <div class="stat"><div class="label">Streak</div><div class="val" id="streak">0</div></div>
+      <div class="stat"><div class="label">Best</div><div class="val" id="best">0</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const wrap = document.getElementById('game');
+  const cv = document.getElementById('court');
+  const ctx = cv.getContext('2d');
+  const el = { score: document.getElementById('score'), streak: document.getElementById('streak'), best: document.getElementById('best') };
+  const css = getComputedStyle(document.documentElement);
+  const C = name => css.getPropertyValue(name).trim();
+  const COL = { skyTop: C('--sky-top'), skyLow: C('--sky-low'), asphalt: C('--asphalt'), paint: C('--paint'), ball: C('--ball'), rim: C('--rim'), gold: C('--gold'), ink: C('--ink'), dim: C('--ink-dim') };
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let W, H, R, G, floorY, launch, maxPull, maxSpeed;
+  let hoop = null, ball = null, drag = null, phase = 'aim', phaseT = 0;
+  let flash = null, particles = [], netSway = 0, stars = [];
+  const st = { score: 0, streak: 0, best: 0 };
+
+  try { st.best = Number(localStorage.getItem('hoopshot-best')) || 0; } catch (e) {}
+
+  function resize() {
+    const r = wrap.getBoundingClientRect();
+    W = r.width; H = r.height;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const S = Math.min(W, H);
+    R = Math.max(9, S * 0.028);
+    G = H * 2.4;
+    floorY = H * 0.9;
+    launch = { x: Math.max(R * 3, W * 0.14), y: floorY - H * 0.17 };
+    maxPull = S * 0.3;
+    maxSpeed = Math.hypot(1.9 * H, 1.0 * W);
+    stars = Array.from({ length: 40 }, (_, i) => ({ x: (i * 97.3 % 100) / 100 * W, y: (i * 53.7 % 100) / 100 * H * 0.5, r: (i % 3) * 0.4 + 0.5 }));
+    if (hoop) layoutHoop(); else newHoop();
+    if (phase !== 'flying') resetBall();
+  }
+
+  function layoutHoop() {
+    const rimW = R * 2 * 2.4;
+    const cx = hoop.fx * W, y = hoop.fy * H;
+    hoop.y = y;
+    hoop.l = cx - rimW / 2;
+    hoop.r = cx + rimW / 2;
+    hoop.bx = hoop.r + R * 0.45;          // backboard face
+    hoop.bw = Math.max(4, R * 0.45);
+    hoop.bt = y - R * 5.2;
+    hoop.bb = y + R * 1.3;
+  }
+
+  function newHoop() {
+    const minFx = Math.max(0.42, (launch.x + R * 12) / W);
+    const maxFx = Math.max(minFx, 1 - (R * 7) / W);
+    let fx, fy, tries = 0;
+    do {
+      fx = minFx + Math.random() * (maxFx - minFx);
+      fy = 0.2 + Math.random() * 0.42;
+      tries++;
+    } while (hoop && tries < 20 && Math.hypot((fx - hoop.fx) * W, (fy - hoop.fy) * H) < Math.min(W, H) * 0.22);
+    hoop = { fx, fy, appear: 0 };
+    layoutHoop();
+  }
+
+  function resetBall() {
+    ball = { x: launch.x, y: launch.y, vx: 0, vy: 0, spin: 0, touched: false, scored: false, prevY: launch.y };
+    phase = 'aim'; phaseT = 0;
+  }
+
+  // ---- input ----
+  function pullVector() {
+    let dx = drag.sx - drag.x, dy = drag.sy - drag.y;
+    const d = Math.hypot(dx, dy);
+    if (d > maxPull) { dx *= maxPull / d; dy *= maxPull / d; }
+    return { dx, dy, d: Math.min(d, maxPull) };
+  }
+
+  cv.addEventListener('pointerdown', e => {
+    if (phase !== 'aim') return;
+    cv.setPointerCapture(e.pointerId);
+    drag = { id: e.pointerId, sx: e.offsetX, sy: e.offsetY, x: e.offsetX, y: e.offsetY };
+    cv.classList.add('dragging');
+  });
+  cv.addEventListener('pointermove', e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    drag.x = e.offsetX; drag.y = e.offsetY;
+  });
+  const release = e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const p = pullVector();
+    drag = null;
+    cv.classList.remove('dragging');
+    if (p.d < maxPull * 0.08) return;   // too small a pull counts as a cancel
+    const k = maxSpeed / maxPull;
+    ball.vx = p.dx * k; ball.vy = p.dy * k;
+    ball.spin = -ball.vx / R * 0.02;
+    phase = 'flying'; phaseT = 0;
+  };
+  cv.addEventListener('pointerup', release);
+  cv.addEventListener('pointercancel', e => { if (drag && e.pointerId === drag.id) { drag = null; cv.classList.remove('dragging'); } });
+
+  // ---- physics ----
+  function hitPoint(px, py, pr, e) {
+    const dx = ball.x - px, dy = ball.y - py;
+    const d = Math.hypot(dx, dy), min = R + pr;
+    if (d >= min || d === 0) return false;
+    const nx = dx / d, ny = dy / d;
+    ball.x = px + nx * min; ball.y = py + ny * min;
+    const vn = ball.vx * nx + ball.vy * ny;
+    if (vn < 0) { ball.vx -= (1 + e) * vn * nx; ball.vy -= (1 + e) * vn * ny; }
+    return true;
+  }
+
+  function hitBoard() {
+    // backboard as a rectangle: find the closest point and bounce off it
+    const px = Math.max(hoop.bx, Math.min(ball.x, hoop.bx + hoop.bw));
+    const py = Math.max(hoop.bt, Math.min(ball.y, hoop.bb));
+    return hitPoint(px, py, 0, 0.6);
+  }
+
+  function step(dt) {
+    ball.prevY = ball.y;
+    ball.vy += G * dt;
+    ball.x += ball.vx * dt;
+    ball.y += ball.vy * dt;
+    ball.spin += ball.vx / R * dt * 0.15;
+
+    const rimR = Math.max(2, R * 0.2);
+    if (hitPoint(hoop.l, hoop.y, rimR, 0.5)) ball.touched = true;
+    if (hitPoint(hoop.r, hoop.y, rimR, 0.5)) ball.touched = true;
+    if (hitBoard()) ball.touched = true;
+    // pole below the board
+    if (ball.y > hoop.bb) hitPoint(hoop.bx + hoop.bw / 2, ball.y, R * 0.2, 0.4);
+
+    if (!ball.scored && ball.prevY < hoop.y && ball.y >= hoop.y && ball.vy > 0 && ball.x > hoop.l && ball.x < hoop.r) {
+      ball.scored = true;
+      ball.vx *= 0.35; ball.vy *= 0.55;  // the net grabs it
+      score();
+    }
+
+    if (ball.y + R > floorY) {
+      ball.y = floorY - R;
+      ball.vy *= -0.55;
+      ball.vx *= 0.8;
+      if (Math.abs(ball.vy) < G * 0.04) ball.vy = 0;
+    }
+    if (ball.x - R < 0) { ball.x = R; ball.vx = Math.abs(ball.vx) * 0.6; }
+    if (ball.x + R > W) { ball.x = W - R; ball.vx = -Math.abs(ball.vx) * 0.6; }
+  }
+
+  function score() {
+    st.score++; st.streak++;
+    if (st.score > st.best) { st.best = st.score; try { localStorage.setItem('hoopshot-best', String(st.best)); } catch (e) {} }
+    flash = { text: ball.touched ? 'Bucket!' : 'Swish!', t: 0, x: (hoop.l + hoop.r) / 2, y: hoop.y - R * 6.5, color: ball.touched ? COL.ink : COL.gold };
+    netSway = 1;
+    if (!reduceMotion) {
+      for (let i = 0; i < 26; i++) {
+        const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.2, s = (0.4 + Math.random()) * H * 0.6;
+        particles.push({ x: (hoop.l + hoop.r) / 2, y: hoop.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0.9 + Math.random() * 0.5, t: 0, c: [COL.gold, COL.rim, COL.paint, COL.ball][i % 4] });
+      }
+    }
+    phase = 'scored'; phaseT = 0;
+    updateHud(true);
+  }
+
+  function miss() {
+    st.streak = 0;
+    flash = { text: 'Miss', t: 0, x: ball.x, y: ball.y - R * 3, color: COL.dim };
+    updateHud(false);
+  }
+
+  function updateHud(bumped) {
+    el.score.textContent = st.score;
+    el.streak.textContent = st.streak;
+    el.best.textContent = st.best;
+    if (bumped) { el.score.classList.remove('bump'); void el.score.offsetWidth; el.score.classList.add('bump'); }
+  }
+
+  function update(dt) {
+    phaseT += dt;
+    if (hoop.appear < 1) hoop.appear = Math.min(1, hoop.appear + dt * 3);
+    if (phase === 'flying' || phase === 'scored' || phase === 'missed') {
+      const n = 6;
+      for (let i = 0; i < n; i++) step(dt / n);
+    }
+    if (phase === 'flying') {
+      const resting = ball.vy === 0 && Math.abs(ball.vx) < R * 0.5 && ball.y >= floorY - R - 0.5;
+      if (resting || phaseT > 5) { miss(); phase = 'missed'; phaseT = 0; }
+    } else if (phase === 'scored' && phaseT > 1.2) {
+      newHoop(); resetBall();
+    } else if (phase === 'missed' && phaseT > 0.7) {
+      resetBall();
+    }
+    netSway = Math.max(0, netSway - dt * 1.4);
+    particles = particles.filter(p => (p.t += dt) < p.life);
+    for (const p of particles) { p.vy += G * 0.6 * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
+    if (flash && (flash.t += dt) > 1.1) flash = null;
+  }
+
+  // ---- drawing ----
+  function drawBackground() {
+    const g = ctx.createLinearGradient(0, 0, 0, floorY);
+    g.addColorStop(0, COL.skyTop); g.addColorStop(1, COL.skyLow);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, floorY);
+    ctx.fillStyle = COL.paint;
+    for (const s of stars) { ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill(); }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = COL.asphalt; ctx.fillRect(0, floorY, W, H - floorY);
+    ctx.strokeStyle = COL.paint; ctx.globalAlpha = 0.5; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, floorY + 1); ctx.lineTo(W, floorY + 1); ctx.stroke();
+    // shooting spot
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath(); ctx.ellipse(launch.x, floorY + (H - floorY) * 0.45, R * 1.8, R * 0.45, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  function drawHoopBack() {
+    const a = easeOut(hoop.appear);
+    ctx.globalAlpha = a;
+    // pole
+    ctx.fillStyle = '#4a5466';
+    const poleX = hoop.bx + hoop.bw / 2 - R * 0.2;
+    ctx.fillRect(poleX, hoop.bb, R * 0.4, floorY - hoop.bb);
+    // backboard
+    ctx.fillStyle = COL.paint;
+    ctx.fillRect(hoop.bx, hoop.bt, hoop.bw, hoop.bb - hoop.bt);
+    ctx.fillStyle = COL.rim;
+    ctx.fillRect(hoop.bx - 1, hoop.y - R * 2.2, 2, R * 2.2);
+    ctx.globalAlpha = 1;
+  }
+
+  function drawHoopFront() {
+    const a = easeOut(hoop.appear);
+    ctx.globalAlpha = a;
+    const strands = 6, depth = R * 2.8, top = hoop.y;
+    const w = hoop.r - hoop.l, inset = w * 0.22;
+    const sway = reduceMotion ? 0 : Math.sin(netSway * 18) * netSway * R * 0.5;
+    const stretch = netSway * R * 0.9;
+    ctx.strokeStyle = COL.paint; ctx.lineWidth = 1.2; ctx.globalAlpha = a * 0.85;
+    const topPts = [], botPts = [];
+    for (let i = 0; i <= strands; i++) {
+      const t = i / strands;
+      topPts.push([hoop.l + w * t, top]);
+      botPts.push([hoop.l + inset + (w - inset * 2) * t + sway, top + depth + stretch]);
+    }
+    ctx.beginPath();
+    for (let i = 0; i <= strands; i++) {
+      ctx.moveTo(...topPts[i]); ctx.lineTo(...botPts[Math.min(strands, i + 1)]);
+      ctx.moveTo(...topPts[i]); ctx.lineTo(...botPts[Math.max(0, i - 1)]);
+    }
+    ctx.moveTo(...botPts[0]); ctx.lineTo(...botPts[strands]);
+    ctx.stroke();
+    // rim
+    ctx.globalAlpha = a;
+    ctx.strokeStyle = COL.rim; ctx.lineWidth = Math.max(3, R * 0.32); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(hoop.l, top); ctx.lineTo(hoop.bx, top); ctx.stroke();
+    ctx.lineCap = 'butt';
+    ctx.globalAlpha = 1;
+  }
+
+  function drawBall(x, y, rot) {
+    ctx.save();
+    ctx.translate(x, y); ctx.rotate(rot);
+    ctx.fillStyle = COL.ball;
+    ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(30, 18, 10, 0.75)'; ctx.lineWidth = Math.max(1, R * 0.09);
+    ctx.beginPath(); ctx.moveTo(-R, 0); ctx.lineTo(R, 0); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, -R); ctx.lineTo(0, R); ctx.stroke();
+    ctx.beginPath(); ctx.arc(-R * 1.25, 0, R * 0.85, -0.85, 0.85); ctx.stroke();
+    ctx.beginPath(); ctx.arc(R * 1.25, 0, R * 0.85, Math.PI - 0.85, Math.PI + 0.85); ctx.stroke();
+    ctx.restore();
+    // highlight
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
+    ctx.beginPath(); ctx.arc(x - R * 0.35, y - R * 0.35, R * 0.35, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function drawShadow(x) {
+    const h = Math.max(0, floorY - (ball.y + R));
+    const s = Math.max(0.25, 1 - h / H);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+    ctx.beginPath(); ctx.ellipse(x, floorY + 3, R * s, R * 0.3 * s, 0, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function drawAim() {
+    const p = pullVector();
+    const power = p.d / maxPull;
+    const bx = launch.x - p.dx, by = launch.y - p.dy;
+    // slingshot band
+    ctx.strokeStyle = COL.paint; ctx.globalAlpha = 0.55; ctx.lineWidth = 2; ctx.setLineDash([4, 5]);
+    ctx.beginPath(); ctx.moveTo(launch.x, launch.y); ctx.lineTo(bx, by); ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+    // predicted path
+    const k = maxSpeed / maxPull;
+    let x = launch.x, y = launch.y, vx = p.dx * k, vy = p.dy * k;
+    const dots = 16, dt = 0.045;
+    for (let i = 1; i <= dots; i++) {
+      for (let j = 0; j < 3; j++) { vy += G * dt / 3; x += vx * dt / 3; y += vy * dt / 3; }
+      if (y > floorY) break;
+      ctx.globalAlpha = (1 - i / dots) * 0.9;
+      ctx.fillStyle = COL.gold;
+      ctx.beginPath(); ctx.arc(x, y, Math.max(1.5, R * 0.16), 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    // power ring around the launch spot
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(launch.x, launch.y, R * 2.1, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = power > 0.92 ? COL.rim : COL.gold;
+    ctx.beginPath(); ctx.arc(launch.x, launch.y, R * 2.1, -Math.PI / 2, -Math.PI / 2 + power * Math.PI * 2); ctx.stroke();
+    drawShadow(bx);
+    drawBall(bx, by, 0);
+  }
+
+  function drawIdleHint() {
+    if (st.score > 0 || phase !== 'aim' || drag) return;
+    const t = performance.now() / 1000;
+    const pulse = reduceMotion ? 0.5 : (Math.sin(t * 3) + 1) / 2;
+    ctx.strokeStyle = COL.gold; ctx.globalAlpha = 0.3 + pulse * 0.4; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(launch.x, launch.y, R * (1.7 + pulse * 0.5), 0, Math.PI * 2); ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = COL.ink; ctx.font = `700 ${Math.max(13, R * 0.9)}px ${C('--font-body')}`;
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText('Pull back and release', Math.min(launch.x + R * 3, W - 150), launch.y - R * 3.2);
+  }
+
+  function drawFlash() {
+    if (!flash) return;
+    const t = flash.t / 1.1;
+    ctx.globalAlpha = Math.max(0, 1 - t * t);
+    ctx.fillStyle = flash.color;
+    ctx.font = `${Math.max(18, R * 1.9)}px ${C('--font-display')}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const x = Math.min(Math.max(flash.x, R * 4), W - R * 4);
+    ctx.fillText(flash.text, x, Math.max(R * 5, flash.y) - t * R * 2);
+    ctx.globalAlpha = 1;
+  }
+
+  function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    drawBackground();
+    drawHoopBack();
+    if (phase === 'aim' && drag) drawAim();
+    else { drawShadow(ball.x); drawBall(ball.x, ball.y, ball.spin); }
+    drawHoopFront();
+    for (const p of particles) {
+      ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.c;
+      ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+    }
+    ctx.globalAlpha = 1;
+    drawIdleHint();
+    drawFlash();
+  }
+
+  let last = 0;
+  function frame(now) {
+    const dt = Math.min(0.033, (now - last) / 1000 || 0);
+    last = now;
+    update(dt);
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  function start(saved) {
+    if (saved && typeof saved.score === 'number') { st.score = saved.score; st.streak = saved.streak || 0; st.best = Math.max(st.best, saved.best || 0); }
+    resize();
+    updateHud(false);
+    window.addEventListener('resize', resize);
+    requestAnimationFrame(frame);
+  }
+
+  window.claude?.hot?.snapshot?.(() => ({ score: st.score, streak: st.streak, best: st.best }));
+  window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+})();
+</script>
