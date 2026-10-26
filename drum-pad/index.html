@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* Layout: one-screen hardware unit — transport strip, loop lane, then a square 4x4 pad bank sized to the viewport. */
+/* Layout: one-screen hardware unit — transport and pattern strips, loop lane, then a square work area (pads or steps) sized to the viewport. */
 :root {
   --bg: #14161b;
   --panel: #1c1f26;
@@ -23,11 +23,13 @@
   --tom: #f2c14e;
   --perc: #a88cff;
   --rec: #ff3b3b;
+  --scrim: rgba(8, 9, 12, 0.72);
   --display: "Chakra Petch", "Arial Narrow", system-ui, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { height: 100%; }
 body {
   margin: 0;
@@ -45,7 +47,8 @@ body {
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
 }
-.app { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 10px; }
+.app { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 9px; }
+.row { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
 
 .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .brand { display: flex; align-items: baseline; gap: 10px; }
@@ -54,53 +57,74 @@ body {
 .vol { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 0.72rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; }
 .vol input { width: 110px; accent-color: var(--metal); }
 
-.transport { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
 button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--metal); outline-offset: 2px; }
 .tbtn {
   background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
-  padding: 8px 12px; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
-  display: inline-flex; align-items: center; gap: 7px; min-height: 40px;
+  padding: 7px 11px; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: 7px; min-height: 38px;
 }
 .tbtn:hover { border-color: var(--dim); }
 .tbtn:disabled { opacity: 0.4; cursor: default; }
-.tbtn .ico { font-size: 0.75rem; }
+.tbtn .ico { font-size: 0.72rem; }
 #play[aria-pressed="true"] { border-color: var(--metal); color: var(--metal); }
-#rec .ico { color: var(--rec); }
-#rec[aria-pressed="true"] { background: var(--rec); border-color: var(--rec); color: #fff; }
-#rec[aria-pressed="true"] .ico { color: #fff; animation: blink 1s steps(2) infinite; }
+#rec .ico, #edRec .ico { color: var(--rec); }
+#rec[aria-pressed="true"], #edRec[aria-pressed="true"] { background: var(--rec); border-color: var(--rec); color: #fff; }
+#rec[aria-pressed="true"] .ico, #edRec[aria-pressed="true"] .ico { color: #fff; animation: blink 1s steps(2) infinite; }
 @keyframes blink { 50% { opacity: 0.2; } }
-.bpm { display: inline-flex; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-.bpm button { background: none; border: 0; width: 34px; align-self: stretch; font-size: 1.1rem; color: var(--dim); }
+.bpm { display: inline-flex; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; min-height: 38px; }
+.bpm button { background: none; border: 0; width: 32px; align-self: stretch; font-size: 1.1rem; color: var(--dim); }
 .bpm button:hover { color: var(--ink); }
 .bpm input {
   width: 3.2ch; background: none; border: 0; color: var(--ink); text-align: right;
   font-family: var(--mono); font-size: 0.95rem; font-weight: 600; font-variant-numeric: tabular-nums; -moz-appearance: textfield;
 }
 .bpm input::-webkit-inner-spin-button, .bpm input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-.bpm span { font-family: var(--mono); font-size: 0.65rem; color: var(--dim); padding-left: 5px; }
+.bpm span { font-family: var(--mono); font-size: 0.62rem; color: var(--dim); padding-left: 5px; }
 .spacer { flex: 1; }
 
-.toggles { display: flex; flex-wrap: wrap; gap: 6px; }
+.pats { display: inline-flex; gap: 5px; }
+.pat {
+  position: relative; width: 38px; height: 38px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel);
+  font-family: var(--mono); font-weight: 600; font-size: 0.95rem;
+}
+.pat.has::after { content: ""; position: absolute; right: 5px; top: 5px; width: 5px; height: 5px; border-radius: 50%; background: var(--dim); }
+.pat[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.pat[aria-pressed="true"].has::after { background: var(--bg); }
+.pat.queued { border-color: var(--metal); animation: blink 0.5s steps(2) infinite; }
+.song { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 0.7rem; color: var(--dim); }
+.song input {
+  width: 9ch; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; color: var(--ink);
+  font-family: var(--mono); font-size: 0.8rem; padding: 6px 7px; text-transform: uppercase; letter-spacing: 0.1em;
+}
+
 .chip {
-  background: none; border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px;
+  background: none; border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; min-height: 28px;
   font-family: var(--mono); font-size: 0.7rem; color: var(--dim);
 }
 .chip[aria-pressed="true"] { color: var(--bg); background: var(--ink); border-color: var(--ink); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.seg button { background: none; border: 0; padding: 4px 10px; min-height: 28px; font-family: var(--mono); font-size: 0.7rem; color: var(--dim); }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.swing { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 0.7rem; color: var(--dim); }
+.swing input { width: 84px; accent-color: var(--tom); }
+.swing output { color: var(--ink); min-width: 3.5ch; font-variant-numeric: tabular-nums; }
 
 .lane { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px 7px; display: flex; flex-direction: column; gap: 5px; }
-#tl { width: 100%; height: 56px; display: block; }
-.laneinfo { font-family: var(--mono); font-size: 0.7rem; color: var(--dim); min-height: 1.2em; }
+#tl { width: 100%; height: 48px; display: block; }
+.lanefoot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.laneinfo { font-family: var(--mono); font-size: 0.68rem; color: var(--dim); min-width: 0; }
 .laneinfo b { color: var(--ink); font-weight: 600; }
 .laneinfo.recording b { color: var(--rec); }
+.tabs { display: inline-flex; flex-shrink: 0; }
 
-.grid {
-  width: min(100%, max(250px, calc(100vh - 290px)));
-  width: min(100%, max(250px, calc(100dvh - 290px)));
-  aspect-ratio: 1; max-width: 100%;
+.main {
+  width: min(100%, max(250px, calc(100vh - 440px)));
+  width: min(100%, max(250px, calc(100dvh - 440px)));
   margin-inline: auto;
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
-  touch-action: none;
 }
+.grid { width: 100%; aspect-ratio: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; touch-action: none; }
 .pad {
   --c: var(--metal);
   position: relative; overflow: hidden;
@@ -111,10 +135,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   padding: 7px 8px; text-align: left; touch-action: none;
   transition: transform 60ms ease-out;
 }
-.pad::before { /* backlight strip */
-  content: ""; position: absolute; left: 8px; right: 8px; top: 0; height: 3px; border-radius: 0 0 3px 3px;
-  background: var(--c); opacity: 0.55;
-}
+.pad::before { content: ""; position: absolute; left: 8px; right: 8px; top: 0; height: 3px; border-radius: 0 0 3px 3px; background: var(--c); opacity: 0.55; }
 .pad.down { transform: scale(0.965); }
 .pad:focus-visible { outline: 2px solid var(--c); outline-offset: 2px; }
 .pad .glow {
@@ -124,6 +145,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .pad .num { font-family: var(--mono); font-size: 0.62rem; color: var(--dim); position: relative; }
 .pad .lbl { font-size: clamp(0.66rem, 2.6vw, 0.9rem); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; line-height: 1.05; position: relative; }
+.pad .tag { font-family: var(--mono); font-size: 0.56rem; color: var(--c); letter-spacing: 0.04em; position: relative; }
 .pad .key {
   position: absolute; right: 7px; top: 6px; font-family: var(--mono); font-size: 0.62rem; color: var(--dim);
   border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; text-transform: uppercase;
@@ -131,21 +153,71 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .g-kick { --c: var(--kick); } .g-snare { --c: var(--snare); } .g-metal { --c: var(--metal); }
 .g-tom { --c: var(--tom); } .g-perc { --c: var(--perc); }
 
-.hint { margin: 0; text-align: center; font-family: var(--mono); font-size: 0.68rem; color: var(--dim); }
-.audio-note { color: var(--tom); }
+/* Step view */
+.stepsView { display: flex; flex-direction: column; gap: 8px; }
+.mini { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.mini button {
+  --c: var(--metal); position: relative; min-height: 32px; border-radius: 6px; border: 1px solid var(--line); background: var(--pad);
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 3px 6px; text-align: left;
+  border-top: 3px solid var(--c);
+}
+.mini button.has::after { content: ""; position: absolute; right: 5px; top: 5px; width: 5px; height: 5px; border-radius: 50%; background: var(--c); }
+.mini button[aria-pressed="true"] { background: var(--c); color: var(--bg); }
+.stephead { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.stephead .nm { font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.stephead .nm small { font-family: var(--mono); font-weight: 400; font-size: 0.66rem; color: var(--dim); letter-spacing: 0; text-transform: none; margin-left: 6px; }
+.steps { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; touch-action: manipulation; }
+.cell {
+  --c: var(--metal); aspect-ratio: 1; border-radius: 6px; border: 1px solid var(--line); background: var(--pad);
+  font-family: var(--mono); font-size: 0.56rem; color: var(--dim); display: flex; align-items: flex-end; justify-content: flex-start; padding: 3px 4px;
+}
+.cell.beat { border-color: var(--dim); }
+.cell.on { background: color-mix(in srgb, var(--c) 55%, var(--pad)); color: var(--bg); border-color: var(--c); }
+.cell.acc { background: var(--c); color: var(--bg); border-color: var(--c); }
+.cell.now { box-shadow: 0 0 0 2px var(--ink) inset; }
+
+.hint { margin: 0; text-align: center; font-family: var(--mono); font-size: 0.66rem; color: var(--dim); }
+
+/* Pad editor */
+.scrim { position: fixed; inset: 0; background: var(--scrim); display: flex; align-items: flex-end; justify-content: center; z-index: 20; }
+.sheet {
+  width: 100%; max-width: 560px; background: var(--panel); border: 1px solid var(--line); border-bottom: 0; border-radius: 14px 14px 0 0;
+  padding: 16px max(16px, env(safe-area-inset-right, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  display: flex; flex-direction: column; gap: 12px; max-height: 92%; overflow-y: auto;
+}
+.sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.sheet h2 { margin: 0; font-size: 1.1rem; letter-spacing: 0.05em; text-transform: uppercase; }
+.sheet h2 small { font-family: var(--mono); font-size: 0.68rem; color: var(--dim); font-weight: 400; letter-spacing: 0; text-transform: none; margin-left: 6px; }
+.knob { display: grid; grid-template-columns: 4.5rem 1fr 4.5rem; align-items: center; gap: 10px; font-family: var(--mono); font-size: 0.74rem; color: var(--dim); }
+.knob input { width: 100%; accent-color: var(--metal); }
+.knob output { color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+.sample { border-top: 1px solid var(--line); padding-top: 12px; display: flex; flex-direction: column; gap: 9px; }
+.sample .src { font-family: var(--mono); font-size: 0.74rem; color: var(--dim); }
+.sample .src b { color: var(--ink); font-weight: 600; }
+.msg { margin: 0; font-family: var(--mono); font-size: 0.7rem; color: var(--tom); min-height: 1em; }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  background: var(--ink); color: var(--bg); font-family: var(--mono); font-size: 0.74rem; padding: 8px 14px; border-radius: 8px; z-index: 30;
+  max-width: calc(100% - 32px);
+}
+
 @media (hover: none) { .pad .key, .hint .keys { display: none; } }
-@media (max-width: 420px) { .sub { display: none; } .vol input { width: 84px; } .tbtn { padding: 8px 10px; } }
-@media (prefers-reduced-motion: reduce) { .pad { transition: none; } #rec[aria-pressed="true"] .ico { animation: none; } }
+@media (max-width: 420px) { .sub { display: none; } .vol input { width: 80px; } .tbtn { padding: 7px 9px; } .swing input { width: 70px; } }
+@media (prefers-reduced-motion: reduce) {
+  .pad { transition: none; }
+  #rec[aria-pressed="true"] .ico, #edRec[aria-pressed="true"] .ico, .pat.queued { animation: none; }
+}
 </style>
 </head>
 <body>
 <div class="app">
   <header class="top">
-    <div class="brand"><span class="name">Drum Touch Pad</span><span class="sub">16 pads · synth kit · 2-bar looper</span></div>
+    <div class="brand"><span class="name">Drum Touch Pad</span><span class="sub">16 pads · 4 patterns · 2-bar loops</span></div>
     <label class="vol" for="vol">Vol <input id="vol" type="range" min="0" max="100" value="80"></label>
   </header>
 
-  <section class="transport" aria-label="Looper">
+  <section class="row" aria-label="Transport">
     <button id="play" class="tbtn" aria-pressed="false"><span class="ico">▶</span><span class="t">Play</span></button>
     <button id="rec" class="tbtn" aria-pressed="false"><span class="ico">●</span>Rec</button>
     <div class="bpm">
@@ -157,23 +229,77 @@ button { font: inherit; color: inherit; cursor: pointer; }
     <span class="spacer"></span>
     <button id="undo" class="tbtn">Undo</button>
     <button id="clear" class="tbtn">Clear</button>
+    <button id="export" class="tbtn">Export</button>
   </section>
 
-  <div class="toggles">
+  <section class="row" aria-label="Patterns">
+    <div class="pats" id="pats"></div>
+    <label class="song" for="chain">Song <input id="chain" type="text" maxlength="16" spellcheck="false" autocomplete="off" placeholder="AABA"></label>
+    <button id="tSong" class="chip" aria-pressed="false">Play song</button>
+  </section>
+
+  <section class="row" aria-label="Sound and timing">
+    <div class="seg" id="kits" role="group" aria-label="Kit"></div>
+    <label class="swing" for="swing">Swing <input id="swing" type="range" min="50" max="75" step="1" value="50"><output id="swingV">50%</output></label>
     <button id="tQuant" class="chip" aria-pressed="true">Quantize 1/16</button>
     <button id="tClick" class="chip" aria-pressed="true">Metronome</button>
     <button id="tDyn" class="chip" aria-pressed="true">Dynamics</button>
-  </div>
+    <button id="tRepeat" class="chip" aria-pressed="false">Repeat off</button>
+  </section>
 
   <div class="lane">
     <canvas id="tl" aria-label="Loop timeline, 2 bars of 4/4"></canvas>
-    <div class="laneinfo" id="info"></div>
+    <div class="lanefoot">
+      <div class="laneinfo" id="info"></div>
+      <div class="seg tabs" role="group" aria-label="View">
+        <button id="vPads" aria-pressed="true">Pads</button>
+        <button id="vSteps" aria-pressed="false">Steps</button>
+      </div>
+    </div>
   </div>
 
-  <div class="grid" id="grid"></div>
+  <div class="main">
+    <div class="grid" id="grid"></div>
+    <div class="stepsView" id="stepsView" hidden>
+      <div class="mini" id="mini" role="group" aria-label="Instrument"></div>
+      <div class="stephead">
+        <span class="nm" id="stepName"></span>
+        <button id="editSel" class="tbtn">Edit sound</button>
+      </div>
+      <div class="steps" id="steps" role="group" aria-label="Steps"></div>
+    </div>
+  </div>
 
-  <p class="hint"><span class="keys">Keys 1–4 · Q–R · A–F · Z–V · Space plays/stops · </span>Hit near the centre of a pad for a louder note</p>
+  <p class="hint" id="hint"><span class="keys">Keys 1–4 · Q–R · A–F · Z–V · Space plays/stops · Right-click a pad to edit · </span>Long-press a pad to edit its sound</p>
 </div>
+
+<div class="scrim" id="sheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="edName">
+    <div class="sheet-head">
+      <h2 id="edName"></h2>
+      <button id="edClose" class="tbtn">Done</button>
+    </div>
+    <label class="knob" for="edPitch">Pitch <input id="edPitch" type="range" min="-12" max="12" step="1"><output id="edPitchV"></output></label>
+    <label class="knob" for="edDecay">Decay <input id="edDecay" type="range" min="25" max="200" step="5"><output id="edDecayV"></output></label>
+    <label class="knob" for="edLevel">Level <input id="edLevel" type="range" min="0" max="150" step="5"><output id="edLevelV"></output></label>
+    <div class="sample">
+      <div class="src" id="edSrc"></div>
+      <div class="row">
+        <button id="edRec" class="tbtn" aria-pressed="false"><span class="ico">●</span><span class="t">Record voice</span></button>
+        <button id="edLoad" class="tbtn">Load audio file</button>
+        <button id="edDrop" class="tbtn">Use synth sound</button>
+        <input id="edFile" type="file" accept="audio/*" hidden>
+      </div>
+      <p class="msg" id="edMsg"></p>
+    </div>
+    <div class="row">
+      <button id="edPlay" class="tbtn"><span class="ico">▶</span>Preview</button>
+      <button id="edReset" class="tbtn">Reset knobs</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
 
 <script>
 (() => {
@@ -198,33 +324,107 @@ button { font: inherit; color: inherit; cursor: pointer; }
   ];
   const PAD_INDEX = Object.fromEntries(PADS.map((p, i) => [p.id, i]));
   const KEYMAP = Object.fromEntries(PADS.map(p => [p.key, p.id]));
+  const padNum = i => String((3 - Math.floor(i / 4)) * 4 + (i % 4) + 1).padStart(2, "0"); // MPC numbering: A01 bottom-left
   const LOOP_BEATS = 8; // 2 bars of 4/4
+  const PATS = ["A", "B", "C", "D"];
+  const KITS = {
+    "808":    { name: "808",      lp: 18000, crush: 0,  dec: 1,    tune: {} },
+    acoustic: { name: "Acoustic", lp: 13000, crush: 0,  dec: 1.25, tune: { kick: 0.8, snare: 1.12, htom: 0.88, mtom: 0.88, ltom: 0.88, chat: 0.9, ohat: 0.9 } },
+    lofi:     { name: "Lo-fi",    lp: 3400,  crush: 14, dec: 0.8,  tune: { all: 0.92 } },
+  };
+  const REPEATS = [0, 2, 4, 8]; // hits per beat: off, 1/8, 1/16, 1/32
 
-  // ---------- Audio engine (all sounds synthesised, no samples) ----------
-  let ctx = null, out = null, noiseBuf = null, openHat = null;
+  // ---------- State ----------
+  function examplePatterns() {
+    const a = [];
+    [0, 0.75, 2.5, 4, 4.75, 6.25, 6.5].forEach(b => a.push({ id: "kick", v: 1, b }));
+    [1, 3, 5, 7].forEach(b => a.push({ id: "snare", v: 0.95, b }));
+    for (let b = 0; b < 8; b += 0.5) if (b !== 7.5) a.push({ id: "chat", v: b % 1 ? 0.55 : 0.85, b });
+    a.push({ id: "ohat", v: 0.8, b: 7.5 }, { id: "sub", v: 0.8, b: 0 }, { id: "sub", v: 0.7, b: 4 }, { id: "rim", v: 0.6, b: 3.75 });
+    const b = a.filter(e => e.b < 6 || (e.id === "kick" && e.b === 6.25));
+    b.push({ id: "crash", v: 0.9, b: 0 });
+    [["htom", 6], ["htom", 6.25], ["mtom", 6.5], ["mtom", 6.75], ["ltom", 7], ["ltom", 7.25], ["snare", 7.5], ["snare", 7.75]]
+      .forEach(([id, t], i) => b.push({ id, v: 0.7 + i * 0.04, b: t }));
+    return { A: a, B: b, C: [], D: [] };
+  }
 
+  const STORE_KEY = "drum-touch-pad-v2";
+  const state = {
+    bpm: 92, vol: 80, quant: true, click: true, dyn: true, swing: 54, repeat: 0, kit: "808",
+    patterns: examplePatterns(), cur: "A", chain: "AAAB", songOn: false, example: true,
+    pads: {}, // id -> {pitch, decay, level}
+  };
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
+    if (saved && saved.patterns) Object.assign(state, saved);
+    else {
+      const old = JSON.parse(localStorage.getItem("drum-touch-pad-v1") || "null");
+      if (old && Array.isArray(old.events)) {
+        ["bpm", "vol", "quant", "click", "dyn"].forEach(k => { if (k in old) state[k] = old[k]; });
+        if (!old.example) { state.patterns.A = old.events; state.example = false; }
+      }
+    }
+  } catch (e) { /* storage unavailable: keep defaults */ }
+  PATS.forEach(p => { if (!Array.isArray(state.patterns[p])) state.patterns[p] = []; });
+  if (!KITS[state.kit]) state.kit = "808";
+  state.sel = state.sel && PAD_INDEX[state.sel] != null ? state.sel : "kick";
+
+  function save() {
+    try {
+      const patterns = {};
+      PATS.forEach(p => patterns[p] = state.patterns[p].map(({ id, v, b }) => ({ id, v, b })));
+      const { bpm, vol, quant, click, dyn, swing, repeat, kit, cur, chain, songOn, example, pads, sel } = state;
+      localStorage.setItem(STORE_KEY, JSON.stringify({ bpm, vol, quant, click, dyn, swing, repeat, kit, cur, chain, songOn, example, pads, sel, patterns }));
+    } catch (e) { /* ignore */ }
+  }
+  const pat = () => state.patterns[state.cur];
+  const padSet = id => state.pads[id] || { pitch: 0, decay: 100, level: 100 };
+  const history = []; // {p, ev} for undo
+
+  // ---------- Audio engine ----------
+  let ctx = null, graph = null, bus = null, openHat = null;
+  const samples = {}; // id -> {buf, name}
+  const NOISE = (() => {
+    const sr = 44100, b = new AudioBuffer({ length: sr * 2, numberOfChannels: 1, sampleRate: sr });
+    const d = b.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    return b;
+  })();
+  const volume = () => Math.pow(state.vol / 100, 1.6) * 1.1;
+
+  function crushCurve(levels) {
+    const c = new Float32Array(2048);
+    for (let i = 0; i < c.length; i++) { const x = i / 1024 - 1; c[i] = Math.round(x * levels) / levels; }
+    return c;
+  }
+  function buildGraph(c) {
+    const g = { bus: c.createGain(), crush: c.createWaveShaper(), lp: c.createBiquadFilter(), master: c.createGain(), comp: c.createDynamicsCompressor() };
+    g.lp.type = "lowpass"; g.lp.Q.value = 0.4;
+    g.comp.threshold.value = -12; g.comp.knee.value = 8; g.comp.ratio.value = 4; g.comp.attack.value = 0.003; g.comp.release.value = 0.15;
+    g.master.gain.value = volume();
+    g.bus.connect(g.crush).connect(g.lp).connect(g.master).connect(g.comp).connect(c.destination);
+    applyKit(g);
+    return g;
+  }
+  function applyKit(g) {
+    const k = KITS[state.kit];
+    g.lp.frequency.value = k.lp;
+    g.crush.curve = k.crush ? crushCurve(k.crush) : null;
+  }
   function initAudio() {
     if (ctx) { if (ctx.state !== "running") ctx.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext;
     ctx = new AC({ latencyHint: "interactive" });
-    const comp = ctx.createDynamicsCompressor();
-    comp.threshold.value = -12; comp.knee.value = 8; comp.ratio.value = 4;
-    comp.attack.value = 0.003; comp.release.value = 0.15;
-    out = ctx.createGain();
-    out.gain.value = volume();
-    out.connect(comp).connect(ctx.destination);
-    noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
-    const d = noiseBuf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    graph = buildGraph(ctx);
+    bus = graph.bus;
   }
-  const volume = () => Math.pow(state.vol / 100, 1.6) * 1.1;
 
   function env(t, peak, decay, attack = 0.001) {
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(Math.max(peak, 0.0002), t + attack);
     g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
-    g.connect(out);
+    g.connect(bus);
     return g;
   }
   function osc(type, f, t, dur) {
@@ -235,27 +435,27 @@ button { font: inherit; color: inherit; cursor: pointer; }
   }
   function noise(t, dur) {
     const s = ctx.createBufferSource();
-    s.buffer = noiseBuf;
+    s.buffer = NOISE;
     s.start(t, Math.random() * 0.3); s.stop(t + Math.min(dur + 0.05, 1.65));
     return s;
   }
   function filt(type, f, q = 0.8) {
     const b = ctx.createBiquadFilter();
-    b.type = type; b.frequency.value = f; b.Q.value = q;
+    b.type = type; b.frequency.value = Math.min(f, 20000); b.Q.value = q;
     return b;
   }
   // 808-style metal: six detuned square waves through a band-pass
-  function metal(t, dur, bp, hp, peak) {
-    const b = filt("bandpass", bp, 0.7), h = filt("highpass", hp), g = env(t, peak, dur);
-    [2, 3, 4.16, 5.43, 6.79, 8.21].forEach(r => osc("square", 40 * r, t, dur).connect(b));
+  function metal(t, dur, bp, hp, peak, T) {
+    const b = filt("bandpass", bp * T, 0.7), h = filt("highpass", hp * T), g = env(t, peak, dur);
+    [2, 3, 4.16, 5.43, 6.79, 8.21].forEach(r => osc("square", 40 * r * T, t, dur).connect(b));
     b.connect(h).connect(g);
     return g;
   }
-  function tom(t, v, f, decay) {
-    const o = osc("sine", f * 1.6, t, decay);
-    o.frequency.exponentialRampToValueAtTime(f, t + 0.09);
-    o.connect(env(t, v * 0.85, decay));
-    noise(t, 0.03).connect(filt("bandpass", f * 4, 1)).connect(env(t, v * 0.15, 0.03));
+  function tom(t, v, f, decay, p) {
+    const o = osc("sine", f * 1.6 * p.tune, t, decay * p.dec);
+    o.frequency.exponentialRampToValueAtTime(f * p.tune, t + 0.09);
+    o.connect(env(t, v * 0.85, decay * p.dec));
+    noise(t, 0.03).connect(filt("bandpass", f * 4 * p.tune, 1)).connect(env(t, v * (p.kit === "acoustic" ? 0.3 : 0.15), 0.03));
   }
   function choke(t) {
     if (!openHat) return;
@@ -266,28 +466,30 @@ button { font: inherit; color: inherit; cursor: pointer; }
   }
 
   const VOICES = {
-    kick(t, v) {
-      const o = osc("sine", 160, t, 0.6);
-      o.frequency.exponentialRampToValueAtTime(44, t + 0.12);
-      o.connect(env(t, v, 0.45));
+    kick(t, v, p) {
+      const T = p.tune, D = p.dec;
+      const o = osc("sine", 160 * T, t, 0.6 * D);
+      o.frequency.exponentialRampToValueAtTime(44 * T, t + 0.12);
+      o.connect(env(t, v, 0.45 * D));
       noise(t, 0.02).connect(filt("highpass", 2500)).connect(env(t, v * 0.3, 0.015));
+      if (p.kit === "acoustic") noise(t, 0.04).connect(filt("bandpass", 1800, 0.8)).connect(env(t, v * 0.35, 0.035));
     },
-    sub(t, v) {
-      const o = osc("sine", 95, t, 1.3);
-      o.frequency.exponentialRampToValueAtTime(49, t + 0.07);
-      const shaper = ctx.createWaveShaper();
-      const c = new Float32Array(256);
-      for (let i = 0; i < 256; i++) { const x = i / 128 - 1; c[i] = Math.tanh(x * 1.8); }
+    sub(t, v, p) {
+      const o = osc("sine", 95 * p.tune, t, 1.3 * p.dec);
+      o.frequency.exponentialRampToValueAtTime(49 * p.tune, t + 0.07);
+      const shaper = ctx.createWaveShaper(), c = new Float32Array(256);
+      for (let i = 0; i < 256; i++) c[i] = Math.tanh((i / 128 - 1) * 1.8);
       shaper.curve = c;
-      o.connect(shaper).connect(env(t, v * 0.9, 1.15, 0.004));
+      o.connect(shaper).connect(env(t, v * 0.9, 1.15 * p.dec, 0.004));
     },
-    snare(t, v) {
-      const o = osc("triangle", 200, t, 0.15);
-      o.frequency.exponentialRampToValueAtTime(160, t + 0.05);
-      o.connect(env(t, v * 0.55, 0.11));
-      noise(t, 0.25).connect(filt("highpass", 1300)).connect(env(t, v * 0.75, 0.2));
+    snare(t, v, p) {
+      const T = p.tune, D = p.dec, ac = p.kit === "acoustic";
+      const o = osc("triangle", 200 * T, t, 0.15 * D);
+      o.frequency.exponentialRampToValueAtTime(160 * T, t + 0.05);
+      o.connect(env(t, v * 0.55, 0.11 * D));
+      noise(t, 0.35 * D).connect(ac ? filt("bandpass", 3200 * T, 0.6) : filt("highpass", 1300 * T)).connect(env(t, v * (ac ? 0.95 : 0.75), (ac ? 0.26 : 0.2) * D));
     },
-    clap(t, v) {
+    clap(t, v, p) {
       const g = ctx.createGain();
       g.gain.setValueAtTime(0.0001, t);
       for (let i = 0; i < 3; i++) {
@@ -296,171 +498,262 @@ button { font: inherit; color: inherit; cursor: pointer; }
         g.gain.exponentialRampToValueAtTime(0.05, s + 0.009);
       }
       g.gain.setValueAtTime(v * 0.85, t + 0.033);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.23);
-      g.connect(out);
-      noise(t, 0.25).connect(filt("bandpass", 1150, 1.1)).connect(g);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.033 + 0.2 * p.dec);
+      g.connect(bus);
+      noise(t, 0.25 * p.dec).connect(filt("bandpass", 1150 * p.tune, 1.1)).connect(g);
     },
-    rim(t, v) {
-      osc("triangle", 1750, t, 0.04).connect(env(t, v * 0.5, 0.03));
-      noise(t, 0.02).connect(filt("bandpass", 3500, 1.5)).connect(env(t, v * 0.4, 0.02));
+    rim(t, v, p) {
+      osc("triangle", 1750 * p.tune, t, 0.04 * p.dec).connect(env(t, v * 0.5, 0.03 * p.dec));
+      noise(t, 0.02).connect(filt("bandpass", 3500 * p.tune, 1.5)).connect(env(t, v * 0.4, 0.02 * p.dec));
     },
-    snap(t, v) {
-      noise(t, 0.08).connect(filt("bandpass", 2400, 2)).connect(env(t, v * 1.3, 0.07));
-      osc("sine", 1900, t, 0.03).connect(env(t, v * 0.25, 0.025));
+    snap(t, v, p) {
+      noise(t, 0.08 * p.dec).connect(filt("bandpass", 2400 * p.tune, 2)).connect(env(t, v * 1.3, 0.07 * p.dec));
+      osc("sine", 1900 * p.tune, t, 0.03).connect(env(t, v * 0.25, 0.025));
     },
-    chat(t, v) { choke(t); metal(t, 0.06, 10000, 7000, v * 0.16); },
-    ohat(t, v) { choke(t); openHat = metal(t, 0.5, 10000, 7000, v * 0.14); },
-    crash(t, v) {
-      metal(t, 1.6, 8000, 5000, v * 0.08);
-      noise(t, 1.6).connect(filt("highpass", 6000)).connect(env(t, v * 0.3, 1.5));
+    chat(t, v, p) { choke(t); metal(t, 0.06 * p.dec, 10000, 7000, v * 0.16, p.tune); },
+    ohat(t, v, p) { choke(t); openHat = metal(t, 0.5 * p.dec, 10000, 7000, v * 0.14, p.tune); },
+    crash(t, v, p) {
+      metal(t, 1.6 * p.dec, 8000, 5000, v * 0.08, p.tune);
+      noise(t, 1.6 * p.dec).connect(filt("highpass", 6000 * p.tune)).connect(env(t, v * 0.3, 1.5 * p.dec));
     },
-    ride(t, v) {
-      metal(t, 1.3, 9000, 6000, v * 0.06);
-      osc("triangle", 3150, t, 0.9).connect(env(t, v * 0.05, 0.85));
+    ride(t, v, p) {
+      metal(t, 1.3 * p.dec, 9000, 6000, v * 0.06, p.tune);
+      osc("triangle", 3150 * p.tune, t, 0.9 * p.dec).connect(env(t, v * 0.05, 0.85 * p.dec));
     },
-    bell(t, v) {
-      const b = filt("bandpass", 800, 1.2);
-      osc("square", 540, t, 0.4).connect(b);
-      osc("square", 800, t, 0.4).connect(b);
-      b.connect(env(t, v * 0.32, 0.35));
+    bell(t, v, p) {
+      const b = filt("bandpass", 800 * p.tune, 1.2);
+      osc("square", 540 * p.tune, t, 0.4 * p.dec).connect(b);
+      osc("square", 800 * p.tune, t, 0.4 * p.dec).connect(b);
+      b.connect(env(t, v * 0.32, 0.35 * p.dec));
     },
-    shaker(t, v) { noise(t, 0.12).connect(filt("bandpass", 6500, 1.5)).connect(env(t, v * 0.6, 0.08, 0.015)); },
-    clave(t, v) { osc("sine", 2500, t, 0.07).connect(env(t, v * 0.6, 0.06)); },
-    htom(t, v) { tom(t, v, 190, 0.3); },
-    mtom(t, v) { tom(t, v, 135, 0.38); },
-    ltom(t, v) { tom(t, v, 95, 0.48); },
+    shaker(t, v, p) { noise(t, 0.12 * p.dec).connect(filt("bandpass", 6500 * p.tune, 1.5)).connect(env(t, v * 0.6, 0.08 * p.dec, 0.015)); },
+    clave(t, v, p) { osc("sine", 2500 * p.tune, t, 0.07 * p.dec).connect(env(t, v * 0.6, 0.06 * p.dec)); },
+    htom(t, v, p) { tom(t, v, 190, 0.3, p); },
+    mtom(t, v, p) { tom(t, v, 135, 0.38, p); },
+    ltom(t, v, p) { tom(t, v, 95, 0.48, p); },
   };
 
+  function params(id) {
+    const k = KITS[state.kit], s = padSet(id);
+    const kt = k.tune[id] ?? k.tune.all ?? 1;
+    return { tune: kt * Math.pow(2, s.pitch / 12), dec: k.dec * s.decay / 100, lvl: s.level / 100, kit: state.kit };
+  }
+  function playSample(s, t, v, p) {
+    const src = ctx.createBufferSource(), g = ctx.createGain();
+    src.buffer = s.buf;
+    src.playbackRate.value = p.tune;
+    const end = t + (s.buf.duration / p.tune) * Math.min(1, p.dec);
+    g.gain.setValueAtTime(v, t);
+    if (p.dec < 1) { g.gain.setValueAtTime(v, Math.max(t, end - 0.04)); g.gain.linearRampToValueAtTime(0, end); }
+    src.connect(g).connect(bus);
+    src.start(t); src.stop(end + 0.01);
+  }
+  function trigger(id, t, v) {
+    const p = params(id), vv = v * p.lvl;
+    if (vv < 0.002) return;
+    if (samples[id]) playSample(samples[id], t, vv, p);
+    else VOICES[id](t, vv, p);
+  }
   function click(t, accent) {
     osc("sine", accent ? 1600 : 1050, t, 0.04).connect(env(t, accent ? 0.28 : 0.16, 0.03));
   }
 
-  // ---------- State ----------
-  const EXAMPLE = (() => {
-    const ev = [];
-    [0, 0.75, 2.5, 4, 4.75, 6.25, 6.5].forEach(b => ev.push({ id: "kick", v: 1, b }));
-    [1, 3, 5, 7].forEach(b => ev.push({ id: "snare", v: 0.95, b }));
-    for (let b = 0; b < 8; b += 0.5) if (b !== 7.5) ev.push({ id: "chat", v: b % 1 ? 0.55 : 0.85, b });
-    ev.push({ id: "ohat", v: 0.8, b: 7.5 }, { id: "sub", v: 0.8, b: 0 }, { id: "sub", v: 0.7, b: 4 }, { id: "rim", v: 0.6, b: 3.75 });
-    return ev;
-  })();
-
-  const STORE_KEY = "drum-touch-pad-v1";
-  const state = { bpm: 92, vol: 80, quant: true, click: true, dyn: true, events: EXAMPLE.map(e => ({ ...e })), example: true };
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
-    if (saved && Array.isArray(saved.events)) Object.assign(state, saved);
-  } catch (e) { /* storage unavailable: keep defaults */ }
-  function save() {
-    try {
-      const { bpm, vol, quant, click, dyn, example } = state;
-      const events = state.events.map(({ id, v, b }) => ({ id, v, b }));
-      localStorage.setItem(STORE_KEY, JSON.stringify({ bpm, vol, quant, click, dyn, example, events }));
-    } catch (e) { /* ignore */ }
+  // ---------- Timing helpers ----------
+  const spb = () => 60 / state.bpm;
+  const loopLen = () => LOOP_BEATS * spb();
+  const swing16 = n => (((n % 2) + 2) % 2 === 1 ? 2 * state.swing / 100 - 1 : 0); // MPC swing: 50% straight, 66% triplet
+  function swingDelay(b) {
+    const s = b * 4, r = Math.round(s);
+    return Math.abs(s - r) < 0.01 ? swing16(r) * spb() / 4 : 0;
   }
-  const history = [];
+  const evTime = b => b * spb() + swingDelay(b);
+  // nearest 1/16 step to a position (in 16ths), accounting for swing
+  function nearestStep(pos16) {
+    const a = Math.floor(pos16);
+    let best = a, bd = Infinity;
+    for (const n of [a - 1, a, a + 1, a + 2]) {
+      const d = Math.abs(pos16 - (n + swing16(n)));
+      if (d < bd) { bd = d; best = n; }
+    }
+    return best;
+  }
 
   // ---------- Pads ----------
   const grid = document.getElementById("grid");
   const padEls = PADS.map((p, i) => {
-    const r = Math.floor(i / 4), c = i % 4;
-    const num = String((3 - r) * 4 + c + 1).padStart(2, "0"); // MPC numbering: pad 01 bottom-left
     const el = document.createElement("button");
     el.className = "pad g-" + p.g;
-    el.setAttribute("aria-label", `${p.name} (key ${p.key.toUpperCase()})`);
-    el.innerHTML = `<span class="glow"></span><span class="num">A${num}</span><span class="key">${p.key}</span><span class="lbl">${p.name}</span>`;
     el.dataset.id = p.id;
+    el.innerHTML = `<span class="glow"></span><span class="num">A${padNum(i)}</span><span class="key">${p.key}</span><span class="lbl"></span><span class="tag"></span>`;
     grid.appendChild(el);
     return el;
   });
+  function renderPads() {
+    padEls.forEach((el, i) => {
+      const p = PADS[i], s = padSet(p.id), smp = samples[p.id];
+      el.querySelector(".lbl").textContent = p.name;
+      const tags = [];
+      if (smp) tags.push("SAMPLE");
+      if (s.pitch) tags.push((s.pitch > 0 ? "+" : "") + s.pitch + "st");
+      if (s.decay !== 100) tags.push("D" + s.decay);
+      if (s.level !== 100) tags.push("L" + s.level);
+      el.querySelector(".tag").textContent = tags.join(" ");
+      el.setAttribute("aria-label", `${p.name}${smp ? " (your sample)" : ""}, key ${p.key.toUpperCase()}`);
+    });
+  }
 
   function flash(i, v, x = 50, y = 50) {
-    const el = padEls[i], glow = el.firstChild;
+    const glow = padEls[i].firstChild;
     glow.style.setProperty("--x", x + "%"); glow.style.setProperty("--y", y + "%");
-    glow.animate([{ opacity: 0.35 + v * 0.6 }, { opacity: 0 }], { duration: 380, easing: "ease-out" });
+    glow.animate([{ opacity: 0.35 + Math.min(1, v) * 0.6 }, { opacity: 0 }], { duration: 380, easing: "ease-out" });
+    const m = miniEls[i];
+    if (m && !stepsView.hidden) m.animate([{ filter: "brightness(1.8)" }, { filter: "none" }], { duration: 250 });
   }
+  function flashAt(i, v, t) { setTimeout(() => flash(i, v), Math.max(0, (t - ctx.currentTime) * 1000)); }
 
   function hit(id, v, x, y) {
     initAudio();
     const t = ctx.currentTime;
-    VOICES[id](t, v);
+    trigger(id, t, v);
     flash(PAD_INDEX[id], v, x, y);
     if (running && recording) record(id, v, t);
   }
 
+  // Note repeat: held pads retrigger on the tempo grid
+  const held = new Map();
+  let repeatTimer = null;
+  function startHold(key, id, v) {
+    initAudio();
+    const step = 1 / state.repeat, now = ctx.currentTime;
+    let next = now;
+    if (running) {
+      const sp = spb(), g = (now - loopStart) / sp;
+      const n = Math.ceil((g - 0.03 / sp) / step);
+      next = Math.max(now, loopStart + n * step * sp);
+    }
+    held.set(key, { id, v, next, step });
+    if (!repeatTimer) repeatTimer = setInterval(repeatTick, 20);
+    repeatTick();
+  }
+  function endHold(key) {
+    held.delete(key);
+    if (!held.size) { clearInterval(repeatTimer); repeatTimer = null; }
+  }
+  function repeatTick() {
+    const horizon = ctx.currentTime + 0.08;
+    for (const h of held.values()) {
+      while (h.next < horizon) {
+        let t = h.next;
+        if (running) {
+          const b = (((t - loopStart) / spb()) % LOOP_BEATS + LOOP_BEATS) % LOOP_BEATS;
+          t += swingDelay(b);
+        }
+        t = Math.max(t, ctx.currentTime);
+        trigger(h.id, t, h.v);
+        flashAt(PAD_INDEX[h.id], h.v, t);
+        if (running && recording) record(h.id, h.v, t);
+        h.next += h.step * spb();
+      }
+    }
+  }
+
+  // Long-press (touch) or right-click opens the pad editor
+  let pressTimer = null;
   grid.addEventListener("contextmenu", e => e.preventDefault());
   padEls.forEach(el => {
+    const id = el.dataset.id;
     el.addEventListener("pointerdown", e => {
+      if (e.button === 2) return;
       e.preventDefault();
       const r = el.getBoundingClientRect();
       const px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height;
       let v = 1;
-      if (state.dyn) {
-        const dist = Math.min(1, Math.hypot(px - 0.5, py - 0.5) / 0.6);
-        v = 1 - dist * 0.6;
-      }
+      if (state.dyn) v = 1 - Math.min(1, Math.hypot(px - 0.5, py - 0.5) / 0.6) * 0.6;
       el.classList.add("down");
-      hit(el.dataset.id, v, px * 100, py * 100);
+      if (state.repeat) { startHold("p" + e.pointerId, id, v); flash(PAD_INDEX[id], v, px * 100, py * 100); }
+      else {
+        hit(id, v, px * 100, py * 100);
+        if (e.pointerType === "touch") { clearTimeout(pressTimer); pressTimer = setTimeout(() => { el.classList.remove("down"); openEditor(id); }, 600); }
+      }
     });
-    const up = () => el.classList.remove("down");
+    const up = e => { el.classList.remove("down"); clearTimeout(pressTimer); endHold("p" + e.pointerId); };
     el.addEventListener("pointerup", up);
     el.addEventListener("pointercancel", up);
     el.addEventListener("pointerleave", up);
-    el.addEventListener("click", e => { if (e.detail === 0) hit(el.dataset.id, 0.9); }); // keyboard activation
+    el.addEventListener("contextmenu", e => { e.preventDefault(); clearTimeout(pressTimer); el.classList.remove("down"); openEditor(id); });
+    el.addEventListener("click", e => { if (e.detail === 0) hit(id, 0.9); }); // keyboard activation
   });
 
   document.addEventListener("keydown", e => {
+    if (!sheet.hidden) { if (e.key === "Escape") closeEditor(); return; }
     if (e.target.tagName === "INPUT" || e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.code === "Space") { e.preventDefault(); if (!e.repeat) togglePlay(); return; }
     const id = KEYMAP[e.key.toLowerCase()];
     if (!id || e.repeat) return;
     e.preventDefault();
-    const el = padEls[PAD_INDEX[id]];
-    el.classList.add("down");
-    hit(id, e.shiftKey ? 0.55 : 0.95);
+    padEls[PAD_INDEX[id]].classList.add("down");
+    const v = e.shiftKey ? 0.55 : 0.95;
+    if (state.repeat) startHold("k" + id, id, v); else hit(id, v);
   });
   document.addEventListener("keyup", e => {
     const id = KEYMAP[e.key.toLowerCase()];
-    if (id) padEls[PAD_INDEX[id]].classList.remove("down");
+    if (!id) return;
+    padEls[PAD_INDEX[id]].classList.remove("down");
+    endHold("k" + id);
   });
 
-  // ---------- Looper ----------
+  // ---------- Looper, patterns and song ----------
   let running = false, recording = false, loopStart = 0, scheduledUntil = 0, timer = null;
-  const spb = () => 60 / state.bpm;
-  const loopLen = () => LOOP_BEATS * spb();
+  let iterPat = new Map(), queued = null, songK0 = 0;
+  const chainList = () => state.chain.toUpperCase().split("").filter(c => PATS.includes(c));
+
+  function patFor(k) {
+    if (iterPat.has(k)) return iterPat.get(k);
+    const chain = chainList();
+    let p;
+    if (state.songOn && chain.length) p = chain[(k - songK0) % chain.length];
+    else { if (queued) { p = queued; queued = null; } else p = state.cur; }
+    iterPat.set(k, p);
+    if (p !== state.cur || state.songOn) {
+      const at = loopStart + k * loopLen();
+      setTimeout(() => { if (running) { state.cur = p; save(); refresh(); } }, Math.max(0, (at - ctx.currentTime) * 1000));
+    }
+    return p;
+  }
 
   function record(id, v, t) {
     const L = loopLen(), sp = spb(), rel = t - loopStart;
     let k = Math.floor(rel / L), b = (rel - k * L) / sp;
     if (state.quant) {
-      b = Math.round(b * 4) / 4;
-      if (b >= LOOP_BEATS) { b -= LOOP_BEATS; k += 1; }
+      let n = nearestStep(b * 4);
+      if (n >= LOOP_BEATS * 4) { n -= LOOP_BEATS * 4; k += 1; }
+      if (n < 0) { n += LOOP_BEATS * 4; k -= 1; }
+      b = n / 4;
     }
-    if (state.example) { state.events = []; state.example = false; history.length = 0; }
-    const same = state.events.find(e => e.id === id && Math.abs(e.b - b) < 0.01);
+    const pid = iterPat.get(Math.max(0, k)) || state.cur, list = state.patterns[pid];
+    state.example = false;
+    const same = list.find(e => e.id === id && Math.abs(e.b - b) < 0.01);
     if (same) { same.v = v; same.skip = k; }
     else {
       const ev = { id, v, b, skip: k }; // skip: already heard during loop pass k
-      state.events.push(ev);
-      history.push(ev);
+      list.push(ev);
+      history.push({ p: pid, ev });
     }
-    save(); drawTimeline(); updateInfo();
+    save(); refreshLoop();
   }
 
   function tick() {
     const end = ctx.currentTime + 0.12;
     if (end <= scheduledUntil) return;
     const from = scheduledUntil, L = loopLen(), sp = spb();
-    const k0 = Math.floor((from - loopStart) / L), k1 = Math.floor((end - loopStart) / L);
-    for (let k = k0; k <= k1; k++) {
+    const k0 = Math.floor((from - loopStart) / L) - 1, k1 = Math.floor((end - loopStart) / L);
+    for (let k = Math.max(0, k0); k <= k1; k++) {
       const base = loopStart + k * L;
-      for (const ev of state.events) {
-        const t = base + ev.b * sp;
-        if (t >= from && t < end && ev.skip !== k) {
-          VOICES[ev.id](t, ev.v);
-          const i = PAD_INDEX[ev.id], v = ev.v;
-          setTimeout(() => flash(i, v), Math.max(0, (t - ctx.currentTime) * 1000));
-        }
+      if (base > end) break;
+      const list = state.patterns[patFor(k)];
+      for (const ev of list) {
+        const t = base + evTime(ev.b);
+        if (t >= from && t < end && ev.skip !== k) { trigger(ev.id, t, ev.v); flashAt(PAD_INDEX[ev.id], ev.v, t); }
       }
       if (state.click) for (let b = 0; b < LOOP_BEATS; b++) {
         const t = base + b * sp;
@@ -473,18 +766,24 @@ button { font: inherit; color: inherit; cursor: pointer; }
   function start() {
     initAudio();
     running = true;
+    iterPat = new Map(); songK0 = 0;
+    const chain = chainList();
+    if (state.songOn && chain.length) state.cur = chain[0];
+    else if (queued) { state.cur = queued; }
+    queued = null;
     loopStart = ctx.currentTime + 0.06;
     scheduledUntil = loopStart;
-    state.events.forEach(e => delete e.skip);
+    PATS.forEach(p => state.patterns[p].forEach(e => delete e.skip));
     timer = setInterval(tick, 25);
     tick();
     requestAnimationFrame(frame);
-    updateUI();
+    refresh();
   }
   function stop() {
     running = false; recording = false;
     clearInterval(timer);
-    updateUI(); drawTimeline();
+    if (queued) { state.cur = queued; queued = null; }
+    refresh();
   }
   function togglePlay() { running ? stop() : start(); }
 
@@ -494,113 +793,501 @@ button { font: inherit; color: inherit; cursor: pointer; }
       const now = ctx.currentTime, pos = (now - loopStart) / spb();
       state.bpm = n;
       loopStart = now - pos * spb();
-      state.events.forEach(e => delete e.skip);
+      PATS.forEach(p => state.patterns[p].forEach(e => delete e.skip));
     } else state.bpm = n;
     bpmInput.value = n;
     save(); updateInfo();
   }
 
+  function selectPattern(p) {
+    if (state.songOn) { state.songOn = false; }
+    if (running) queued = (p === state.cur) ? null : p;
+    else state.cur = p;
+    save(); refresh();
+  }
+
   // ---------- Timeline ----------
   const cv = document.getElementById("tl"), g2 = cv.getContext("2d");
-  const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   const colors = {};
-  function readColors() { ["--kick", "--snare", "--metal", "--tom", "--perc", "--line", "--dim", "--ink", "--rec", "--pad"].forEach(n => colors[n] = css(n)); }
+  ["--kick", "--snare", "--metal", "--tom", "--perc", "--line", "--dim", "--ink", "--rec", "--pad"]
+    .forEach(n => colors[n] = getComputedStyle(document.documentElement).getPropertyValue(n).trim());
 
+  function loopPos() { // 0..1 within the loop
+    const L = loopLen();
+    return ((((ctx.currentTime - loopStart) % L) + L) % L) / L;
+  }
   function drawTimeline() {
     const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
-    if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+    if (!w) return;
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
     g2.setTransform(dpr, 0, 0, dpr, 0, 0);
     g2.clearRect(0, 0, w, h);
     const steps = LOOP_BEATS * 4, sw = w / steps;
-    for (let s = 0; s < steps; s++) {
-      if (Math.floor(s / 4) % 2 === 0) { g2.fillStyle = colors["--pad"]; g2.fillRect(s * sw, 0, sw, h); }
-    }
+    for (let s = 0; s < steps; s++) if (Math.floor(s / 4) % 2 === 0) { g2.fillStyle = colors["--pad"]; g2.fillRect(s * sw, 0, sw, h); }
     for (let s = 0; s <= steps; s += 4) {
       g2.fillStyle = s % 16 === 0 ? colors["--dim"] : colors["--line"];
-      g2.fillRect(Math.min(w - 1, s * sw), 0, s % 16 === 0 ? 1.5 : 1, h);
+      g2.fillRect(Math.min(w - 1.5, s * sw), 0, s % 16 === 0 ? 1.5 : 1, h);
     }
     const rowH = h / 16;
-    for (const ev of state.events) {
-      const p = PADS[PAD_INDEX[ev.id]];
-      g2.globalAlpha = 0.45 + ev.v * 0.55;
-      g2.fillStyle = colors["--" + p.g];
-      const x = ev.b / LOOP_BEATS * w, y = PAD_INDEX[ev.id] * rowH;
-      g2.fillRect(x + 1, y + 0.5, Math.max(2, sw - 2), Math.max(1.5, rowH - 1));
+    for (const ev of pat()) {
+      const i = PAD_INDEX[ev.id];
+      g2.globalAlpha = 0.45 + Math.min(1, ev.v) * 0.55;
+      g2.fillStyle = colors["--" + PADS[i].g];
+      const x = (ev.b + swingDelay(ev.b) / spb()) / LOOP_BEATS * w;
+      g2.fillRect(x + 1, i * rowH + 0.5, Math.max(2, sw - 2), Math.max(1.5, rowH - 1));
     }
     g2.globalAlpha = 1;
     if (running && ctx) {
-      const pos = (((ctx.currentTime - loopStart) % loopLen()) + loopLen()) % loopLen() / loopLen();
       g2.fillStyle = recording ? colors["--rec"] : colors["--ink"];
-      g2.fillRect(pos * w - 1, 0, 2, h);
+      g2.fillRect(loopPos() * w - 1, 0, 2, h);
     }
   }
-  function frame() { drawTimeline(); if (running) requestAnimationFrame(frame); }
+  let lastStep = -1;
+  function frame() {
+    drawTimeline();
+    const s = running && !stepsView.hidden ? Math.floor(loopPos() * LOOP_BEATS * 4) : -1;
+    if (s !== lastStep) {
+      if (lastStep >= 0) cellEls[lastStep].classList.remove("now");
+      if (s >= 0) cellEls[s].classList.add("now");
+      lastStep = s;
+    }
+    if (running) requestAnimationFrame(frame);
+  }
+
+  // ---------- Step view ----------
+  const stepsView = document.getElementById("stepsView");
+  const miniWrap = document.getElementById("mini"), stepsWrap = document.getElementById("steps");
+  const miniEls = PADS.map((p, i) => {
+    const b = document.createElement("button");
+    b.className = "g-" + p.g;
+    b.textContent = p.name;
+    b.addEventListener("click", () => {
+      state.sel = p.id; save(); renderSteps();
+      initAudio(); trigger(p.id, ctx.currentTime, 0.9); flash(i, 0.9);
+    });
+    miniWrap.appendChild(b);
+    return b;
+  });
+  const cellEls = Array.from({ length: LOOP_BEATS * 4 }, (_, s) => {
+    const c = document.createElement("button");
+    c.className = "cell" + (s % 4 === 0 ? " beat" : "");
+    c.textContent = s % 4 === 0 ? `${Math.floor(s / 16) + 1}.${Math.floor(s / 4) % 4 + 1}` : "";
+    c.addEventListener("click", () => toggleStep(s));
+    stepsWrap.appendChild(c);
+    return c;
+  });
+  const inStep = (e, s) => Math.round(e.b * 4) % (LOOP_BEATS * 4) === s;
+  function toggleStep(s) {
+    const list = pat(), id = state.sel;
+    const here = list.filter(e => e.id === id && inStep(e, s));
+    state.example = false;
+    if (!here.length) {
+      const ev = { id, v: 0.8, b: s / 4 };
+      list.push(ev); history.push({ p: state.cur, ev });
+      if (!running) { initAudio(); trigger(id, ctx.currentTime, 0.8); }
+    } else if (Math.max(...here.map(e => e.v)) < 0.97) here.forEach(e => e.v = 1);
+    else state.patterns[state.cur] = list.filter(e => !here.includes(e));
+    save(); refreshLoop();
+  }
+  function renderSteps() {
+    const list = pat(), id = state.sel, p = PADS[PAD_INDEX[id]];
+    miniEls.forEach((b, i) => {
+      b.setAttribute("aria-pressed", PADS[i].id === id);
+      b.classList.toggle("has", list.some(e => e.id === PADS[i].id));
+    });
+    document.getElementById("stepName").innerHTML = `${p.name}<small>A${padNum(PAD_INDEX[id])} · tap a step: on → accent → off</small>`;
+    cellEls.forEach((c, s) => {
+      const here = list.filter(e => e.id === id && inStep(e, s));
+      c.className = "cell g-" + p.g + (s % 4 === 0 ? " beat" : "") + (here.length ? (Math.max(...here.map(e => e.v)) >= 0.97 ? " acc" : " on") : "") + (s === lastStep ? " now" : "");
+      c.setAttribute("aria-label", `Step ${s + 1}${here.length ? ", on" : ", off"}`);
+    });
+  }
+
+  // ---------- Pad editor ----------
+  const sheet = document.getElementById("sheet");
+  const ed = id => document.getElementById(id);
+  let editId = null, mediaRec = null;
+
+  function openEditor(id) {
+    editId = id;
+    [...held.keys()].forEach(endHold);
+    renderEditor();
+    ed("edMsg").textContent = "";
+    sheet.hidden = false;
+    ed("edClose").focus();
+  }
+  function closeEditor() {
+    if (mediaRec && mediaRec.state === "recording") mediaRec.stop();
+    sheet.hidden = true;
+    editId = null;
+  }
+  function renderEditor() {
+    const p = PADS[PAD_INDEX[editId]], s = padSet(editId), smp = samples[editId];
+    ed("edName").innerHTML = `${p.name}<small>pad A${padNum(PAD_INDEX[editId])}</small>`;
+    ed("edPitch").value = s.pitch; ed("edPitchV").textContent = (s.pitch > 0 ? "+" : "") + s.pitch + " st";
+    ed("edDecay").value = s.decay; ed("edDecayV").textContent = s.decay + "%";
+    ed("edLevel").value = s.level; ed("edLevelV").textContent = s.level + "%";
+    ed("edSrc").innerHTML = smp
+      ? `Sound: <b>your sample</b> · ${smp.name} · ${smp.buf.duration.toFixed(2)} s`
+      : `Sound: <b>built-in ${KITS[state.kit].name} synth</b>`;
+    ed("edDrop").disabled = !smp;
+    const recOn = !!mediaRec;
+    ed("edRec").setAttribute("aria-pressed", recOn);
+    ed("edRec").querySelector(".t").textContent = recOn ? "Stop" : "Record voice";
+  }
+  function setKnob(key, val) {
+    state.pads[editId] = { ...padSet(editId), [key]: Number(val) };
+    save(); renderEditor(); renderPads();
+  }
+  [["edPitch", "pitch"], ["edDecay", "decay"], ["edLevel", "level"]].forEach(([elId, key]) => {
+    ed(elId).addEventListener("input", e => setKnob(key, e.target.value));
+    ed(elId).addEventListener("change", () => preview());
+  });
+  function preview() { if (!editId) return; initAudio(); trigger(editId, ctx.currentTime, 0.95); flash(PAD_INDEX[editId], 0.95); }
+  ed("edPlay").addEventListener("click", preview);
+  ed("edReset").addEventListener("click", () => { delete state.pads[editId]; save(); renderEditor(); renderPads(); preview(); });
+  ed("edClose").addEventListener("click", closeEditor);
+  sheet.addEventListener("pointerdown", e => { if (e.target === sheet) closeEditor(); });
+  ed("editSel").addEventListener("click", () => openEditor(state.sel));
+
+  // Samples: decode, trim silence, keep in IndexedDB
+  const decoder = new OfflineAudioContext(1, 1, 44100);
+  function trimBuffer(buf) {
+    const d = buf.getChannelData(0), sr = buf.sampleRate;
+    let peak = 0; for (let i = 0; i < d.length; i++) peak = Math.max(peak, Math.abs(d[i]));
+    const th = Math.max(0.01, peak * 0.06);
+    let a = 0; while (a < d.length && Math.abs(d[a]) < th) a++;
+    let z = d.length - 1; while (z > a && Math.abs(d[z]) < th * 0.4) z--;
+    a = Math.max(0, a - Math.floor(sr * 0.004));
+    z = Math.min(d.length, z + Math.floor(sr * 0.06), a + sr * 6);
+    if (z <= a) return null;
+    const gain = peak > 0 ? Math.min(4, 0.9 / peak) : 1; // normalise
+    const out = new AudioBuffer({ length: z - a, numberOfChannels: buf.numberOfChannels, sampleRate: sr });
+    for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+      const src = buf.getChannelData(ch).subarray(a, z), dst = new Float32Array(src.length);
+      for (let i = 0; i < src.length; i++) dst[i] = src[i] * gain;
+      const fade = Math.min(dst.length, Math.floor(sr * 0.02));
+      for (let i = 0; i < fade; i++) dst[dst.length - 1 - i] *= i / fade;
+      out.copyToChannel(dst, ch);
+    }
+    return out;
+  }
+  async function decodeSample(bytes) {
+    const buf = await decoder.decodeAudioData(bytes.slice(0));
+    return trimBuffer(buf);
+  }
+  const idb = (() => {
+    let dbp = null;
+    const open = () => dbp || (dbp = new Promise((res, rej) => {
+      const r = indexedDB.open("drum-touch-pad", 1);
+      r.onupgradeneeded = () => r.result.createObjectStore("samples");
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    }));
+    const run = async (mode, fn) => {
+      const db = await open();
+      return new Promise((res, rej) => {
+        const tx = db.transaction("samples", mode);
+        fn(tx.objectStore("samples"));
+        tx.oncomplete = () => res();
+        tx.onerror = () => rej(tx.error);
+      });
+    };
+    return {
+      put: (k, v) => run("readwrite", s => s.put(v, k)),
+      del: k => run("readwrite", s => s.delete(k)),
+      all: async () => {
+        const db = await open();
+        return new Promise((res, rej) => {
+          const out = {}, r = db.transaction("samples").objectStore("samples").openCursor();
+          r.onsuccess = () => { const c = r.result; if (c) { out[c.key] = c.value; c.continue(); } else res(out); };
+          r.onerror = () => rej(r.error);
+        });
+      },
+    };
+  })();
+  async function setSample(id, bytes, name) {
+    const msg = ed("edMsg");
+    try {
+      const buf = await decodeSample(bytes);
+      if (!buf) { msg.textContent = "That recording was silent. Try again a little closer to the microphone."; return; }
+      samples[id] = { buf, name };
+      msg.textContent = "";
+      try { await idb.put(id, { bytes, name }); } catch (e) { msg.textContent = "Sample loaded. It can't be saved in this browser, so it will be gone after a reload."; }
+      renderPads(); if (editId === id) { renderEditor(); preview(); }
+    } catch (e) {
+      msg.textContent = "Couldn't read that audio. Try a WAV, MP3 or M4A file.";
+    }
+  }
+  ed("edLoad").addEventListener("click", () => ed("edFile").click());
+  ed("edFile").addEventListener("change", async e => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!f || !editId) return;
+    if (f.size > 20 * 1024 * 1024) { ed("edMsg").textContent = "That file is over 20 MB. Use a shorter clip."; return; }
+    await setSample(editId, await f.arrayBuffer(), f.name.replace(/\.[^.]+$/, "").slice(0, 28));
+  });
+  ed("edDrop").addEventListener("click", async () => {
+    delete samples[editId];
+    try { await idb.del(editId); } catch (e) { /* ignore */ }
+    renderPads(); renderEditor(); preview();
+  });
+  ed("edRec").addEventListener("click", async () => {
+    const msg = ed("edMsg");
+    if (mediaRec) { if (mediaRec.state === "recording") mediaRec.stop(); return; }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
+      msg.textContent = "The microphone isn't available here. Record a clip with your phone's voice recorder, then use Load audio file.";
+      return;
+    }
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true } });
+    } catch (e) {
+      msg.textContent = "Microphone access was blocked. Allow it in your browser, or record a clip elsewhere and use Load audio file.";
+      return;
+    }
+    const id = editId, chunks = [], mr = new MediaRecorder(stream);
+    let auto = null;
+    mediaRec = mr;
+    mr.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+    mr.onstop = async () => {
+      clearTimeout(auto);
+      stream.getTracks().forEach(t => t.stop());
+      mediaRec = null;
+      if (editId) renderEditor();
+      msg.textContent = "";
+      if (chunks.length) await setSample(id, await new Blob(chunks, { type: mr.mimeType }).arrayBuffer(), "Voice recording");
+    };
+    mr.start();
+    auto = setTimeout(() => { if (mr.state === "recording") mr.stop(); }, 4000);
+    msg.textContent = "Recording… make your sound, then tap Stop (stops itself after 4 s).";
+    renderEditor();
+  });
+
+  // ---------- Export ----------
+  async function renderAudio() {
+    const chain = chainList();
+    const plan = state.songOn && chain.length ? chain : [state.cur, state.cur, state.cur, state.cur];
+    const L = loopLen(), sr = 44100, lead = 0.02;
+    const oc = new OfflineAudioContext(2, Math.ceil((plan.length * L + 2) * sr), sr);
+    const saved = { ctx, bus, openHat };
+    ctx = oc; bus = buildGraph(oc).bus; openHat = null;
+    try {
+      plan.forEach((p, k) => state.patterns[p].forEach(ev => trigger(ev.id, lead + k * L + evTime(ev.b), ev.v)));
+    } finally { ctx = saved.ctx; bus = saved.bus; openHat = saved.openHat; }
+    return { buf: await oc.startRendering(), plan };
+  }
+  function encodeWav(buf) {
+    const ch = buf.numberOfChannels, len = buf.length, dv = new DataView(new ArrayBuffer(44 + len * ch * 2));
+    const str = (o, s) => { for (let i = 0; i < s.length; i++) dv.setUint8(o + i, s.charCodeAt(i)); };
+    str(0, "RIFF"); dv.setUint32(4, 36 + len * ch * 2, true); str(8, "WAVE"); str(12, "fmt ");
+    dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, ch, true);
+    dv.setUint32(24, buf.sampleRate, true); dv.setUint32(28, buf.sampleRate * ch * 2, true);
+    dv.setUint16(32, ch * 2, true); dv.setUint16(34, 16, true); str(36, "data"); dv.setUint32(40, len * ch * 2, true);
+    const data = Array.from({ length: ch }, (_, c) => buf.getChannelData(c));
+    let peak = 0;
+    for (const d of data) for (let i = 0; i < d.length; i++) peak = Math.max(peak, Math.abs(d[i]));
+    const norm = peak > 0.89 ? 0.89 / peak : 1; // offline output is unclipped float: scale it into range
+    let o = 44;
+    for (let i = 0; i < len; i++) for (let c = 0; c < ch; c++) {
+      const s = Math.max(-1, Math.min(1, data[c][i] * norm));
+      dv.setInt16(o, s < 0 ? s * 0x8000 : s * 0x7fff, true); o += 2;
+    }
+    return new Uint8Array(dv.buffer);
+  }
+  const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  function crc32(u8) { let c = 0xffffffff; for (let i = 0; i < u8.length; i++) c = CRC[(c ^ u8[i]) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; }
+  function zipOne(name, data) { // a single stored (uncompressed) entry
+    const nm = new TextEncoder().encode(name), crc = crc32(data), size = data.length;
+    const local = new DataView(new ArrayBuffer(30)), central = new DataView(new ArrayBuffer(46)), end = new DataView(new ArrayBuffer(22));
+    local.setUint32(0, 0x04034b50, true); local.setUint16(4, 20, true); local.setUint16(12, 33, true);
+    local.setUint32(14, crc, true); local.setUint32(18, size, true); local.setUint32(22, size, true); local.setUint16(26, nm.length, true);
+    central.setUint32(0, 0x02014b50, true); central.setUint16(4, 20, true); central.setUint16(6, 20, true); central.setUint16(14, 33, true);
+    central.setUint32(16, crc, true); central.setUint32(20, size, true); central.setUint32(24, size, true); central.setUint16(28, nm.length, true);
+    const cdOffset = 30 + nm.length + size;
+    end.setUint32(0, 0x06054b50, true); end.setUint16(8, 1, true); end.setUint16(10, 1, true);
+    end.setUint32(12, 46 + nm.length, true); end.setUint32(16, cdOffset, true);
+    return new Blob([local, nm, data, central, nm, end], { type: "application/zip" });
+  }
+  async function exportAudio() {
+    const btn = document.getElementById("export");
+    btn.disabled = true; btn.textContent = "Rendering…";
+    try {
+      const { buf, plan } = await renderAudio();
+      const wav = encodeWav(buf);
+      const base = `drum-touch-pad-${plan.join("")}-${state.bpm}bpm`;
+      const desc = `${plan.length * 2} bars`;
+      const dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null;
+      if (dl) {
+        try { await dl.save({ filename: base + ".zip", data: zipOne(base + ".wav", wav) }); toast(`Saved ${desc} as ${base}.zip (WAV inside)`); }
+        catch (e) { toast(e && e.code === "declined" ? "Export cancelled" : "Saving files isn't available in this view"); }
+      } else {
+        const url = URL.createObjectURL(new Blob([wav], { type: "audio/wav" }));
+        const a = document.createElement("a");
+        a.href = url; a.download = base + ".wav";
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+        toast(`Downloaded ${desc} as ${base}.wav`);
+      }
+    } catch (e) {
+      toast("Export failed: this browser couldn't render the audio");
+    } finally {
+      btn.disabled = false; btn.textContent = "Export";
+    }
+  }
+
+  let toastTimer = null;
+  function toast(text) {
+    const t = document.getElementById("toast");
+    t.textContent = text; t.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.hidden = true, 3500);
+  }
 
   // ---------- UI wiring ----------
   const playBtn = document.getElementById("play"), recBtn = document.getElementById("rec");
   const bpmInput = document.getElementById("bpm"), info = document.getElementById("info");
   const undoBtn = document.getElementById("undo"), clearBtn = document.getElementById("clear");
-  const toggles = { tQuant: "quant", tClick: "click", tDyn: "dyn" };
+  const toggles = { tQuant: "quant", tClick: "click", tDyn: "dyn", tSong: "songOn" };
+  const patWrap = document.getElementById("pats");
+  const patEls = PATS.map(p => {
+    const b = document.createElement("button");
+    b.className = "pat"; b.textContent = p; b.setAttribute("aria-label", "Pattern " + p);
+    b.addEventListener("click", () => selectPattern(p));
+    patWrap.appendChild(b);
+    return b;
+  });
+  const kitWrap = document.getElementById("kits");
+  const kitEls = Object.entries(KITS).map(([k, v]) => {
+    const b = document.createElement("button");
+    b.textContent = v.name;
+    b.addEventListener("click", () => { state.kit = k; if (graph) applyKit(graph); save(); refresh(); if (!running) { initAudio(); trigger("kick", ctx.currentTime, 0.9); trigger("chat", ctx.currentTime + 0.18, 0.7); trigger("snare", ctx.currentTime + 0.36, 0.9); } });
+    kitWrap.appendChild(b);
+    return [k, b];
+  });
 
   function updateInfo() {
-    const n = state.events.length;
+    const n = pat().length;
     info.classList.toggle("recording", recording);
-    if (recording) info.innerHTML = `<b>Recording</b> · tap pads to add to the loop · ${n} hits`;
-    else if (state.example) info.innerHTML = `<b>Example beat</b> · press Play to hear it, Rec to replace it with your own`;
-    else if (n === 0) info.innerHTML = `<b>Empty loop</b> · press Rec, then play the pads`;
-    else info.innerHTML = `<b>${n} hits</b> · 2 bars of 4/4 at ${state.bpm} BPM`;
+    const where = `Pattern ${state.cur}`;
+    if (recording) info.innerHTML = `<b>Recording ${state.cur}</b> · play the pads · ${n} hits`;
+    else if (state.example) info.innerHTML = `<b>Example beats in A and B</b> · press Play`;
+    else if (n === 0) info.innerHTML = `<b>${where} is empty</b> · press Rec or use Steps`;
+    else info.innerHTML = `<b>${where} · ${n} hits</b> · ${state.bpm} BPM`;
     undoBtn.disabled = history.length === 0;
     clearBtn.disabled = n === 0;
   }
-  function updateUI() {
+  function refreshLoop() {
+    updateInfo();
+    patEls.forEach((b, i) => b.classList.toggle("has", state.patterns[PATS[i]].length > 0));
+    if (!stepsView.hidden) renderSteps();
+    drawTimeline();
+  }
+  function refresh() {
     playBtn.setAttribute("aria-pressed", running);
     playBtn.querySelector(".ico").textContent = running ? "■" : "▶";
     playBtn.querySelector(".t").textContent = running ? "Stop" : "Play";
     recBtn.setAttribute("aria-pressed", recording);
-    for (const [elId, key] of Object.entries(toggles)) document.getElementById(elId).setAttribute("aria-pressed", state[key]);
-    updateInfo();
+    for (const [elId, key] of Object.entries(toggles)) document.getElementById(elId).setAttribute("aria-pressed", !!state[key]);
+    const r = document.getElementById("tRepeat");
+    r.setAttribute("aria-pressed", state.repeat > 0);
+    r.textContent = state.repeat ? `Repeat 1/${state.repeat * 4}` : "Repeat off";
+    patEls.forEach((b, i) => { b.setAttribute("aria-pressed", PATS[i] === state.cur); b.classList.toggle("queued", PATS[i] === queued); });
+    kitEls.forEach(([k, b]) => b.setAttribute("aria-pressed", k === state.kit));
+    document.getElementById("swing").value = state.swing;
+    document.getElementById("swingV").textContent = state.swing + "%";
+    renderPads();
+    refreshLoop();
   }
 
   playBtn.addEventListener("click", togglePlay);
   recBtn.addEventListener("click", () => {
     if (!running) start();
     recording = !recording;
-    updateUI();
+    refresh();
   });
   undoBtn.addEventListener("click", () => {
-    const ev = history.pop();
-    if (ev) state.events = state.events.filter(e => e !== ev);
-    save(); drawTimeline(); updateInfo();
+    const h = history.pop();
+    if (h) state.patterns[h.p] = state.patterns[h.p].filter(e => e !== h.ev);
+    save(); refreshLoop();
   });
   clearBtn.addEventListener("click", () => {
-    state.events = []; state.example = false; history.length = 0;
-    save(); drawTimeline(); updateInfo();
+    state.patterns[state.cur] = []; state.example = false;
+    for (let i = history.length - 1; i >= 0; i--) if (history[i].p === state.cur) history.splice(i, 1);
+    save(); refreshLoop();
   });
+  document.getElementById("export").addEventListener("click", exportAudio);
   document.getElementById("bpmDown").addEventListener("click", () => setBpm(state.bpm - 1));
   document.getElementById("bpmUp").addEventListener("click", () => setBpm(state.bpm + 1));
   bpmInput.addEventListener("change", () => setBpm(bpmInput.value));
   bpmInput.addEventListener("keydown", e => { if (e.key === "Enter") bpmInput.blur(); });
   for (const [elId, key] of Object.entries(toggles)) {
-    document.getElementById(elId).addEventListener("click", () => { state[key] = !state[key]; save(); updateUI(); });
+    document.getElementById(elId).addEventListener("click", () => {
+      state[key] = !state[key];
+      if (key === "songOn" && running) { // restart the chain from its first pattern at the next loop
+        const k = Math.floor((ctx.currentTime - loopStart) / loopLen()) + 1;
+        for (const kk of [...iterPat.keys()]) if (kk >= k) iterPat.delete(kk);
+        songK0 = k;
+      }
+      save(); refresh();
+    });
   }
+  const chainInput = document.getElementById("chain");
+  chainInput.value = state.chain;
+  chainInput.addEventListener("input", () => {
+    const clean = chainInput.value.toUpperCase().replace(/[^ABCD]/g, "");
+    if (clean !== chainInput.value) chainInput.value = clean;
+    state.chain = clean; save();
+  });
+  chainInput.addEventListener("keydown", e => { if (e.key === "Enter") chainInput.blur(); });
+  document.getElementById("tRepeat").addEventListener("click", () => {
+    state.repeat = REPEATS[(REPEATS.indexOf(state.repeat) + 1) % REPEATS.length];
+    save(); refresh();
+  });
+  const swingInput = document.getElementById("swing");
+  swingInput.addEventListener("input", () => {
+    state.swing = Number(swingInput.value);
+    document.getElementById("swingV").textContent = state.swing + "%";
+    save(); drawTimeline();
+  });
   const volInput = document.getElementById("vol");
   volInput.value = state.vol;
   volInput.addEventListener("input", () => {
     state.vol = Number(volInput.value);
-    if (out) out.gain.setTargetAtTime(volume(), ctx.currentTime, 0.02);
+    if (graph) graph.master.gain.setTargetAtTime(volume(), ctx.currentTime, 0.02);
     save();
   });
+  const vPads = document.getElementById("vPads"), vSteps = document.getElementById("vSteps");
+  function setView(steps) {
+    vPads.setAttribute("aria-pressed", !steps); vSteps.setAttribute("aria-pressed", steps);
+    grid.hidden = steps; stepsView.hidden = !steps;
+    document.getElementById("hint").hidden = steps;
+    if (steps) renderSteps();
+    try { localStorage.setItem("drum-touch-pad-view", steps ? "steps" : "pads"); } catch (e) { /* ignore */ }
+  }
+  vPads.addEventListener("click", () => setView(false));
+  vSteps.addEventListener("click", () => setView(true));
 
   // Stop the loop when the page is hidden (phone locked, tab switched)
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden && running) stop();
-  });
+  document.addEventListener("visibilitychange", () => { if (document.hidden && running) stop(); });
 
   bpmInput.value = state.bpm;
-  readColors();
   window.addEventListener("resize", drawTimeline);
-  updateUI();
-  drawTimeline();
+  let view = "pads";
+  try { view = localStorage.getItem("drum-touch-pad-view") || "pads"; } catch (e) { /* ignore */ }
+  setView(view === "steps");
+  refresh();
+
+  // Restore saved samples
+  (async () => {
+    try {
+      const all = await idb.all();
+      for (const [id, v] of Object.entries(all)) {
+        if (PAD_INDEX[id] == null) continue;
+        try { const buf = await decodeSample(v.bytes); if (buf) samples[id] = { buf, name: v.name }; } catch (e) { /* skip unreadable */ }
+      }
+      renderPads();
+    } catch (e) { /* IndexedDB unavailable */ }
+  })();
 })();
 </script>
 </body>
