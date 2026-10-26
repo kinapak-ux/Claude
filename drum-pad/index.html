@@ -47,7 +47,7 @@ body {
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
 }
-.app { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 9px; }
+.app { width: 100%; display: flex; flex-direction: column; gap: 9px; }
 .row { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
 
 .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
@@ -105,11 +105,15 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--metal); out
 .tabs { display: inline-flex; flex-shrink: 0; }
 
 .main {
-  width: min(100%, max(250px, calc(100vh - 440px)));
-  width: min(100%, max(250px, calc(100dvh - 440px)));
-  margin-inline: auto;
+  width: 100%;
+  container-type: inline-size;
 }
-.grid { width: 100%; aspect-ratio: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; touch-action: none; }
+/* Pads span the full width; height stays square on phones and shrinks to fit short screens, making the pads wider than tall */
+.grid {
+  width: 100%;
+  height: min(100cqw, max(250px, calc(100vh - 360px)));
+  height: min(100cqw, max(250px, calc(100dvh - 360px)));
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; touch-action: none; }
 .pad {
   --c: var(--metal);
   position: relative; overflow: hidden;
@@ -139,7 +143,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--metal); out
 .g-tom { --c: var(--tom); } .g-perc { --c: var(--perc); }
 
 /* Step view */
-.stepsView { display: flex; flex-direction: column; gap: 8px; }
+.stepsView { max-width: 560px; margin-inline: auto; display: flex; flex-direction: column; gap: 8px; }
 .mini { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
 .mini button {
   --c: var(--metal); position: relative; min-height: 32px; border-radius: 6px; border: 1px solid var(--line); background: var(--pad);
