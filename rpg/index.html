@@ -1,0 +1,308 @@
+<title>Ashlands</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one-screen shelter terminal. Header strip, scrolling phosphor log, command dock pinned at the bottom.
+   Deliberately single-theme: a lit CRT in a dark room. */
+:root {
+  --glass: #07100b;        /* screen background, green-black */
+  --bezel: #0d1a12;        /* panels and buttons */
+  --phosphor: #8ff0a4;     /* body text */
+  --phosphor-dim: #4f8f60; /* secondary text */
+  --hot: #e8ffe9;          /* headings, emphasis */
+  --blood: #ff7a5c;        /* combat and danger */
+  --rule: #1f3a28;
+  --font-display: "VT323", "Courier New", monospace;
+  --font-body: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--glass);
+  color: var(--phosphor);
+  font: 15px/1.5 var(--font-body);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+body::after { /* scanlines and vignette */
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0 2px, rgba(0,0,0,.18) 2px 3px),
+    radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,.55) 100%);
+  z-index: 5;
+}
+.frame {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 10px 0;
+  gap: 8px;
+}
+header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 6px;
+}
+h1 {
+  margin: 0;
+  font: 400 34px/1 var(--font-display);
+  letter-spacing: .3em;
+  color: var(--hot);
+  text-shadow: 0 0 8px rgba(143,240,164,.55);
+}
+.tag {
+  font: 400 18px/1 var(--font-display);
+  color: var(--phosphor-dim);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  text-align: right;
+}
+#log {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  text-shadow: 0 0 4px rgba(143,240,164,.35);
+  padding-bottom: 8px;
+  scrollbar-color: var(--rule) transparent;
+}
+#log div { min-height: 1.5em; }
+#log .h { color: var(--hot); font-weight: 600; margin-top: .4em; }
+#log .danger { color: var(--blood); text-shadow: 0 0 6px rgba(255,122,92,.4); }
+#log .dim { color: var(--phosphor-dim); }
+#log .me { color: var(--phosphor-dim); }
+#log .me::before { content: "> "; }
+#log .boot { color: var(--phosphor-dim); font-family: var(--font-display); font-size: 20px; }
+.dock {
+  border-top: 1px solid var(--rule);
+  padding-block: 8px max(10px, env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.prompt-row { display: flex; align-items: center; gap: 8px; }
+#prompt { color: var(--hot); white-space: nowrap; max-width: 55%; overflow: hidden; text-overflow: ellipsis; }
+#cmd {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  color: var(--hot);
+  font: inherit;
+  caret-color: var(--phosphor);
+  padding: 4px 0;
+}
+#cmd:focus { outline: none; border-bottom-color: var(--phosphor); }
+#keys { display: flex; flex-wrap: wrap; gap: 6px; }
+#keys button {
+  font: 400 19px/1 var(--font-display);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--phosphor);
+  background: var(--bezel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 7px 11px;
+  cursor: pointer;
+  min-width: 44px;
+}
+#keys button:hover { border-color: var(--phosphor-dim); color: var(--hot); }
+#keys button:focus-visible { outline: 2px solid var(--phosphor); outline-offset: 1px; }
+#keys button.fight { color: var(--blood); }
+#keys .gap { flex-basis: 100%; height: 0; }
+@media (max-width: 480px) {
+  body { font-size: 14px; }
+  h1 { font-size: 28px; letter-spacing: .2em; }
+  .tag { font-size: 15px; }
+  .tag .long { display: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cursor { animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+}
+</style>
+
+<div class="frame">
+  <header>
+    <h1>ASHLANDS</h1>
+    <div class="tag"><span class="long">Shelter 41 terminal &middot; </span>one life</div>
+  </header>
+  <div id="log" role="log" aria-live="polite">
+    <div class="boot">SHELTER 41 TERMINAL v2.1.61</div>
+    <div class="boot">Loading Python runtime (about 13 MB, first time only)<span class="cursor">_</span></div>
+  </div>
+  <div class="dock">
+    <form class="prompt-row" id="form" autocomplete="off">
+      <label id="prompt" for="cmd">&gt;</label>
+      <input id="cmd" type="text" enterkeyhint="send" autocapitalize="off" spellcheck="false" disabled>
+    </form>
+    <div id="keys"></div>
+  </div>
+</div>
+
+<script>
+const log = document.getElementById("log");
+const cmd = document.getElementById("cmd");
+const promptEl = document.getElementById("prompt");
+const keys = document.getElementById("keys");
+const memory = {};
+let pending = null;
+
+function classify(text) {
+  if (/^== .* ==$/.test(text) || /^(EPILOGUE|  HERE LIES)/.test(text)) return "h";
+  if (/^!!!|hits you for|^You're (starving|dying)|Critical hit|jams!|goes down with|steps into the blow|yelps once/.test(text)) return "danger";
+  if (/^\(Karma|^\(Marked|^Your rad counter|^You can go|^Exits:|^People:/.test(text)) return "dim";
+  return "";
+}
+
+function line(text, cls) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  const c = cls || classify(text);
+  if (c) div.className = c;
+  log.appendChild(div);
+  while (log.children.length > 1500) log.removeChild(log.firstChild);
+}
+
+function scrollDown() { log.scrollTop = log.scrollHeight; }
+
+const KEYSETS = {
+  explore: [["n","N"],["s","S"],["e","E"],["w","W"],["up","Up"],["down","Down"],["out","Out"],null,
+            ["map","Map"],["look","Look"],["search","Search"],["enter","Enter"],["inv","Inv"],["stats","Stats"],
+            ["talk","Talk"],["shop","Shop"],["rest","Rest"],["help","Help"]],
+  fight: [["a","Attack"],["d","Defend"],["i","Item"],["r","Run"]],
+  choose: [["1","1"],["2","2"],["3","3"],["4","4"],["5","5"]],
+  shop: [["1","1"],["2","2"],["3","3"],["4","4"],["5","5"],["6","6"],["r","Repair"],["s","Sell"],["q","Leave"]],
+  stats: [["str","STR"],["aim","AIM"],["end","END"],["cha","CHA"],["wit","WIT"],["lck","LCK"]],
+  any: [["","Continue"]],
+};
+
+function keysFor(prompt) {
+  if (prompt.startsWith("(a)ttack")) return KEYSETS.fight;
+  if (prompt.startsWith("Choose") || prompt.startsWith("Use which") || prompt.startsWith("Sell which")) return KEYSETS.choose;
+  if (prompt.startsWith("Raise")) return KEYSETS.stats;
+  if (prompt.startsWith("[Press") || prompt.startsWith("What's your name")) return KEYSETS.any;
+  if (prompt.startsWith("Continue?")) return [["y","Continue"],["abandon","Abandon"]];
+  if (prompt.trim() === ">" && log.lastChild && /^   r\. Repair/.test(log.lastChild.textContent)) return KEYSETS.shop;
+  return KEYSETS.explore;
+}
+
+function renderKeys(prompt) {
+  keys.replaceChildren();
+  const fight = prompt.startsWith("(a)ttack");
+  for (const k of keysFor(prompt)) {
+    if (!k) { const g = document.createElement("span"); g.className = "gap"; keys.appendChild(g); continue; }
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = k[1];
+    if (fight) b.className = "fight";
+    b.addEventListener("click", () => submit(k[0]));
+    keys.appendChild(b);
+  }
+}
+
+function submit(value) {
+  if (!pending) return;
+  const resolve = pending;
+  pending = null;
+  if (value !== "") line(value, "me");
+  cmd.value = "";
+  resolve(value);
+}
+
+document.getElementById("form").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  submit(cmd.value);
+});
+
+function storageKey(name) { return "ashlands:" + name; }
+
+window.gameIO = {
+  write(text) { line(String(text)); scrollDown(); },
+  ask(prompt) {
+    const p = String(prompt).replace(/^\n+/, "");
+    promptEl.textContent = p.trim() || ">";
+    renderKeys(p);
+    cmd.disabled = false;
+    if (window.matchMedia("(pointer: fine)").matches) cmd.focus();
+    scrollDown();
+    return new Promise((resolve) => { pending = resolve; });
+  },
+  load(name) {
+    try { const v = localStorage.getItem(storageKey(name)); if (v !== null) return v; } catch (e) {}
+    return memory[name] || "";
+  },
+  store(name, text) {
+    memory[name] = text;
+    try { localStorage.setItem(storageKey(name), text); } catch (e) {}
+  },
+  remove(name) {
+    delete memory[name];
+    try { localStorage.removeItem(storageKey(name)); } catch (e) {}
+  },
+};
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+async function boot() {
+  // Bundled runtime first (published alongside the page), then the CDN.
+  // The bundled standard library is served under a .wasm name because artifacts don't serve .zip files.
+  const sources = [
+    { indexURL: "pyodide/", stdLibURL: "pyodide/python_stdlib.wasm" },
+    { indexURL: "https://cdn.jsdelivr.net/npm/pyodide@0.26.4/" },
+  ];
+  let pyodide = null;
+  for (const options of sources) {
+    try {
+      await loadScript(options.indexURL + "pyodide.js");
+      pyodide = await loadPyodide(options);
+      break;
+    } catch (e) { /* try the next source */ }
+  }
+  if (!pyodide) {
+    line("ERROR: couldn't load the Python runtime. Check your connection and reload the page.", "danger");
+    return;
+  }
+  const res = await fetch("game.py");
+  if (!res.ok) {
+    line("ERROR: couldn't load game.py next to this page.", "danger");
+    return;
+  }
+  const source = await res.text();
+  log.replaceChildren();
+  pyodide.runPython(source);
+  try {
+    await pyodide.runPythonAsync("await browser_main()");
+  } catch (e) {
+    line("The terminal crashed: " + e.message, "danger");
+  }
+}
+
+renderKeys(">");
+boot();
+</script>
