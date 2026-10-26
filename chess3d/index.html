@@ -177,6 +177,20 @@ body {
 .promo-row { display: flex; gap: 8px; justify-content: center; }
 .promo-row .pick { font-size: 34px !important; width: 62px; height: 62px; padding: 0 !important; display: grid; place-items: center; }
 
+.online-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; color: var(--brass); grid-column: 1 / -1; }
+.online-row button { padding: 5px 9px !important; font-size: 12px !important; }
+.lobby-card { width: min(440px, 100%); text-align: left; }
+.lobby-card h2 { font-size: 36px; }
+.lobby-card p { line-height: 1.45; }
+.lobby-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 44vh; overflow-y: auto; }
+.lobby-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 4px; }
+.lobby-list li div:first-child { display: grid; gap: 2px; min-width: 0; }
+.lobby-list strong { font-weight: 600; }
+.lobby-list span { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.lobby-actions { display: flex; gap: 6px; flex: none; }
+.lobby-empty { color: var(--muted); justify-content: center !important; }
+.lobby-msg { color: var(--blood) !important; }
+
 .hint {
   position: absolute;
   left: calc(20px + env(safe-area-inset-left, 0px));
@@ -227,6 +241,7 @@ body {
 
   <section class="status panel" aria-live="polite">
     <div class="turn" id="turnRow"><span class="dot" id="turnDot"></span><span id="statusText">White to move</span></div>
+    <div class="online-row" id="onlineRow" hidden><span id="onlineText"></span><button id="btnLeave">Leave</button></div>
     <div class="trays">
       <div class="tray"><span class="tray-label">Taken by White</span><span class="glyphs" id="trayW"></span></div>
       <div class="tray"><span class="tray-label">Taken by Black</span><span class="glyphs" id="trayB"></span></div>
@@ -241,6 +256,7 @@ body {
       <span class="seg-label">Opponent</span>
       <button id="optAI" data-mode="ai" aria-pressed="true">Computer</button>
       <button id="optPvP" data-mode="pvp" aria-pressed="false">Friend</button>
+      <button id="optOnline" data-mode="online" aria-pressed="false">Online</button>
     </div>
     <div class="seg" role="group" aria-label="Duel animations">
       <span class="seg-label">Duels</span>
@@ -264,6 +280,17 @@ body {
     <div class="modal-card panel">
       <p>Promote your pawn to</p>
       <div class="promo-row" id="promoRow"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="lobby" hidden>
+    <div class="modal-card panel lobby-card" role="dialog" aria-labelledby="lobbyTitle">
+      <h2 id="lobbyTitle">Play online</h2>
+      <p id="lobbyNote">Connecting…</p>
+      <button id="lobbyCreate" class="primary" hidden>Start a new game</button>
+      <ul class="lobby-list" id="lobbyList"></ul>
+      <p class="lobby-msg" id="lobbyMsg" hidden></p>
+      <button id="lobbyClose">Close</button>
     </div>
   </div>
 
@@ -1571,8 +1598,12 @@ function renderHUD() {
   const check = !gameOver && inCheck(state, state.turn);
   row.classList.toggle("check", check || (gameOver && gameOver.type === "mate"));
   const thinking = !gameOver && mode === "ai" && state.turn !== humanColor;
-  dot.classList.toggle("thinking", thinking && !busy);
+  const net = isOnline(), waiting = net && (!online.data || online.data.status !== "playing");
+  dot.classList.toggle("thinking", (thinking || (net && !gameOver && (waiting || state.turn !== online.color))) && !busy);
   if (gameOver) text.textContent = gameOver.short;
+  else if (net && !busy) text.textContent = waiting ? "Waiting for your friend to join"
+    : state.turn === online.color ? (check ? "You're in check. Your move" : "Your move")
+    : `${online.opp || "Your friend"} ${check ? "is in check, thinking" : "is thinking"}`;
   else if (thinking && !busy) text.textContent = check ? "Black is in check, thinking" : "Computer is thinking";
   else text.textContent = `${SIDE[state.turn]} ${check ? "is in check" : "to move"}`;
 
@@ -1596,7 +1627,10 @@ function renderHUD() {
   log.innerHTML = html;
   log.scrollTop = log.scrollHeight;
 
-  $("btnUndo").disabled = busy || moveList.length === 0;
+  $("btnUndo").disabled = busy || moveList.length === 0 || mode === "online";
+  $("onlineRow").hidden = !net;
+  if (net) $("onlineText").textContent = `You play ${SIDE[online.color]}${online.opp ? " vs " + online.opp : ""} · Game ${online.code}`;
+  for (const b of document.querySelectorAll("[data-mode]")) b.disabled = busy;
   $("btnNew").disabled = busy;
   for (const b of document.querySelectorAll("[data-mode]")) b.setAttribute("aria-pressed", String(b.dataset.mode === mode));
   for (const b of document.querySelectorAll("[data-speed]")) b.setAttribute("aria-pressed", String(b.dataset.speed === speed));
@@ -1629,7 +1663,8 @@ function refresh() {
   renderHUD();
 }
 
-async function play(m) {
+async function play(m, remote) {
+  if (isOnline() && !remote) pushMoves(moveList.map(({ from, to, promo }) => ({ from, to, promo })).concat([{ from: m.from, to: m.to, promo: m.promo || null }]));
   busy = true;
   selected = -1;
   renderHighlights();
@@ -1653,6 +1688,7 @@ async function play(m) {
   refresh();
   if (gameOver) setTimeout(showEnd, 700);
   maybeAI();
+  reconcile();
 }
 
 function maybeAI() {
@@ -1700,6 +1736,7 @@ function choosePromo(color) {
 function onSquare(sq) {
   if (busy || pickerOpen || gameOver) return;
   if (mode === "ai" && state.turn !== humanColor) return;
+  if (mode === "online" && (!isOnline() || state.turn !== online.color || !online.data || online.data.status !== "playing")) return;
   const p = state.b[sq];
   if (selected >= 0) {
     const cands = legal.filter((m) => m.from === selected && m.to === sq);
@@ -1761,6 +1798,7 @@ canvas.addEventListener("pointermove", (e) => {
 });
 window.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
+    $("lobby").hidden = true;
     if (!$("endModal").hidden) $("endModal").hidden = true;
     selected = -1; renderHighlights();
   }
@@ -1834,14 +1872,208 @@ function flipView() {
   tween(0.9, (k) => { const a = a0 + Math.PI * k; camera.position.x = r * Math.sin(a); camera.position.z = r * Math.cos(a); }, E.inOut, true);
 }
 
-$("btnNew").onclick = () => newGame();
-$("endNew").onclick = () => newGame();
+const startNew = () => { if (mode === "online") { $("endModal").hidden = true; openLobby(); } else newGame(); };
+$("btnNew").onclick = startNew;
+$("endNew").onclick = startNew;
 $("endReview").onclick = () => { $("endModal").hidden = true; };
 $("btnUndo").onclick = undo;
 $("btnFlip").onclick = flipView;
-for (const b of document.querySelectorAll("[data-mode]")) b.onclick = () => { mode = b.dataset.mode; gen++; renderHUD(); maybeAI(); };
+for (const b of document.querySelectorAll("[data-mode]")) b.onclick = () => {
+  if (b.dataset.mode === "online") { openLobby(); return; }
+  if (mode === "online") { leaveOnline(); mode = b.dataset.mode; newGame(); return; }
+  mode = b.dataset.mode; gen++; renderHUD(); maybeAI();
+};
 for (const b of document.querySelectorAll("[data-speed]")) b.onclick = () => setSpeed(b.dataset.speed);
 for (const b of document.querySelectorAll("[data-style]")) b.onclick = () => setTheme(b.dataset.style);
+
+/* ---------- online play: one shared document per game, games/<code> ----------
+   { white, black: viewer ids, moves: [{from,to,promo}], status: "waiting"|"playing", created, updated } */
+const online = { db: null, user: null, me: null, canWrite: null, ready: false, code: null, color: null, ref: null, data: null,
+  unsub: null, lobbyUnsub: null, games: [], opp: "", inflight: 0, chain: Promise.resolve(), rejoin: null };
+const sameMove = (a, b) => a.from === b.from && a.to === b.to && (a.promo || null) === (b.promo || null);
+const isOnline = () => mode === "online" && !!online.code;
+
+async function initOnline() {
+  const rt = window.claude && typeof window.claude.use === "function" ? window.claude : null;
+  if (rt) {
+    const [db, user] = await Promise.all([rt.use("db").catch(() => null), rt.use("user").catch(() => null)]);
+    online.db = db;
+    online.user = user;
+    if (user) { online.me = await user.id(); online.canWrite = await user.can("data.write"); }
+  }
+  online.ready = true;
+  renderLobby();
+  if (online.rejoin && online.db && online.me) joinGame(online.rejoin);
+}
+
+function lobbyMsg(text) { const el = $("lobbyMsg"); el.textContent = text; el.hidden = !text; }
+function openLobby() {
+  lobbyMsg("");
+  $("lobby").hidden = false;
+  if (online.db && !online.lobbyUnsub) {
+    online.lobbyUnsub = online.db.collection("games").orderBy("updated", "desc").limit(30).onSnapshot(
+      (snap) => { online.games = snap.docs.map((d) => Object.assign({ code: d.id }, d.data())); renderLobby(); },
+      () => { online.lobbyUnsub = null; lobbyMsg("The game list stopped updating. Close this panel and open it again."); });
+  }
+  renderLobby();
+  $("lobbyClose").focus();
+}
+const ago = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; };
+
+async function renderLobby() {
+  const note = $("lobbyNote"), list = $("lobbyList"), create = $("lobbyCreate");
+  if (!online.ready) { note.textContent = "Connecting…"; create.hidden = true; list.innerHTML = ""; return; }
+  if (!online.db || !online.me) {
+    note.textContent = "Online play works when this page is opened on claude.ai while signed in, by people the owner has shared it with.";
+    create.hidden = true; list.innerHTML = ""; return;
+  }
+  const blocked = online.canWrite === false;
+  note.textContent = blocked
+    ? "You can see games here but can't play yet. Ask the page's owner to share it with you as an Editor."
+    : "Start a game, then send your friend the link to this page. They open Online and tap Join. You play White.";
+  create.hidden = false;
+  create.disabled = blocked;
+  const me = online.me, day = Date.now() - 864e5;
+  const mine = online.games.filter((g) => g.white === me || g.black === me);
+  const open = online.games.filter((g) => g.status === "waiting" && g.white !== me && !g.black && g.updated > day);
+  const ids = [...new Set(online.games.flatMap((g) => [g.white, g.black]).filter(Boolean))];
+  const ps = ids.length && online.user ? await online.user.profiles(ids) : {};
+  const nameOf = (id) => (id === me ? "You" : (ps[id] && ps[id].name) || "A friend");
+  list.innerHTML = "";
+  const row = (label, sub, actions) => {
+    const li = document.createElement("li");
+    const txt = document.createElement("div");
+    const a = document.createElement("strong"); a.textContent = label;
+    const b = document.createElement("span"); b.textContent = sub;
+    txt.append(a, b);
+    const btns = document.createElement("div");
+    btns.className = "lobby-actions";
+    for (const [text, fn, primary] of actions) {
+      const btn = document.createElement("button");
+      btn.textContent = text;
+      if (primary) btn.className = "primary";
+      btn.disabled = blocked;
+      btn.onclick = fn;
+      btns.append(btn);
+    }
+    li.append(txt, btns);
+    list.append(li);
+  };
+  for (const g of open) row(`${nameOf(g.white)} is waiting`, `Game ${g.code} · ${ago(g.created)}`, [["Join", () => joinGame(g.code), true]]);
+  for (const g of mine) {
+    const opp = g.white === me ? g.black : g.white;
+    if (g.status === "waiting") row("Your game is waiting for a friend", `Game ${g.code} · ${ago(g.created)}`, [["Open", () => joinGame(g.code)], ["Cancel", () => cancelGame(g.code)]]);
+    else row(`You vs ${nameOf(opp)}`, `Game ${g.code} · ${(g.moves || []).length} moves · ${ago(g.updated)}`, [["Resume", () => joinGame(g.code), true]]);
+  }
+  if (!open.length && !mine.length) {
+    const li = document.createElement("li");
+    li.className = "lobby-empty";
+    li.textContent = "No open games yet.";
+    list.append(li);
+  }
+}
+
+const dbProblem = (e) => (e && e.code === "invalid_argument")
+  ? "You don't have permission to play on this page. Ask its owner to share it with you as an Editor."
+  : e && e.code === "quota_exceeded" ? "This page has run out of room for games. Cancel some old ones first."
+  : "Couldn't reach the server. Check your connection and try again.";
+
+async function createGame() {
+  const ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < 5; i++) code += ABC[Math.floor(Math.random() * ABC.length)];
+  try {
+    await online.db.doc("games/" + code).set({ white: online.me, black: null, moves: [], status: "waiting", created: Date.now(), updated: Date.now() });
+  } catch (e) { lobbyMsg(dbProblem(e)); return; }
+  joinGame(code);
+}
+async function cancelGame(code) {
+  try { await online.db.doc("games/" + code).delete(); } catch (e) { lobbyMsg(dbProblem(e)); return; }
+  if (online.code === code) { leaveOnline(); mode = "pvp"; newGame(); }
+}
+
+async function joinGame(code) {
+  if (busy) return;
+  const ref = online.db.doc("games/" + code);
+  try {
+    let d = (await ref.get()).data();
+    if (!d) { lobbyMsg("That game no longer exists."); return; }
+    if (d.white !== online.me && d.black !== online.me) {
+      if (d.black) { lobbyMsg("Someone else already joined that game."); return; }
+      const lease = await ref.acquire({ holder: online.me, ttlMs: 5000 });
+      if (!lease.acquired) { lobbyMsg("Someone else is joining that game right now."); return; }
+      d = (await ref.get()).data();
+      if (!d || (d.black && d.black !== online.me)) { lobbyMsg("Someone else already joined that game."); return; }
+      await ref.update({ black: online.me, status: "playing", updated: Date.now() });
+      d = Object.assign({}, d, { black: online.me, status: "playing" });
+    }
+    leaveOnline();
+    online.code = code;
+    online.ref = ref;
+    online.color = d.white === online.me ? "w" : "b";
+    online.data = d;
+    mode = "online";
+    newGame(d.moves || []);
+    viewSide(online.color);
+    online.unsub = ref.onSnapshot((snap) => {
+      online.data = snap.exists ? snap.data() : null;
+      if (!online.data) { leaveOnline(); mode = "pvp"; renderHUD(); showCaption("That online game was cancelled.", 3000); return; }
+      refreshOpponent();
+      reconcile();
+      renderHUD();
+    }, () => showCaption("Lost the connection to the game. Open Online and resume it.", 4000));
+    $("lobby").hidden = true;
+    refreshOpponent();
+    renderHUD();
+  } catch (e) { lobbyMsg(dbProblem(e)); }
+}
+
+async function refreshOpponent() {
+  const d = online.data;
+  const id = d && (online.color === "w" ? d.black : d.white);
+  if (!id || !online.user) { online.opp = ""; return; }
+  const ps = await online.user.profiles([id]);
+  online.opp = (ps[id] && ps[id].name) || "";
+  renderHUD();
+}
+
+function leaveOnline() {
+  if (online.unsub) online.unsub();
+  Object.assign(online, { unsub: null, code: null, color: null, ref: null, data: null, opp: "" });
+}
+
+// Bring the local board in line with the shared move list.
+function reconcile() {
+  if (!isOnline() || !online.data || busy || pickerOpen) return;
+  const remote = online.data.moves || [];
+  const n = moveList.length;
+  for (let i = 0; i < Math.min(n, remote.length); i++) if (!sameMove(remote[i], moveList[i])) { newGame(remote); return; }
+  if (remote.length === n + 1) {
+    const m = legal.find((x) => sameMove(x, remote[n]));
+    if (m) play(m, true); else newGame(remote);
+  } else if (remote.length > n + 1 || (remote.length < n && online.inflight === 0)) newGame(remote);
+}
+
+function pushMoves(moves) {
+  const ref = online.ref;
+  online.inflight++;
+  online.chain = online.chain
+    .then(() => ref.update({ moves, updated: Date.now() }))
+    .catch((e) => showCaption(dbProblem(e), 4500))
+    .then(() => { online.inflight--; setTimeout(reconcile, 0); });
+}
+
+function viewSide(c) {
+  const start = camera.position.clone();
+  const r = Math.hypot(start.x, start.z), a0 = Math.atan2(start.x, start.z);
+  const a1 = c === "w" ? 0 : Math.PI;
+  tween(0.9, (k) => { const a = angLerp(a0, a1, k); camera.position.x = r * Math.sin(a); camera.position.z = r * Math.cos(a); }, E.inOut, true);
+}
+
+$("lobbyCreate").onclick = createGame;
+$("lobbyClose").onclick = () => { $("lobby").hidden = true; };
+$("lobby").onclick = (e) => { if (e.target === $("lobby")) $("lobby").hidden = true; };
+$("btnLeave").onclick = () => { leaveOnline(); mode = "pvp"; newGame(); };
 
 /* ---------- ambient embers ---------- */
 const EMBERS = 140;
@@ -1904,14 +2136,16 @@ function loop(now) {
 /* ---------- boot, keeping the game across page updates ---------- */
 function start(data) {
   data = data || {};
-  if (data.mode) mode = data.mode;
+  if (data.mode === "ai" || data.mode === "pvp") mode = data.mode;
+  if (data.onlineCode) online.rejoin = data.onlineCode;
   setSpeed(data.speed || speed);
   if ((data.theme === "classic" || data.theme === "fantasy") && data.theme !== theme) { theme = data.theme; applyBoardTheme(); }
   newGame(Array.isArray(data.moves) ? data.moves : []);
   requestAnimationFrame(loop);
+  initOnline();
 }
 const hot = window.claude && window.claude.hot;
-if (hot && hot.snapshot) hot.snapshot(() => ({ moves: moveList.map(({ from, to, promo }) => ({ from, to, promo })), mode, speed, theme }));
+if (hot && hot.snapshot) hot.snapshot(() => ({ moves: moveList.map(({ from, to, promo }) => ({ from, to, promo })), mode: isOnline() ? "pvp" : mode, speed, theme, onlineCode: online.code }));
 if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
 })();
 </script>
