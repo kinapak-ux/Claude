@@ -2495,161 +2495,280 @@ POKER_HANDS = ["high card", "a pair", "two pair", "three of a kind", "a straight
                "a full house", "four of a kind", "a straight flush"]
 
 
-def poker_rank(hand):
-    """(category, tiebreakers) for a five-card hand; higher tuples win."""
+def hand_rank(cards):
+    """Best poker hand from 5 to 7 cards, as a tuple that compares correctly: (category, tiebreakers)."""
     from collections import Counter
-    ranks = sorted((14 if r == 1 else r for r, _ in hand), reverse=True)
+    ranks = [14 if r == 1 else r for r, _ in cards]
+    suits = {}
+    for rank, (_, suit) in zip(ranks, cards):
+        suits.setdefault(suit, []).append(rank)
+    flush = next((sorted(rs, reverse=True) for rs in suits.values() if len(rs) >= 5), None)
+
+    def straight_top(rs):
+        have = set(rs) | ({1} if 14 in rs else set())
+        return next((top for top in range(14, 4, -1) if all(top - i in have for i in range(5))), None)
+
+    if flush and straight_top(flush):
+        return 8, [straight_top(flush)]
     counts = Counter(ranks)
-    order = sorted(counts, key=lambda r: (-counts[r], -r))
-    shape = sorted(counts.values(), reverse=True)
-    flush = len({s for _, s in hand}) == 1
-    straight, high = len(counts) == 5 and ranks[0] - ranks[4] == 4, ranks[0]
-    if ranks == [14, 5, 4, 3, 2]:
-        straight, high = True, 5
-    if straight and flush:
-        return 8, [high]
-    if shape == [4, 1]:
-        return 7, order
-    if shape == [3, 2]:
-        return 6, order
+    groups = sorted(counts.items(), key=lambda g: (-g[1], -g[0]))
+    if groups[0][1] == 4:
+        quad = groups[0][0]
+        return 7, [quad, max(r for r in ranks if r != quad)]
+    trips = [r for r, c in groups if c == 3]
+    pairs = [r for r, c in groups if c == 2]
+    if trips and (len(trips) > 1 or pairs):
+        return 6, [trips[0], max(trips[1:] + pairs)]
     if flush:
-        return 5, ranks
-    if straight:
-        return 4, [high]
-    if shape == [3, 1, 1]:
-        return 3, order
-    if shape == [2, 2, 1]:
-        return 2, order
-    if shape == [2, 1, 1, 1]:
-        return 1, order
-    return 0, ranks
+        return 5, flush[:5]
+    top = straight_top(ranks)
+    if top:
+        return 4, [top]
+    if trips:
+        return 3, [trips[0]] + sorted((r for r in ranks if r != trips[0]), reverse=True)[:2]
+    if len(pairs) >= 2:
+        return 2, pairs[:2] + [max(r for r in ranks if r not in pairs[:2])]
+    if pairs:
+        return 1, [pairs[0]] + sorted((r for r in ranks if r != pairs[0]), reverse=True)[:3]
+    return 0, sorted(ranks, reverse=True)[:5]
 
 
-def poker_confidence(hand):
-    category, order = poker_rank(hand)
-    return category + order[0] / 14 * 0.9
+def holdem_equity(hole, board, samples=200):
+    """Monte Carlo chance that this hand beats one random opponent hand by the river."""
+    known = set(hole + board)
+    deck = [(r, s) for r in range(1, 14) for s in SUITS if (r, s) not in known]
+    need = 5 - len(board)
+    score = 0.0
+    for _ in range(samples):
+        draw = random.sample(deck, 2 + need)
+        full = board + draw[2:]
+        mine, theirs = hand_rank(hole + full), hand_rank(draw[:2] + full)
+        score += 1 if mine > theirs else 0.5 if mine == theirs else 0
+    return score / samples
 
 
-def poker_discards(hand):
-    """Which cards (indexes) the house player swaps: keep made hands, pairs, four to a flush, or high cards."""
-    from collections import Counter
-    if poker_rank(hand)[0] >= 4:
-        return []
-    ranks = [14 if r == 1 else r for r, _ in hand]
-    counts = Counter(ranks)
-    keep = [i for i, r in enumerate(ranks) if counts[r] >= 2]
-    if not keep:
-        suit, n = Counter(s for _, s in hand).most_common(1)[0]
-        if n == 4:
-            keep = [i for i, (_, s) in enumerate(hand) if s == suit]
+def cards_text(cards):
+    return " ".join(card_name(c) for c in cards)
+
+
+def other(seat):
+    return "her" if seat == "you" else "you"
+
+
+def ide_decision(t, equity):
+    """Ide plays the odds: value-bets strong hands, calls when the pot pays for it, bluffs now and then."""
+    bets, stack = t["bets"], t["stacks"]["her"]
+    high = max(bets.values())
+    to_call = high - bets["her"]
+    pot = t["pot"] + sum(bets.values())
+    all_in_to = bets["her"] + stack
+    min_to = high + t["min_raise"]
+
+    def raise_to(fraction):
+        target = max(min_to, high + to_call + int((pot + to_call) * fraction))
+        target = min(target, all_in_to)
+        return ("raise", target) if target > high else ("call",)
+
+    r = random.random()
+    if to_call == 0:
+        if equity > 0.72 or (equity > 0.58 and r < 0.45):
+            return raise_to(1.0 if equity > 0.85 else 0.6)
+        if equity < 0.38 and r < 0.12:
+            return raise_to(0.5)  # a bluff
+        return ("check",)
+    odds = to_call / (pot + to_call)
+    if equity > 0.8 and r < 0.6 and stack > to_call:
+        return raise_to(1.0)
+    if equity >= odds + 0.04 or r < 0.04:
+        return ("call",)
+    return ("fold",)
+
+
+async def holdem_player_action(t):
+    bets, stack = t["bets"], t["stacks"]["you"]
+    high = max(bets.values())
+    to_call = high - bets["you"]
+    pot = t["pot"] + sum(bets.values())
+    all_in_to = bets["you"] + stack
+    min_to = min(high + t["min_raise"], all_in_to)
+    pot_to = min(high + to_call + pot + to_call, all_in_to)
+    say(f"Pot {pot}. Your stack {stack}, Ide's {t['stacks']['her']}." + (f" {to_call} to call." if to_call else ""))
+    if to_call:
+        keys = [f"call {min(to_call, stack)}"] + ([f"raise {min_to}", f"raise {pot_to}"] if all_in_to > high else []) \
+               + ["all in", "fold"]
+        prompt = "call, raise to N, all in or fold > "
+    else:
+        half_to = min(high + max(t["min_raise"], pot // 2), all_in_to)
+        keys = ["check", f"bet {min_to}", f"bet {half_to}", f"bet {pot_to}", "all in"]
+        prompt = "check, bet N, all in > "
+    keys = list(dict.fromkeys(keys))
+    while True:
+        text = await ask(prompt, keys=keys)
+        words = text.replace("-", " ").split()
+        if not words:
+            continue
+        if words[0] in ("f", "fold"):
+            if to_call == 0:
+                say("No need to fold. You can check for free.")
+                continue
+            return ("fold",)
+        if words[0] in ("c", "k", "check", "call"):
+            return ("call",) if to_call else ("check",)
+        if words[0] in ("all", "allin", "shove"):
+            return ("raise", all_in_to) if all_in_to > high else ("call",)
+        amount = words[-1]
+        if words[0] in ("b", "bet", "r", "raise") and amount.isdigit() or text.isdigit():
+            total = int(amount)
+            if total >= all_in_to:
+                return ("raise", all_in_to) if all_in_to > high else ("call",)
+            if total < min_to:
+                say(f"The smallest raise is to {min_to}.")
+                continue
+            return ("raise", total)
+        say("Try: check, call, bet 20, raise 40, all in, fold.")
+
+
+def holdem_move(t, seat, amount):
+    amount = min(amount, t["stacks"][seat])
+    t["stacks"][seat] -= amount
+    t["bets"][seat] += amount
+
+
+async def holdem_betting(player, t, first, equity):
+    """One betting round. Returns the seat that folded, or None."""
+    acted = {"you": False, "her": False}
+    seat = first
+    while True:
+        bets, stacks = t["bets"], t["stacks"]
+        low = min(bets, key=bets.get)
+        if acted["you"] and acted["her"] and (bets["you"] == bets["her"] or stacks[low] == 0):
+            break
+        if stacks[seat] == 0:
+            acted[seat] = True
+            seat = other(seat)
+            if stacks[seat] == 0 or (acted[seat] and bets[seat] >= bets[other(seat)]):
+                break
+            continue
+        if seat == "you":
+            action = await holdem_player_action(t)
         else:
-            keep = sorted(range(5), key=lambda i: -ranks[i])[:2]
-    return [i for i in range(5) if i not in keep][:3]
+            action = ide_decision(t, equity)
+        high = max(bets.values())
+        name = "You" if seat == "you" else "Ide"
+        if action[0] == "fold":
+            say(f"{name} fold{'s' if seat == 'her' else ''}.")
+            return seat
+        if action[0] == "check":
+            say(f"{name} check{'s' if seat == 'her' else ''}.")
+        elif action[0] == "call":
+            holdem_move(t, seat, high - bets[seat])
+            say(f"{name} call{'s' if seat == 'her' else ''}." + (" All in." if stacks[seat] == 0 else ""))
+        else:
+            total = action[1]
+            t["min_raise"] = max(t["min_raise"], total - high)
+            holdem_move(t, seat, total - bets[seat])
+            verb = "bet" if high == 0 else "raise to"
+            if seat == "her":
+                verb = {"bet": "bets", "raise to": "raises to"}[verb]
+            say(f"{name} {verb} {bets[seat]}." + (" All in." if stacks[seat] == 0 else ""))
+            if seat == "her" and "card_sharp" in player.perks:
+                say("She rubs her eye. She's bluffing." if equity < 0.45 else "She's calm. She has something.")
+            acted[other(seat)] = False
+        acted[seat] = True
+        seat = other(seat)
+    # chips bet beyond what an all-in opponent could match go back
+    hi, lo = sorted(("you", "her"), key=lambda s: -t["bets"][s])
+    extra = t["bets"][hi] - t["bets"][lo]
+    if extra > 0 and t["stacks"][lo] == 0:
+        t["bets"][hi] -= extra
+        t["stacks"][hi] += extra
+    return None
 
 
-def numbered_hand(hand, marked=()):
-    return "  ".join(f"{i + 1}:{card_name(c)}{'*' if i in marked else ''}" for i, c in enumerate(hand))
+async def holdem_hand(player, stacks, sb, bb, button):
+    deck = [(r, s) for r in range(1, 14) for s in SUITS]
+    random.shuffle(deck)
+    you, her = [deck.pop(), deck.pop()], [deck.pop(), deck.pop()]
+    board = []
+    t = {"stacks": stacks, "bets": {"you": 0, "her": 0}, "pot": 0, "bb": bb, "min_raise": bb, "street": "preflop"}
+    big = other(button)
+    holdem_move(t, button, sb)
+    holdem_move(t, big, bb)
+    say(f"\n{'You have' if button == 'you' else 'Ide has'} the button. Blinds {sb}/{bb}.")
+    say(f"Your cards: {cards_text(you)}")
+    folded = None
+    for street in ("preflop", "flop", "turn", "river"):
+        t["street"] = street
+        if street != "preflop":
+            board += [deck.pop() for _ in range(3 if street == "flop" else 1)]
+            say(f"\n{street.capitalize()}: {cards_text(board)}    You: {cards_text(you)} "
+                f"({POKER_HANDS[hand_rank(you + board)[0]]})")
+        t["min_raise"] = bb
+        if stacks["you"] > 0 and stacks["her"] > 0 or t["bets"]["you"] != t["bets"]["her"]:
+            first = button if street == "preflop" else big
+            folded = await holdem_betting(player, t, first, holdem_equity(her, board))
+        t["pot"] += sum(t["bets"].values())
+        t["bets"] = {"you": 0, "her": 0}
+        if folded:
+            break
+    if folded:
+        winner = other(folded)
+        stacks[winner] += t["pot"]
+        say(f"{'You take' if winner == 'you' else 'Ide takes'} the pot of {t['pot']}.")
+        return
+    while len(board) < 5:
+        board.append(deck.pop())
+    mine, hers = hand_rank(you + board), hand_rank(her + board)
+    say(f"\nBoard: {cards_text(board)}")
+    say(f"You: {cards_text(you)} - {POKER_HANDS[mine[0]]}")
+    say(f"Ide: {cards_text(her)} - {POKER_HANDS[hers[0]]}")
+    if mine == hers:
+        stacks["you"] += t["pot"] - t["pot"] // 2
+        stacks["her"] += t["pot"] // 2
+        say("Split pot. Ide looks almost offended.")
+    else:
+        winner = "you" if mine > hers else "her"
+        stacks[winner] += t["pot"]
+        say(f"You win the pot of {t['pot']}." if winner == "you" else f"Ide wins the pot of {t['pot']}.")
 
 
-async def poker(player):
-    say("\nAfter lights out, Quartermaster Ide runs five-card draw on an ammo crate in the barracks. She plays "
-        "the way she runs the armoury: no smiling, no credit. Both players ante the stake. Each bet is one more "
-        "stake. One draw, up to three cards.")
+async def holdem(player):
+    say("\nAfter lights out, Quartermaster Ide runs no-limit hold'em on an ammo crate in the barracks. Heads up, "
+        "just you and her. She plays the way she runs the armoury: no smiling, no credit. Buy in with caps, "
+        "and whatever is left in your stack when you stand up is yours.")
     while True:
         say(f"\nYou have {player.caps} caps.")
-        stake_s = await ask("Stake (5-30 caps, or 'leave') > ", keys=["5", "10", "20", "leave"])
-        if stake_s in ("leave", "q", "0", ""):
+        buy_s = await ask("Buy in (20-200 caps, or 'leave') > ", keys=["50", "100", "200", "leave"])
+        if buy_s in ("leave", "q", "0", ""):
             say("Ide sweeps the cards into her tabard. \"Same time tomorrow.\"")
             return
-        if not stake_s.isdigit() or not 5 <= int(stake_s) <= 30:
-            say("Stakes are 5 to 30 caps.")
+        if not buy_s.isdigit() or not 20 <= int(buy_s) <= 200:
+            say("Buy-ins are 20 to 200 caps.")
             continue
-        stake = int(stake_s)
-        if player.caps < stake * 3:
-            say(f"You need {stake * 3} caps to cover the ante and two bets.")
+        buy = int(buy_s)
+        if buy > player.caps:
+            say("You don't have that many caps.")
             continue
-
-        deck = [(r, s) for r in range(1, 14) for s in SUITS]
-        random.shuffle(deck)
-        you = [deck.pop() for _ in range(5)]
-        her = [deck.pop() for _ in range(5)]
-        you_in = her_in = stake
-        say(f"You both ante {stake}.")
-        result = None
-        for rnd in (1, 2):
-            say(f"Your hand: {numbered_hand(you)}  ({POKER_HANDS[poker_rank(you)[0]]})")
-            conf = poker_confidence(her)
-            act = await ask("(b)et, (c)heck or (f)old > ", keys=["b", "c", "f"])
-            if act in ("f", "fold"):
-                result = "you_fold"
+        player.caps -= buy
+        stacks = {"you": buy, "her": buy}
+        sb = max(1, buy // 50)
+        button = random.choice(["you", "her"])
+        while True:
+            await holdem_hand(player, stacks, sb, sb * 2, button)
+            if stacks["her"] == 0:
+                say("Ide is out of chips. She pays you without a word, and writes something in the armoury ledger.")
                 break
-            if act in ("b", "bet"):
-                you_in += stake
-                say(f"You bet {stake}.")
-                if conf >= (1.0 if rnd == 1 else 1.5) or random.random() < 0.12:
-                    her_in += stake
-                    say("Ide calls.")
-                else:
-                    result = "her_fold"
-                    say("Ide folds, and doesn't show you her cards.")
-                    break
-            else:
-                strong = conf >= (1.5 if rnd == 1 else 1.7)
-                if strong or random.random() < 0.1:
-                    her_in += stake
-                    say(f"Ide bets {stake}.")
-                    if "card_sharp" in player.perks:
-                        say("She's calm. She has something." if strong else "She rubs her eye. She's bluffing.")
-                    if await ask("(c)all or (f)old > ", keys=["call", "fold"]) in ("f", "fold"):
-                        result = "you_fold"
-                        break
-                    you_in += stake
-                    say("You call.")
-                else:
-                    say("Ide checks.")
-            if rnd == 1:
-                marked = set()
-                while True:
-                    say(numbered_hand(you, marked))
-                    pick = await ask("Mark up to 3 cards to swap (1-5), then 'draw' > ",
-                                     keys=["1", "2", "3", "4", "5", "draw"])
-                    if pick in ("draw", "d", ""):
-                        break
-                    for part in pick.split():
-                        if part.isdigit() and 1 <= int(part) <= 5:
-                            i = int(part) - 1
-                            if i in marked:
-                                marked.discard(i)
-                            elif len(marked) < 3:
-                                marked.add(i)
-                            else:
-                                say("Three cards at most.")
-                for i in marked:
-                    you[i] = deck.pop()
-                swaps = poker_discards(her)
-                for i in swaps:
-                    her[i] = deck.pop()
-                say(f"You draw {len(marked)}. Ide draws {len(swaps)}." if swaps else
-                    f"You draw {len(marked)}. Ide stands pat.")
-
-        if result == "you_fold":
-            player.caps -= you_in
-            say(f"You fold. -{you_in} caps.")
-        elif result == "her_fold":
-            player.caps += her_in
-            say(f"+{her_in} caps.")
-        else:
-            mine, hers = poker_rank(you), poker_rank(her)
-            say(f"Showdown. You: {numbered_hand(you)} ({POKER_HANDS[mine[0]]})")
-            say(f"Ide: {' '.join(card_name(c) for c in her)} ({POKER_HANDS[hers[0]]})")
-            if mine > hers:
-                player.caps += her_in
-                say(f"You win {her_in} caps. Ide writes something down in the armoury ledger.")
-            elif hers > mine:
-                player.caps -= you_in
-                say(f"Ide wins. -{you_in} caps. \"The Covenant thanks you.\"")
-            else:
-                say("A split pot. Ide looks almost offended.")
+            if stacks["you"] == 0:
+                say("You're out of chips. \"The Covenant thanks you,\" says Ide.")
+                break
+            say(f"Your stack: {stacks['you']}. Ide's stack: {stacks['her']}.")
+            if await ask("Deal again? > ", keys=["deal", "cash out"]) in ("cash out", "cash", "c", "no", "n", "leave"):
+                break
+            button = other(button)
+        player.caps += stacks["you"]
+        net = stacks["you"] - buy
+        say(f"You stand up with {stacks['you']} chips. " + (f"Up {net} caps." if net > 0 else
+                                                            f"Down {-net} caps." if net < 0 else "Even."))
 
 
 ROULETTE_RED = {1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36}
@@ -2735,7 +2854,7 @@ async def dead_mans_spin(player):
 SIDE_GAMES = {
     "blackjack": ("Blackjack with Lucky Pete", blackjack),
     "liars_dice": ("Liar's dice with Brother Cole", liars_dice),
-    "poker": ("Poker with Quartermaster Ide", poker),
+    "poker": ("No-limit hold'em with Quartermaster Ide", holdem),
     "roulette": ("Roulette with Madame Zero", roulette),
 }
 

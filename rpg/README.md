@@ -38,7 +38,8 @@ Iron Covenant offer to help. Their help has a price.
   - Dustwater: blackjack with Lucky Pete (when you're broke, you can bet a pint of blood), and roulette with
     Madame Zero, who also offers the dead man's spin: one bullet, six chambers, five times your stake.
     With permadeath, losing it ends your run.
-  - Rivet: liar's dice with Brother Cole, and five-card draw poker with Quartermaster Ide.
+  - Rivet: liar's dice with Brother Cole, and heads-up no-limit Texas hold'em with Quartermaster Ide. You buy in
+    with caps and cash out your stack. Ide decides each move from a simulation of her chances of winning.
 - **Logic puzzles:** a password game on terminals, where each wrong guess shows how many letters are in the right
   place. Combination safes you crack from scratched clues. A cage of prisoners where you work out which one is
   the liar. A water-jug riddle from the Tollman on the north bridge. Puzzles are random, but each has exactly
