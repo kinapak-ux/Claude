@@ -552,10 +552,11 @@ const MODES = {
 };
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
-function newGame(seats, mode, peekMode) {
+const TURN_MODES = {winner: 'The winner of each round', rotate: 'Take turns (round robin)'};
+function newGame(seats, mode, peekMode, turns) {
   const deck = shuffle(CARDS.map(c => c.id)), n = seats.length, per = Math.floor(deck.length / n);
   return {
-    phase: 'choose', round: 1, mode, peekMode: peekMode || 'tap',
+    phase: 'choose', round: 1, mode, peekMode: peekMode || 'tap', turns: TURN_MODES[turns] ? turns : 'winner',
     players: seats.map((p, i) => ({pid: p.pid, name: p.name, av: p.av, bot: !!p.bot, deck: deck.slice(i * per, (i + 1) * per)})),
     pot: deck.slice(per * n),
     chooser: seats[Math.floor(Math.random() * n)].pid,
@@ -639,8 +640,10 @@ function resolveRound(g, stat) {
     g.pot.push(...spoils); toPot = spoils.length;
   }
   const alive = g.players.filter(p => p.deck.length);
-  if (!byPid(g.chooser).deck.length) {
-    const seat = g.players.findIndex(p => p.pid === g.chooser);
+  // Round robin passes the pick to the next player along every round; otherwise the winner
+  // keeps it, and it only moves on when the chooser has run out of cards.
+  if (g.turns === 'rotate' || !byPid(g.chooser).deck.length) {
+    const seat = g.players.findIndex(p => p.pid === (g.turns === 'rotate' ? g._choosing : g.chooser));
     for (let k = 1; k <= g.players.length; k++) { const p = g.players[(seat + k) % g.players.length]; if (p.deck.length) { g.chooser = p.pid; break; } }
   }
   g.result = {round: g.round, stat, by: g._choosing, plays: plays.map(p => ({pid: p.pid, id: p.id, base: p.base, val: p.val, notes: p.notes, out: p.out, fired: !!p.fired, muted: !!C(p).p && !p.on})), log, win: win ? win.pid : null, low, won, toPot, stolen, pot: g.pot.length};
@@ -685,7 +688,7 @@ let CLIENT = null; // {code, peer, conn, joined, leaving}
 const UI = {screen:'home', view:null, filter:'all', key:'', animRound:0, offline:false};
 
 function hostStart(online) {
-  HOST = {code: null, peer: null, conns: new Map(), me: ME.pid, seats: [{pid: ME.pid, name: ME.name, av: ME.av}], mode: 'std', peek: store('mt_peek') === 'count' ? 'count' : 'tap', g: null, timers: {}, online};
+  HOST = {code: null, peer: null, conns: new Map(), me: ME.pid, seats: [{pid: ME.pid, name: ME.name, av: ME.av}], mode: 'std', peek: store('mt_peek') === 'count' ? 'count' : 'tap', turns: store('mt_turns') === 'rotate' ? 'rotate' : 'winner', g: null, timers: {}, online};
   if (!online) { addBot(); addBot(); addBot(); }
   UI.screen = 'game';
   pushState();
@@ -705,7 +708,7 @@ function isOn(pid) {
 }
 function viewFor(pid) {
   const H = HOST, g = H.g;
-  if (!g) return {phase: 'lobby', code: H.code, online: H.online, host: H.me, mode: H.mode, peek: H.peek, players: H.seats.map(s => ({pid: s.pid, name: s.name, av: s.av, bot: !!s.bot, on: isOn(s.pid)}))};
+  if (!g) return {phase: 'lobby', code: H.code, online: H.online, host: H.me, mode: H.mode, peek: H.peek, turns: H.turns, players: H.seats.map(s => ({pid: s.pid, name: s.name, av: s.av, bot: !!s.bot, on: isOn(s.pid)}))};
   const me = g.players.find(p => p.pid === pid);
   return {
     phase: g.phase, code: H.code, online: H.online, host: H.me, mode: g.mode, round: g.round, chooser: g.chooser, pot: g.pot.length,
@@ -788,12 +791,13 @@ function hostAction(pid, m) {
       }
       break;
     case 'mode': if (isHost && !g && MODES[m.mode]) { H.mode = m.mode; pushState(); } break;
+    case 'turns': if (isHost && !g && TURN_MODES[m.turns]) { H.turns = m.turns; store('mt_turns', m.turns); pushState(); } break;
     case 'peekMode': if (isHost && !g && PEEK_MODES[m.peek]) { H.peek = m.peek; store('mt_peek', m.peek); pushState(); } break;
     case 'peek':
       if (g && g.phase === 'reveal' && g.peek && !g.peekReady.includes(pid)) { g.peekReady.push(pid); pushState(); }
       break;
     case 'start':
-      if (isHost && !g && H.seats.length >= 2) { H.g = newGame(H.seats, H.mode, H.peek); pushState(); }
+      if (isHost && !g && H.seats.length >= 2) { H.g = newGame(H.seats, H.mode, H.peek, H.turns); pushState(); }
       break;
     case 'again':
       if (isHost && g && g.phase === 'over') { H.g = null; H.seats = H.seats.filter(s => isOn(s.pid)); pushState(); }
@@ -1025,6 +1029,10 @@ function lobbyHTML(v) {
   <div class="panel"><h3 style="margin-bottom:8px">Game length</h3>
     ${amHost ? `<select class="txt" data-act="mode">${Object.entries(MODES).map(([k, m]) => `<option value="${k}"${k === v.mode ? ' selected' : ''}>${m.n}: ${m.d}</option>`).join('')}</select>` : `<div style="font-weight:800">${MODES[v.mode].n} <span class="mut">· ${MODES[v.mode].d}</span></div>`}
   </div>
+  <div class="panel"><h3 style="margin-bottom:8px">Who picks the stat?</h3>
+    ${amHost ? `<select class="txt" data-act="turns">${Object.entries(TURN_MODES).map(([k, n]) => `<option value="${k}"${k === v.turns ? ' selected' : ''}>${n}</option>`).join('')}</select>` : `<div style="font-weight:800">${TURN_MODES[v.turns]}</div>`}
+    <div class="mut" style="font-size:13px;margin-top:6px">${v.turns === 'rotate' ? 'Everyone gets a go, in the order of the list above.' : 'Win a round and you pick again.'}</div>
+  </div>
   <div class="panel"><h3 style="margin-bottom:8px">Game pace</h3>
     ${amHost ? `<select class="txt" data-act="peekMode">${Object.entries(PEEK_MODES).map(([k, n]) => `<option value="${k}"${k === v.peek ? ' selected' : ''}>${n}</option>`).join('')}</select>` : `<div style="font-weight:800">${PEEK_MODES[v.peek]}</div>`}
   </div>
@@ -1221,7 +1229,7 @@ function rulesHTML() {
   <div class="panel rules">
     <h3>🎯 The goal</h3><p>Win cards from the other players. In <b>Quick</b> and <b>Standard</b> games, whoever has the most cards at the end wins. In an <b>Epic Quest</b>, keep going until one player has every card.</p>
     <h3>📱 Getting started</h3><ul><li>One player taps <b>Host a game</b> and gets a 4-letter code. The host must keep their screen open.</li><li>Everyone else taps <b>Join a game</b> on their own phone and types the code.</li><li>Not enough players? The host can add computer players.</li></ul>
-    <h3>⚔️ Each round</h3><ul><li>All ${CARDS.length} cards are shuffled and shared out. You can only see the card on top of your deck.</li><li>The player with the 👑 picks a stat: Strength, Magic, Intelligence, Wit, Courage or Fear Factor.</li><li>Everyone's top card is revealed. The highest number wins every card played!</li><li>The winner picks the stat next round.</li><li><b>Tie?</b> The cards go into the pot, and the next winner takes the lot.</li></ul>
+    <h3>⚔️ Each round</h3><ul><li>All ${CARDS.length} cards are shuffled and shared out. You can only see the card on top of your deck.</li><li>The player with the 👑 picks a stat: Strength, Magic, Intelligence, Wit, Courage or Fear Factor.</li><li>Everyone's top card is revealed. The highest number wins every card played!</li><li>Who picks next depends on the game's setting: either the round's winner picks again, or everyone takes turns in order (round robin).</li><li><b>Tie?</b> The cards go into the pot, and the next winner takes the lot.</li></ul>
     <h3>💎 Rarity</h3><p>● Common, ◆ Rare, ✦ Epic and ★ Legendary. Rarer cards are usually stronger, but every card has a weak spot!</p>
     <h3>💥 Special powers</h3><p>Some cards have powers that switch on automatically when they're played:</p>
     <div class="pw-list">${Object.keys(PICON).map(t => ex[t] ? `<div><b>${PICON[t]} ${esc(ex[t].p.name)}</b> (${esc(ex[t].name)}): ${powerText(ex[t].p)}</div>` : '').join('')}</div>
@@ -1278,6 +1286,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('change', e => {
   if (e.target.dataset.act === 'mode') send({t: 'mode', mode: e.target.value});
+  if (e.target.dataset.act === 'turns') send({t: 'turns', turns: e.target.value});
   if (e.target.dataset.act === 'peekMode') send({t: 'peekMode', peek: e.target.value});
 });
 document.addEventListener('input', e => { if (e.target.id === 'name') { ME.name = e.target.value.trim().slice(0, 14); store('mt_name', ME.name); } if (e.target.id === 'code') e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, ''); });
