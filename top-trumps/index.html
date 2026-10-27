@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0d0718">
-<title>Mythic Trumps</title>
+<title>Card Battler</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@600;800&family=Nunito:wght@500;700;900&display=swap" rel="stylesheet">
@@ -915,7 +915,7 @@ function homeHTML() {
   const fan = ['kraken', 'ignarax', 'seraphine'].map(id => cardHTML(id)).join('');
   const params = new URLSearchParams(location.search);
   return `<div class="topbar"><div class="grow"></div><button class="iconbtn" data-act="sound" aria-label="Sound">${SFX.on ? '🔊' : '🔇'}</button></div>
-  <div class="logo"><h1>Mythic Trumps</h1><p>Legends of the Six Realms</p></div>
+  <div class="logo"><h1>Card Battler</h1><p>Legends of the Six Realms</p></div>
   <div class="fan">${fan}</div>
   <div class="stack">
     <div class="panel">
@@ -1111,7 +1111,7 @@ document.addEventListener('click', e => {
     case 'kick': send({t: 'kick', pid: el.dataset.pid}); break;
     case 'start': send({t: 'start'}); break;
     case 'again': send({t: 'again'}); break;
-    case 'share': navigator.share({title: 'Mythic Trumps', text: 'Join my Mythic Trumps game! Code: ' + UI.view.code, url: el.dataset.url}).catch(() => {}); break;
+    case 'share': navigator.share({title: 'Card Battler', text: 'Join my Card Battler game! Code: ' + UI.view.code, url: el.dataset.url}).catch(() => {}); break;
     case 'quit':
       if (HOST && HOST.online && (HOST.g || HOST.seats.length > 1)) { if (!confirm('You are the host. Leaving ends the game for everyone. Leave?')) break; }
       else if (CLIENT && UI.view && UI.view.phase !== 'lobby' && UI.view.phase !== 'over') { if (!confirm('Leave this game?')) break; }
