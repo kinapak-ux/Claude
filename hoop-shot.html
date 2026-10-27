@@ -356,6 +356,7 @@
     rugby:      { name: 'Rugby ball',   note: 'Tumbles end over end. Its pointy shape makes every bounce unpredictable.', size: 1.05, grav: 1.05, bounce: 0.9, wind: 1.1, drag: 0.04, speed: 1.04, wobble: 0.9, meters: { bounce: 3, weight: 3, wind: 2 } },
     pingpong:   { name: 'Ping pong ball', note: 'Tiny and feather-light. Air slows it fast and the wind throws it around.', size: 0.4, grav: 0.8, bounce: 1.7, wind: 3.5, drag: 0.7, speed: 1.25, meters: { bounce: 5, weight: 1, wind: 5 } },
     pumpkin:    { name: "Jack-o'-lantern", note: 'A carved pumpkin with a candle inside. Lands with a squashy thud and leaves a trail of candlelight.', size: 1.1, grav: 1.1, bounce: 0.55, wind: 0.7, drag: 0.03, speed: 1.07, glow: '#ffb347', meters: { bounce: 1, weight: 4, wind: 2 } },
+    bauble:     { name: 'Christmas bauble', note: 'A shiny glass tree ornament. Light and bouncy, and it clinks like a bell on every bounce.', size: 0.85, grav: 0.9, bounce: 1.1, wind: 1.6, drag: 0.08, speed: 1.02, glow: '#ffe9a8', meters: { bounce: 3, weight: 2, wind: 4 } },
   };
   // wobble: how far (radians) an odd-shaped ball can kick off line when it bounces
   function wobble(b) {
@@ -375,10 +376,14 @@
   const COURTS = {
     dusk:      { name: 'Dusk court',      note: 'The original outdoor court at dusk.' },
     halloween: { name: 'Halloween night', note: 'Full moon, a haunted house, tombstones and fog. Bats fly over instead of birds.' },
+    christmas: { name: 'Christmas Eve',   note: 'Falling snow, a twinkling tree, a cosy cabin and a snowman. The birds wear Santa hats.' },
   };
   let court = 'dusk', bgCache = null;
   try { const c = localStorage.getItem('hoopshot-court'); if (COURTS[c]) court = c; } catch (e) {}
   const spooky = () => court === 'halloween';
+  const festive = () => court === 'christmas';
+  let treeLights = [];
+  const flakes = Array.from({ length: 90 }, () => ({ x: Math.random(), y: Math.random(), v: 0.04 + Math.random() * 0.07, r: 0.6 + Math.random() * 1.8, p: Math.random() * 6.3 }));
 
   // ---- sound: synthesized with Web Audio, tuned per ball ----
   // body: the thump [start Hz, end Hz, seconds]; slap: surface contact noise [Hz, Q, seconds];
@@ -393,6 +398,7 @@
     rugby:      { body: [130, 75, 0.14],  slap: [700, 1, 0.06],    ring: null,         level: 0.95, mass: 0.9, double: true },
     pingpong:   { body: [1300, 1150, 0.045], slap: [4500, 3, 0.015], ring: [2600, 0.05], level: 0.55, mass: 0.08 },
     pumpkin:    { body: [100, 55, 0.22],  slap: [450, 0.8, 0.09],  ring: [190, 0.18],  level: 1.1,  mass: 1.4 },
+    bauble:     { body: [620, 520, 0.04], slap: [5200, 2, 0.02],   ring: [2350, 0.4],  level: 0.6,  mass: 0.45, chime: [2350, 3520, 4980] },
   };
 
   const sfx = (() => {
@@ -440,6 +446,7 @@
       tone(p.body[0], p.body[1], p.body[2], 0.9 * v * p.level, at);
       noise(p.slap[0], p.slap[0] * 0.8, p.slap[1], p.slap[2], 0.6 * v * p.level, at);
       if (p.ring) tone(p.ring[0], p.ring[0] * 0.97, p.ring[1], 0.18 * v * p.level, at, 'triangle');
+      if (p.chime) metal(p.chime, 0.6, 0.14 * v, at);   // glass rings like a little bell
       if (p.rumble) noise(140, 60, 0.7, 0.5, 0.5 * v, at, 'lowpass');
       if (p.double) bounce({ ...p, double: false }, v * 0.45, at + 0.045 + Math.random() * 0.03);
     }
@@ -481,7 +488,9 @@
       bird() {
         if (!ready()) return;
         noise(2500, 1800, 1, 0.05, 0.3, 0, 'highpass');
-        if (court === 'halloween') {   // a bat's squeaks instead of a chirp
+        if (court === 'christmas') {   // sleigh bells
+          for (let i = 0; i < 4; i++) metal([2600 + (i % 2) * 300, 3900, 5400], 0.18, 0.1, 0.02 + i * 0.07);
+        } else if (court === 'halloween') {   // a bat's squeaks instead of a chirp
           for (let i = 0; i < 3; i++) tone(4200, 3100, 0.035, 0.12, 0.02 + i * 0.06, 'triangle');
         } else {
           tone(1700, 2600, 0.07, 0.2, 0.02, 'triangle');
@@ -1103,7 +1112,7 @@
     try { localStorage.setItem('hoopshot-court', kind); } catch (e) {}
     markPicker();
     closePanels();
-    showToast(COURTS[kind].name, COURTS[kind].note, kind === 'halloween' ? '#ff9a2e' : COL.gold);
+    showToast(COURTS[kind].name, COURTS[kind].note, kind === 'halloween' ? '#ff9a2e' : kind === 'christmas' ? '#e8f4ff' : COL.gold);
   }
 
   function chooseBall(type) {
@@ -1187,6 +1196,7 @@
   // ---- drawing ----
   function drawBackground() {
     if (spooky()) { drawHalloween(); return; }
+    if (festive()) { drawChristmas(); return; }
     const g = ctx.createLinearGradient(0, 0, 0, floorY);
     g.addColorStop(0, COL.skyTop); g.addColorStop(1, COL.skyLow);
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, floorY);
@@ -1297,14 +1307,137 @@
     }
   }
 
+  // Christmas Eve: still scenery is cached like the Halloween court; snow and tree lights animate on top
+  function renderChristmas() {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const c = document.createElement('canvas');
+    c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+    const g = c.getContext('2d');
+    g.scale(dpr, dpr);
+    const TAU = Math.PI * 2, S = Math.min(W, H), pine = '#173d2a', snow = '#eef4fb';
+    const sky = g.createLinearGradient(0, 0, 0, floorY);
+    sky.addColorStop(0, '#0a1630'); sky.addColorStop(0.65, '#1c3a62'); sky.addColorStop(1, '#46688f');
+    g.fillStyle = sky; g.fillRect(0, 0, W, floorY);
+    g.fillStyle = '#ffffff';
+    for (const sr of stars) { g.globalAlpha = 0.5; g.beginPath(); g.arc(sr.x, sr.y * 0.8, sr.r, 0, TAU); g.fill(); }
+    g.globalAlpha = 1;
+    // snowy hills with a row of distant pines
+    g.fillStyle = '#c9d8e8';
+    g.beginPath(); g.moveTo(0, floorY);
+    for (let x = 0; x <= W; x += 8) g.lineTo(x, floorY - H * 0.06 - Math.sin(x / W * 4.5 + 0.6) * H * 0.025);
+    g.lineTo(W, floorY); g.closePath(); g.fill();
+    const tree = (x, base, h, color) => {
+      g.fillStyle = '#4a3222'; g.fillRect(x - h * 0.05, base - h * 0.12, h * 0.1, h * 0.12);
+      for (let i = 0; i < 3; i++) {
+        const w = h * (0.42 - i * 0.1), y0 = base - h * 0.1 - i * h * 0.26;
+        g.fillStyle = color;
+        g.beginPath(); g.moveTo(x - w, y0); g.lineTo(x, y0 - h * 0.42); g.lineTo(x + w, y0); g.fill();
+        g.fillStyle = snow;   // snow resting on each tier
+        g.beginPath(); g.moveTo(x - w * 0.45, y0 - h * 0.23); g.lineTo(x, y0 - h * 0.42); g.lineTo(x + w * 0.45, y0 - h * 0.23); g.quadraticCurveTo(x, y0 - h * 0.3, x - w * 0.45, y0 - h * 0.23); g.fill();
+      }
+    };
+    for (const [fx, fh] of [[0.52, 0.09], [0.6, 0.12], [0.67, 0.08], [0.93, 0.11]]) tree(W * fx, floorY - H * 0.04, H * fh, '#2a4f45');
+    // log cabin with a snowy roof, warm windows, a wreath and a chimney
+    const hw = Math.max(70, Math.min(180, W * 0.13)), hh = hw * 0.62, hx = W * 0.27, hy = floorY;
+    g.fillStyle = '#5a3825'; g.fillRect(hx, hy - hh, hw, hh);
+    g.strokeStyle = '#462a1b'; g.lineWidth = 1.5;
+    for (let y = hy - hh + hh / 6; y < hy; y += hh / 6) { g.beginPath(); g.moveTo(hx, y); g.lineTo(hx + hw, y); g.stroke(); }
+    g.fillStyle = '#5a3825'; g.fillRect(hx + hw * 0.68, hy - hh - hw * 0.45, hw * 0.13, hw * 0.3);
+    g.fillStyle = '#7a2f2a';
+    g.beginPath(); g.moveTo(hx - hw * 0.1, hy - hh); g.lineTo(hx + hw * 0.5, hy - hh - hw * 0.4); g.lineTo(hx + hw * 1.1, hy - hh); g.fill();
+    g.fillStyle = snow;
+    g.beginPath(); g.moveTo(hx - hw * 0.13, hy - hh + 2); g.lineTo(hx + hw * 0.5, hy - hh - hw * 0.44); g.lineTo(hx + hw * 1.13, hy - hh + 2);
+    g.lineTo(hx + hw * 1.0, hy - hh + hw * 0.06); g.lineTo(hx + hw * 0.5, hy - hh - hw * 0.3); g.lineTo(hx, hy - hh + hw * 0.06); g.closePath(); g.fill();
+    g.fillRect(hx + hw * 0.66, hy - hh - hw * 0.48, hw * 0.17, hw * 0.05);
+    g.fillStyle = '#ffcf6b'; g.shadowColor = '#ffb347'; g.shadowBlur = 14;
+    g.fillRect(hx + hw * 0.1, hy - hh * 0.68, hw * 0.2, hh * 0.3);
+    g.fillRect(hx + hw * 0.7, hy - hh * 0.68, hw * 0.2, hh * 0.3);
+    g.shadowBlur = 0;
+    g.fillStyle = '#3b2416'; g.fillRect(hx + hw * 0.4, hy - hh * 0.62, hw * 0.2, hh * 0.62);
+    g.strokeStyle = '#2f7a3f'; g.lineWidth = Math.max(2, hw * 0.035);
+    g.beginPath(); g.arc(hx + hw * 0.5, hy - hh * 0.45, hw * 0.06, 0, TAU); g.stroke();
+    g.fillStyle = '#d33a3a'; g.beginPath(); g.arc(hx + hw * 0.5, hy - hh * 0.38, hw * 0.022, 0, TAU); g.fill();
+    // big decorated tree at the far left; its lights are drawn each frame so they twinkle
+    const th = Math.min(H * 0.27, S * 0.36), tx = Math.max(th * 0.3, launch.x - R * 2.5 - th * 0.42);   // keep it clear of the shooting spot
+    tree(tx, floorY, th, pine);
+    treeLights = [];
+    const colors = ['#ff5a5a', '#ffd36b', '#6fd3ff', '#8fe36b', '#ff9de0'];
+    for (let i = 0; i < 3; i++) {
+      const w = th * (0.42 - i * 0.1), y0 = floorY - th * 0.1 - i * th * 0.26;
+      for (let k = 1; k <= 5; k++) {
+        const t = k / 6, y = y0 - th * 0.06 - t * th * 0.12;
+        treeLights.push({ x: tx - w * 0.85 + t * w * 1.7, y, c: colors[(i * 5 + k) % colors.length], p: i * 1.7 + k });
+      }
+    }
+    g.fillStyle = '#ffd36b';   // star on top
+    const sy = floorY - th * 0.1 - 2 * th * 0.26 - th * 0.42, sr = th * 0.06;
+    g.beginPath();
+    for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? sr * 0.45 : sr; g.lineTo(tx + Math.cos(a) * rr, sy + Math.sin(a) * rr); }
+    g.fill();
+    // snowy ground, presents and a snowman
+    const ground = g.createLinearGradient(0, floorY, 0, H);
+    ground.addColorStop(0, '#f3f8fd'); ground.addColorStop(1, '#c6d6e8');
+    g.fillStyle = ground; g.fillRect(0, floorY, W, H - floorY);
+    const present = (x, w, h, box, ribbon) => {
+      g.fillStyle = box; g.fillRect(x, floorY - h, w, h);
+      g.fillStyle = ribbon; g.fillRect(x + w * 0.42, floorY - h, w * 0.16, h); g.fillRect(x, floorY - h * 0.6, w, h * 0.16);
+      g.beginPath(); g.ellipse(x + w * 0.38, floorY - h - w * 0.08, w * 0.14, w * 0.08, -0.4, 0, TAU); g.ellipse(x + w * 0.62, floorY - h - w * 0.08, w * 0.14, w * 0.08, 0.4, 0, TAU); g.fill();
+    };
+    present(tx + th * 0.22, th * 0.13, th * 0.1, '#c8323a', '#ffd36b');
+    present(tx + th * 0.37, th * 0.1, th * 0.08, '#2f7fe0', '#eef4fb');
+    present(tx - th * 0.36, th * 0.12, th * 0.09, '#3a9a4f', '#ff5a5a');
+    const mx = W * 0.56, mb = R * 1.5;
+    g.fillStyle = '#ffffff';
+    g.beginPath(); g.arc(mx, floorY - mb, mb, 0, TAU); g.fill();
+    g.beginPath(); g.arc(mx, floorY - mb * 2.6, mb * 0.72, 0, TAU); g.fill();
+    g.beginPath(); g.arc(mx, floorY - mb * 3.7, mb * 0.5, 0, TAU); g.fill();
+    g.fillStyle = '#1d2433';
+    g.fillRect(mx - mb * 0.55, floorY - mb * 4.25, mb * 1.1, mb * 0.12); g.fillRect(mx - mb * 0.36, floorY - mb * 4.85, mb * 0.72, mb * 0.62);
+    g.beginPath(); g.arc(mx - mb * 0.17, floorY - mb * 3.8, mb * 0.06, 0, TAU); g.arc(mx + mb * 0.17, floorY - mb * 3.8, mb * 0.06, 0, TAU); g.fill();
+    g.fillStyle = '#f28a2e'; g.beginPath(); g.moveTo(mx, floorY - mb * 3.68); g.lineTo(mx + mb * 0.55, floorY - mb * 3.62); g.lineTo(mx, floorY - mb * 3.56); g.fill();
+    g.fillStyle = '#c8323a'; g.fillRect(mx - mb * 0.55, floorY - mb * 3.3, mb * 1.1, mb * 0.18); g.fillRect(mx + mb * 0.25, floorY - mb * 3.3, mb * 0.2, mb * 0.6);
+    g.strokeStyle = '#4a3222'; g.lineWidth = Math.max(1.5, mb * 0.08);
+    g.beginPath(); g.moveTo(mx - mb * 0.65, floorY - mb * 2.7); g.lineTo(mx - mb * 1.4, floorY - mb * 3.2); g.moveTo(mx + mb * 0.65, floorY - mb * 2.7); g.lineTo(mx + mb * 1.4, floorY - mb * 3.3); g.stroke();
+    g.strokeStyle = '#7f97b3'; g.globalAlpha = 0.7; g.lineWidth = 2;
+    g.beginPath(); g.ellipse(launch.x, floorY + (H - floorY) * 0.45, R * 1.8, R * 0.45, 0, 0, TAU); g.stroke();
+    g.globalAlpha = 1;
+    return c;
+  }
+
+  function drawChristmas() {
+    if (!bgCache) bgCache = renderChristmas();
+    ctx.drawImage(bgCache, 0, 0, W, H);
+    for (const l of treeLights) {   // twinkling fairy lights
+      const on = reduceMotion ? 1 : 0.45 + 0.55 * Math.abs(Math.sin(clock * 2.2 + l.p));
+      ctx.globalAlpha = on; ctx.fillStyle = l.c;
+      ctx.beginPath(); ctx.arc(l.x, l.y, Math.max(2, R * 0.2), 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#ffffff';
+    for (const f of flakes) {   // gently falling snow
+      const y = ((f.y + (reduceMotion ? 0 : clock * f.v)) % 1) * H;
+      const x = f.x * W + Math.sin(clock * 0.8 + f.p) * R * 0.8;
+      ctx.globalAlpha = 0.75; ctx.beginPath(); ctx.arc(x, y, f.r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
   function drawCourtThumb(g, kind) {
     const s = 112, TAU = Math.PI * 2;
     const sky = g.createLinearGradient(0, 0, 0, s * 0.8);
-    if (kind === 'halloween') { sky.addColorStop(0, '#120822'); sky.addColorStop(0.6, '#3a1645'); sky.addColorStop(1, '#a3482a'); }
+    if (kind === 'christmas') { sky.addColorStop(0, '#0a1630'); sky.addColorStop(1, '#46688f'); }
+    else if (kind === 'halloween') { sky.addColorStop(0, '#120822'); sky.addColorStop(0.6, '#3a1645'); sky.addColorStop(1, '#a3482a'); }
     else { sky.addColorStop(0, COL.skyTop); sky.addColorStop(1, COL.skyLow); }
     g.fillStyle = sky; g.fillRect(0, 0, s, s);
-    g.fillStyle = kind === 'halloween' ? '#1b1222' : COL.asphalt; g.fillRect(0, s * 0.8, s, s * 0.2);
-    if (kind === 'halloween') {
+    g.fillStyle = kind === 'halloween' ? '#1b1222' : kind === 'christmas' ? '#eef4fb' : COL.asphalt; g.fillRect(0, s * 0.8, s, s * 0.2);
+    if (kind === 'christmas') {
+      g.fillStyle = '#173d2a';
+      for (let i = 0; i < 3; i++) { const w = s * (0.2 - i * 0.05), y0 = s * (0.78 - i * 0.13); g.beginPath(); g.moveTo(s * 0.25 - w, y0); g.lineTo(s * 0.25, y0 - s * 0.2); g.lineTo(s * 0.25 + w, y0); g.fill(); }
+      ['#ff5a5a', '#ffd36b', '#6fd3ff', '#8fe36b'].forEach((c, i) => { g.fillStyle = c; g.beginPath(); g.arc(s * (0.17 + i * 0.055), s * (0.7 - (i % 2) * 0.12), s * 0.02, 0, TAU); g.fill(); });
+      g.fillStyle = '#ffffff';
+      g.beginPath(); g.arc(s * 0.72, s * 0.72, s * 0.08, 0, TAU); g.arc(s * 0.72, s * 0.58, s * 0.055, 0, TAU); g.fill();
+      for (let i = 0; i < 14; i++) { g.beginPath(); g.arc((i * 37 % 100) / 100 * s, (i * 53 % 70) / 100 * s, 1.3, 0, TAU); g.fill(); }
+    } else if (kind === 'halloween') {
       g.fillStyle = '#f4e6bf'; g.beginPath(); g.arc(s * 0.72, s * 0.25, s * 0.13, 0, TAU); g.fill();
       g.fillStyle = '#0e0614';
       g.fillRect(s * 0.12, s * 0.56, s * 0.3, s * 0.24);
@@ -1340,6 +1473,12 @@
     if (hasBoard()) {
       ctx.fillStyle = COL.paint;
       ctx.fillRect(hoop.bx, hoop.bt, hoop.bw, hoop.bb - hoop.bt);
+      if (festive()) {   // snow piled on top of the board, icicles underneath
+        ctx.fillStyle = '#f3f8fd';
+        ctx.beginPath(); ctx.ellipse(hoop.bx + hoop.bw / 2, hoop.bt, hoop.bw * 1.1, R * 0.35, 0, Math.PI, 0); ctx.fill();
+        ctx.fillStyle = 'rgba(220, 238, 255, 0.85)';
+        for (const [k, len] of [[0.1, 0.7], [0.5, 1.1], [0.9, 0.6]]) { const ix = hoop.bx + hoop.bw * k; ctx.beginPath(); ctx.moveTo(ix - R * 0.12, hoop.bb); ctx.lineTo(ix + R * 0.12, hoop.bb); ctx.lineTo(ix, hoop.bb + R * len); ctx.fill(); }
+      }
       if (spooky()) {   // a cobweb strung from the top of the board
         const wx = hoop.bx, wy = hoop.bt, L = R * 2.4;
         ctx.strokeStyle = 'rgba(233, 226, 208, 0.55)'; ctx.lineWidth = 1;
@@ -1441,6 +1580,14 @@
     ctx.beginPath(); ctx.arc(s * 1.1, -s * 0.45, Math.max(1.2, s * 0.1), 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = COL.paint; ctx.globalAlpha = 0.9;
     ctx.beginPath(); ctx.moveTo(-s * 0.4, -s * 0.1); ctx.lineTo(-s * 0.1, -s * 0.2 - wing * s * 1.4); ctx.lineTo(s * 0.5, -s * 0.1); ctx.fill();
+    if (festive()) {   // a little Santa hat
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#d42f3a';
+      ctx.beginPath(); ctx.moveTo(s * 0.6, -s * 0.66); ctx.quadraticCurveTo(s * 0.9, -s * 1.5, s * 0.35, -s * 1.3); ctx.lineTo(s * 1.4, -s * 0.66); ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(s * 0.55, -s * 0.75, s * 0.9, s * 0.18);
+      ctx.beginPath(); ctx.arc(s * 0.35, -s * 1.3, s * 0.16, 0, Math.PI * 2); ctx.fill();
+    }
     ctx.restore();
     ctx.globalAlpha = 1;
     ctx.fillStyle = p.color;
@@ -1498,6 +1645,18 @@
       g.restore();
       g.strokeStyle = 'rgba(40, 50, 70, 0.3)'; g.lineWidth = Math.max(1, r * 0.05);
       g.beginPath(); g.ellipse(0, 0, r * 1.28, r * 0.83, 0, 0, TAU); g.stroke();
+    } else if (type === 'bauble') {
+      const shine = g.createRadialGradient(-r * 0.35, -r * 0.35, r * 0.05, 0, 0, r);
+      shine.addColorStop(0, '#ff8f8f'); shine.addColorStop(0.45, '#d01f2e'); shine.addColorStop(1, '#6e0b16');
+      g.fillStyle = shine; g.beginPath(); g.arc(0, 0, r, 0, TAU); g.fill();
+      line('#ffd36b', 0.09);
+      g.beginPath();
+      for (let i = 0; i <= 8; i++) { const x = -r * 0.95 + i * r * 1.9 / 8, y = (i % 2 ? -1 : 1) * r * 0.14; i ? g.lineTo(x, y) : g.moveTo(x, y); }
+      g.stroke();
+      g.beginPath(); g.ellipse(0, -r * 0.42, r * 0.85, r * 0.12, 0, 0, Math.PI); g.stroke();
+      g.beginPath(); g.ellipse(0, r * 0.42, r * 0.85, r * 0.12, 0, Math.PI, TAU); g.stroke();
+      g.fillStyle = '#d9b55a'; g.fillRect(-r * 0.24, -r * 1.16, r * 0.48, r * 0.24);
+      line('#d9b55a', 0.07); g.beginPath(); g.arc(0, -r * 1.26, r * 0.13, Math.PI, 0); g.stroke();
     } else if (type === 'pumpkin') {
       g.fillStyle = '#e8761e';
       g.beginPath(); g.ellipse(0, 0, r * 1.08, r, 0, 0, TAU); g.fill();
@@ -1607,7 +1766,7 @@
 
   function drawResetHint() {
     if (!canTapReset()) return;
-    ctx.fillStyle = COL.ink; ctx.globalAlpha = 0.85;
+    ctx.fillStyle = festive() ? '#1d3a5f' : COL.ink; ctx.globalAlpha = 0.85;
     ctx.font = `700 ${Math.max(14, R * 1.05)}px ${C('--font-body')}`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText('Tap to reset', W / 2, floorY + (H - floorY) * 0.45);
@@ -1671,6 +1830,8 @@
     const today = new Date();
     if (!spooky() && ((today.getMonth() === 9 && today.getDate() >= 15) || (today.getMonth() === 10 && today.getDate() === 1))) {
       setTimeout(() => showToast('Halloween court is open', 'Pick it under Ball, along with the jack-o\'-lantern', '#ff9a2e'), 1200);
+    } else if (!festive() && today.getMonth() === 11 && today.getDate() <= 26) {
+      setTimeout(() => showToast('Christmas court is open', 'Pick it under Ball, along with the Christmas bauble', '#e8f4ff'), 1200);
     }
     updateHud(false);
     window.addEventListener('resize', resize);
