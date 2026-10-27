@@ -189,6 +189,8 @@ select.txt{width:100%;font:inherit;font-size:16px;font-weight:700;padding:12px;b
 .announce .big{font-family:Cinzel,serif;font-weight:800;font-size:20px;line-height:1.2;text-align:left}
 .announce .big .statpill{font-size:20px;padding:4px 14px;margin-top:6px}
 .announce .mycard{max-width:min(300px,calc((100vh - 260px) / 1.8));max-width:min(300px,calc((100dvh - 260px) / 1.8))}
+.peekbtn{width:auto;flex:none;padding:14px 16px;font-size:16px;animation:pulse 1.4s ease-in-out infinite}
+.peekwait{flex:none;max-width:130px;font-weight:800;font-size:14px;color:var(--mut);text-align:center;line-height:1.3}
 .cd321{flex:none;width:72px;height:72px;border-radius:50%;display:grid;place-items:center;font-family:Cinzel,serif;font-weight:800;font-size:46px;line-height:1;color:#3a2000;background:radial-gradient(circle at 50% 35%,#fff3c4,#ffcc4d 55%,#e09a12);box-shadow:0 0 0 4px rgba(255,204,77,.35),0 0 30px rgba(255,204,77,.7)}
 .cd321.pop{animation:cdpop .9s ease-out}
 @keyframes cdpop{0%{transform:scale(1.9);opacity:0}25%{transform:scale(1);opacity:1}100%{transform:scale(.92)}}
@@ -548,10 +550,10 @@ const MODES = {
 };
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
-function newGame(seats, mode) {
+function newGame(seats, mode, peekMode) {
   const deck = shuffle(CARDS.map(c => c.id)), n = seats.length, per = Math.floor(deck.length / n);
   return {
-    phase: 'choose', round: 1, mode,
+    phase: 'choose', round: 1, mode, peekMode: peekMode || 'tap',
     players: seats.map((p, i) => ({pid: p.pid, name: p.name, av: p.av, bot: !!p.bot, deck: deck.slice(i * per, (i + 1) * per)})),
     pot: deck.slice(per * n),
     chooser: seats[Math.floor(Math.random() * n)].pid,
@@ -647,9 +649,12 @@ function resolveRound(g, stat) {
 }
 
 // Reveal pacing, shared by the host (to time the next round) and every phone (to animate).
-const ANNOUNCE_MS = 3000, COUNTDOWN_MS = 2000;
+// Before the cards flip, players look at their own card: until everyone taps Ready
+// ('tap', with a long safety timeout), or for a 3-2-1 countdown ('count').
+const PEEK_MODES = {tap: 'Wait until everyone taps Ready', count: '3-2-1 countdown'};
+const ANNOUNCE_MS = 3000, PEEK_TIMEOUT_MS = 60000, COUNTDOWN_MS = 2000;
 function revealTiming(R) {
-  let shown = ANNOUNCE_MS + 250 + R.plays.length * 420 + 450;
+  let shown = 250 + R.plays.length * 420 + 450;
   if (R.log.length) shown += 1700;
   return {shown, next: shown + COUNTDOWN_MS + (R.log.length ? 2000 : 0)};
 }
@@ -677,7 +682,7 @@ let CLIENT = null; // {code, peer, conn, joined, leaving}
 const UI = {screen:'home', view:null, filter:'all', key:'', animRound:0, offline:false};
 
 function hostStart(online) {
-  HOST = {code: null, peer: null, conns: new Map(), me: ME.pid, seats: [{pid: ME.pid, name: ME.name, av: ME.av}], mode: 'std', g: null, timers: {}, online};
+  HOST = {code: null, peer: null, conns: new Map(), me: ME.pid, seats: [{pid: ME.pid, name: ME.name, av: ME.av}], mode: 'std', peek: store('mt_peek') === 'count' ? 'count' : 'tap', g: null, timers: {}, online};
   if (!online) { addBot(); addBot(); addBot(); }
   UI.screen = 'game';
   pushState();
@@ -697,18 +702,29 @@ function isOn(pid) {
 }
 function viewFor(pid) {
   const H = HOST, g = H.g;
-  if (!g) return {phase: 'lobby', code: H.code, online: H.online, host: H.me, mode: H.mode, players: H.seats.map(s => ({pid: s.pid, name: s.name, av: s.av, bot: !!s.bot, on: isOn(s.pid)}))};
+  if (!g) return {phase: 'lobby', code: H.code, online: H.online, host: H.me, mode: H.mode, peek: H.peek, players: H.seats.map(s => ({pid: s.pid, name: s.name, av: s.av, bot: !!s.bot, on: isOn(s.pid)}))};
   const me = g.players.find(p => p.pid === pid);
   return {
     phase: g.phase, code: H.code, online: H.online, host: H.me, mode: g.mode, round: g.round, chooser: g.chooser, pot: g.pot.length,
     players: g.players.map(p => ({pid: p.pid, name: p.name, av: p.av, bot: p.bot, count: p.deck.length, on: isOn(p.pid)})),
     top: me && me.deck.length ? me.deck[0] : null,
     result: g.result, ready: g.ready, need: needReady(), standings: g.standings, over: !!g.over,
+    shown: !g.peek, peekMode: g.peekMode, peekReady: g.peekReady || [], peekNeed: g.peek ? peekNeed() : [],
   };
 }
 function needReady() {
   const g = HOST.g;
   return g.players.filter(p => !p.bot && p.deck.length && isOn(p.pid)).map(p => p.pid);
+}
+// Players who still have to look at their card before the cards flip.
+function peekNeed() {
+  const g = HOST.g;
+  return g.result.plays.map(pl => g.players.find(p => p.pid === pl.pid)).filter(p => !p.bot && isOn(p.pid)).map(p => p.pid);
+}
+function showCards() {
+  const g = HOST.g; if (!g || g.phase !== 'reveal' || !g.peek) return;
+  g.peek = false; g.revealAt = Date.now();
+  pushState();
 }
 function pushState() {
   if (!HOST) return;
@@ -724,6 +740,11 @@ function scheduleHost() {
   if (g.phase === 'choose') {
     const ch = g.players.find(p => p.pid === g.chooser);
     if (ch.bot || !isOn(ch.pid)) HOST.timers.bot = setTimeout(() => doChoose(ch.pid, botPick(ch.deck[0]), true), ch.bot ? 1400 + Math.random() * 1200 : 6000);
+  } else if (g.phase === 'reveal' && g.peek) {
+    const need = peekNeed(), left = need.filter(p => !g.peekReady.includes(p));
+    const wait = g.peekMode === 'count' ? g.peekAt + ANNOUNCE_MS - Date.now()
+      : !left.length ? (need.length ? 250 : 2500) : g.peekAt + PEEK_TIMEOUT_MS - Date.now();
+    HOST.timers.peek = setTimeout(showCards, Math.max(0, wait));
   } else if (g.phase === 'reveal') {
     const need = needReady();
     const left = need.filter(p => !g.ready.includes(p));
@@ -736,7 +757,7 @@ function doChoose(pid, stat, auto) {
   if (!g || g.phase !== 'choose' || g.chooser !== pid || !STATS.some(s => s.k === stat)) return;
   g._choosing = pid;
   resolveRound(g, stat);
-  g.revealAt = Date.now();
+  g.peek = true; g.peekReady = []; g.peekAt = Date.now(); g.revealAt = null;
   pushState();
 }
 function advance() {
@@ -763,8 +784,12 @@ function hostAction(pid, m) {
       }
       break;
     case 'mode': if (isHost && !g && MODES[m.mode]) { H.mode = m.mode; pushState(); } break;
+    case 'peekMode': if (isHost && !g && PEEK_MODES[m.peek]) { H.peek = m.peek; store('mt_peek', m.peek); pushState(); } break;
+    case 'peek':
+      if (g && g.phase === 'reveal' && g.peek && !g.peekReady.includes(pid)) { g.peekReady.push(pid); pushState(); }
+      break;
     case 'start':
-      if (isHost && !g && H.seats.length >= 2) { H.g = newGame(H.seats, H.mode); pushState(); }
+      if (isHost && !g && H.seats.length >= 2) { H.g = newGame(H.seats, H.mode, H.peek); pushState(); }
       break;
     case 'again':
       if (isHost && g && g.phase === 'over') { H.g = null; H.seats = H.seats.filter(s => isOn(s.pid)); pushState(); }
@@ -936,10 +961,11 @@ function render() {
   if (UI.screen === 'rules') { UI.key = 'rules'; app.innerHTML = rulesHTML(); return; }
   if (UI.screen === 'connecting') { UI.key = 'conn'; app.innerHTML = `<div class="stack center" style="margin-top:30vh"><div style="font-size:60px">🔮</div><h2 class="dots">Finding the game</h2><button class="btn ghost" data-act="leave">Cancel</button></div>`; return; }
   const v = UI.view; if (!v) return;
-  const key = v.phase + ':' + (v.round || 0) + ':' + (v.phase === 'choose' ? v.chooser + ':' + v.top : '');
+  const key = v.phase + ':' + (v.round || 0) + ':' + (v.phase === 'choose' ? v.chooser + ':' + v.top : v.phase === 'reveal' ? (v.shown ? 'shown' : 'peek') : '');
   if (key === UI.key && v.phase !== 'lobby') {
     const hud = $('#hud'); if (hud) hud.innerHTML = hudHTML(v);
     const foot = $('#foot'); if (foot) { foot.innerHTML = footHTML(v); tickCountdown(); }
+    const pb = $('#peekbar'); if (pb && v.peekMode === 'tap') pb.innerHTML = peekbarHTML(v);
     const nb = $('#netbar'); if (nb) nb.innerHTML = netbarHTML();
     return;
   }
@@ -994,6 +1020,9 @@ function lobbyHTML(v) {
   <div class="panel"><h3 style="margin-bottom:8px">Game length</h3>
     ${amHost ? `<select class="txt" data-act="mode">${Object.entries(MODES).map(([k, m]) => `<option value="${k}"${k === v.mode ? ' selected' : ''}>${m.n}: ${m.d}</option>`).join('')}</select>` : `<div style="font-weight:800">${MODES[v.mode].n} <span class="mut">· ${MODES[v.mode].d}</span></div>`}
   </div>
+  <div class="panel"><h3 style="margin-bottom:8px">Before the cards flip</h3>
+    ${amHost ? `<select class="txt" data-act="peekMode">${Object.entries(PEEK_MODES).map(([k, n]) => `<option value="${k}"${k === v.peek ? ' selected' : ''}>${n}</option>`).join('')}</select>` : `<div style="font-weight:800">${PEEK_MODES[v.peek]}</div>`}
+  </div>
   ${amHost ? `<button class="btn gold" data-act="start" ${v.players.length < 2 ? 'disabled' : ''}>⚔️ Start the battle!</button>${v.players.length < 2 ? '<div class="wait">You need at least 2 players.</div>' : ''}` : `<div class="wait dots">Waiting for the host to start</div>`}
   </div>`;
 }
@@ -1039,7 +1068,7 @@ function revealHTML(v) {
     head = R.win === ME.pid ? `<div class="headline big">🏆 You win ${R.won} ${s}!</div>` : `<div class="headline">${pname(v, R.win)} wins ${R.won} ${s}!</div>`;
   } else head = `<div class="headline">⚖️ It's a tie! ${R.toPot} card${R.toPot === 1 ? '' : 's'} go into the pot.<div class="mut" style="font-family:Nunito;font-size:14px;font-weight:700;margin-top:4px">The next winner takes the whole pot!</div></div>`;
   return `<div class="banner" id="rvbanner">${pname(v, R.by)} picked <span class="statpill">${SI(R.stat)} ${SN(R.stat)}</span>${R.low ? '<span class="topsy">🔄 TOPSY-TURVY: lowest number wins!</span>' : ''}</div>
-    <div class="rv" id="rv">${announceHTML(v)}<div class="vs${R.plays.length === 1 ? ' n1' : revealCols(R.plays.length) === 3 ? ' c3' : ''}">${tiles}</div>
+    <div class="rv${v.shown ? '' : ' pre'}" id="rv">${v.shown ? '' : announceHTML(v)}<div class="vs${R.plays.length === 1 ? ' n1' : revealCols(R.plays.length) === 3 ? ' c3' : ''}">${tiles}</div>
     ${head}
     ${R.log.length ? `<div class="plog">${R.log.map(l => `<div>${esc(l)}</div>`).join('')}</div>` : ''}</div>`;
 }
@@ -1051,8 +1080,8 @@ function fitReveal() {
   vs.style.maxWidth = ''; vs.classList.remove('tight');
   const n = vs.children.length, cols = revealCols(n), rows = Math.ceil(n / cols), gap = cols === 3 ? 8 : 10;
   const fit = () => {
-    const tile = vs.querySelector('.tile'); if (!tile || !tile.offsetWidth) return Infinity;
-    const ratio = tile.offsetHeight / tile.offsetWidth;
+    const tiles = [...vs.querySelectorAll('.tile')]; if (!tiles.length || !tiles[0].offsetWidth) return Infinity;
+    const ratio = Math.max(...tiles.map(t => t.offsetHeight)) / tiles[0].offsetWidth;  // rows are as tall as their tallest card
     const padBottom = parseFloat(getComputedStyle($('#app')).paddingBottom) || 0;
     const avail = window.innerHeight - (document.documentElement.scrollHeight - padBottom - vs.offsetHeight) - 4;
     return ((avail - gap * (rows - 1)) / rows) / ratio * cols + gap * (cols - 1);
@@ -1066,11 +1095,16 @@ function fitReveal() {
   }
 }
 addEventListener('resize', () => { if (UI.view && UI.view.phase === 'reveal') fitReveal(); });
+function peekbarHTML(v) {
+  if (v.peekNeed.includes(ME.pid) && !v.peekReady.includes(ME.pid)) return `<button class="btn gold peekbtn" data-act="peek">I'm ready!</button>`;
+  const left = v.peekNeed.filter(p => !v.peekReady.includes(p) && p !== ME.pid);
+  return `<div class="peekwait">${v.peekNeed.includes(ME.pid) ? '✅ ' : ''}${left.length ? 'Waiting for ' + left.map(p => pname(v, p)).join(', ') : '<span class="dots">Flipping</span>'}</div>`;
+}
 function announceHTML(v) {
   const R = v.result, mine = R.plays.find(p => p.pid === ME.pid);
   const who = R.by === ME.pid ? 'You picked' : `${pname(v, R.by)} picked`;
   return `<div class="announce"><div class="top"><div class="big">${who}<br><span class="statpill">${SI(R.stat)} ${SN(R.stat)}</span></div>
-    <div class="cd321" id="cd321" aria-live="polite">3</div></div>
+    <div id="peekbar">${v.peekMode === 'count' ? '<div class="cd321" id="cd321" aria-live="polite">3</div>' : peekbarHTML(v)}</div></div>
     ${mine ? `<div class="mycard">${cardHTML(mine.id, {sel: R.stat})}</div>` : ''}</div>`;
 }
 function footHTML(v) {
@@ -1097,21 +1131,30 @@ function overHTML(v) {
 
 function runReveal(v) {
   const R = v.result, rv = $('#rv');
-  if (!rv || UI.animRound === R.round) { fitReveal(); return; }
+  const foot = $('#foot');
+  if (!rv) return;
+  if (!v.shown) {
+    // Looking at your own card before the flip.
+    const banner = $('#rvbanner'); if (banner) banner.style.display = 'none';
+    if (foot) foot.classList.add('hold');
+    if (UI.peekRound === R.round) return;
+    UI.peekRound = R.round;
+    if (R.by !== ME.pid) SFX.turn();
+    const cd = $('#cd321');
+    if (cd) [3, 2, 1].forEach((n, i) => later(() => { cd.textContent = n; cd.classList.remove('pop'); void cd.offsetWidth; cd.classList.add('pop'); SFX.tick(n === 1); }, i * 1000));
+    return;
+  }
+  if (UI.animRound === R.round) { fitReveal(); return; }
   UI.animRound = R.round;
-  rv.classList.add('anim', 'pre');
-  const foot = $('#foot'); if (foot) foot.classList.add('hold');
+  rv.classList.add('anim');
+  if (foot) foot.classList.add('hold');
   const T = revealTiming(R);
-  if (R.by !== ME.pid) SFX.turn();
-  const cd = $('#cd321');
-  [3, 2, 1].forEach((n, i) => later(() => { if (!cd) return; cd.textContent = n; cd.classList.remove('pop'); void cd.offsetWidth; cd.classList.add('pop'); SFX.tick(n === 1); }, i * 1000));
-  const banner = $('#rvbanner'); if (banner) banner.style.display = 'none';
-  later(() => { rv.classList.remove('pre'); if (banner) banner.style.display = ''; fitReveal(); window.scrollTo(0, 0); }, ANNOUNCE_MS);
+  fitReveal(); window.scrollTo(0, 0);
   const tiles = [...rv.querySelectorAll('.tilew')];
   const count = (el, from, to, ms) => { const t0 = performance.now(); const step = t => { const k = Math.min(1, (t - t0) / ms); el.textContent = Math.round(from + (to - from) * k); if (k < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); };
   tiles.forEach(t => { const n = t.querySelector('.t-num'); n.textContent = '0'; });
-  tiles.forEach((t, i) => later(() => { t.classList.add('in'); SFX.flip(); const n = t.querySelector('.t-num'); count(n, 0, +n.dataset.base, 550); }, ANNOUNCE_MS + 250 + i * 420));
-  let tt = ANNOUNCE_MS + 250 + tiles.length * 420 + 450;
+  tiles.forEach((t, i) => later(() => { t.classList.add('in'); SFX.flip(); const n = t.querySelector('.t-num'); count(n, 0, +n.dataset.base, 550); }, 250 + i * 420));
+  let tt = 250 + tiles.length * 420 + 450;
   const mods = R.log.length > 0;
   if (mods) {
     later(() => {
@@ -1200,6 +1243,7 @@ document.addEventListener('click', e => {
       }
       break;
     case 'ready': el.disabled = true; send({t: 'ready'}); break;
+    case 'peek': el.disabled = true; SFX.flip(); send({t: 'peek'}); break;
     case 'addBot': send({t: 'addBot'}); break;
     case 'kick': send({t: 'kick', pid: el.dataset.pid}); break;
     case 'start': send({t: 'start'}); break;
@@ -1212,7 +1256,10 @@ document.addEventListener('click', e => {
     case 'leave': leaveGame(); break;
   }
 });
-document.addEventListener('change', e => { if (e.target.dataset.act === 'mode') send({t: 'mode', mode: e.target.value}); });
+document.addEventListener('change', e => {
+  if (e.target.dataset.act === 'mode') send({t: 'mode', mode: e.target.value});
+  if (e.target.dataset.act === 'peekMode') send({t: 'peekMode', peek: e.target.value});
+});
 document.addEventListener('input', e => { if (e.target.id === 'name') { ME.name = e.target.value.trim().slice(0, 14); store('mt_name', ME.name); } if (e.target.id === 'code') e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, ''); });
 document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'code') joinGame(e.target.value); if (e.key === 'Escape') closeModal(); });
 
