@@ -142,7 +142,8 @@ body.fill #stage{box-shadow:none}
         <div class="logo"><b>SCOOT</b><i>CITY</i></div>
         <div class="tape"></div>
         <nav class="menu">
-          <button class="btn" data-go="levels">Play</button>
+          <button class="btn" id="continueBtn">Continue</button>
+          <button class="btn ghost" data-go="levels">Level select</button>
           <button class="btn ghost" data-go="scooters">Scooters</button>
           <button class="btn ghost" data-go="scores">High scores</button>
           <button class="btn ghost" data-go="help">How to play</button>
@@ -228,6 +229,7 @@ body.fill #stage{box-shadow:none}
           <button class="btn ghost" id="restartBtn">Restart level</button>
           <button class="btn ghost" data-go="options">Options</button>
           <button class="btn ghost" data-go="help">How to play</button>
+          <button class="btn ghost" id="pauseLevelsBtn">Level select</button>
           <button class="btn ghost" id="quitBtn">Main menu</button>
         </nav>
       </section>
@@ -241,6 +243,7 @@ body.fill #stage{box-shadow:none}
           <button class="btn" id="nextBtn">Next level</button>
           <button class="btn ghost small" id="retryBtn">Retry</button>
           <button class="btn ghost small" id="resScoresBtn">High scores</button>
+          <button class="btn ghost small" id="resLevelsBtn">Levels</button>
           <button class="btn ghost small" id="resMenuBtn">Menu</button>
         </div>
       </section>
@@ -509,12 +512,12 @@ const LEVELS = [
     id: 'plaza', name: 'Skate Plaza', sub: '90 second score attack', theme: 'plaza', seed: 61, target: 15000, target2: 30000, bpm: 140, mode: 'timed', limit: 90,
     extra: { text: 'Backflip out of a quarter pipe', test: r => r.qpFlip },
     build(b) {
-      b.wall(60, 320); b.qpL(64); b.L(-80, 140); b.spawn(150);
+      b.wall(60, 320); b.qpL(64); b.L(-80, 140); b.spawn(150); b.sign(220, '90 SECONDS. SCORE ALL YOU CAN');
       b.run(220); b.k(50, 24); b.L(110, 100); b.run(150);
       b.rail(20, 200, 22); b.cans(40, 40, 4, 44); b.run(280);
       b.rail(80, 120, 46); b.L(140, 110); b.fb(60, 30, 160, 60); b.run(170);
       b.L(50, 80); b.rail(0, 100, 18, 18, 'ledge'); b.box(100, 16, 'ledge'); b.run(170);
-      b.l(50, 24); b.run(230);
+      b.l(50, 24); b.run(230); b.sign(-115, 'JUMP AT THE TOP OF THE PIPE');
       b.qpR(64); b.L(-6, 140); b.wall(60, 320);
     },
   },
@@ -1993,6 +1996,7 @@ function show(id) {
   overlay.hidden = false; curScreen = id;
   document.querySelectorAll('.screen').forEach(s => s.hidden = s.id !== 'scr-' + id);
   if (id === 'levels') renderLevels();
+  if (id === 'title') { const d = getDef(validLevel(save.level) ? save.level : 0); $('#continueBtn').textContent = 'Continue: ' + d.name; }
   if (id === 'scooters') renderScooters();
   if (id === 'scores') renderScores();
   if (id === 'options') renderOptions();
@@ -2043,7 +2047,7 @@ function renderLevels() {
     const b = document.createElement('button'); b.className = 'card' + (i === save.level ? ' sel' : '') + (locked ? ' locked' : '') + (lv.daily ? ' daily' : '');
     b.setAttribute('aria-label', lv.name + (locked ? ', locked' : ''));
     b.innerHTML = `<div class="sky" style="background:linear-gradient(${T.sky.join(',')})"></div><div class="info"><span class="nm">${esc(lv.name)}</span><span class="stars">${locked ? 'LOCKED' : lv.daily ? 'TODAY' : levelStars(lv)}</span></div>`;
-    b.addEventListener('click', () => { if (locked) { SFX.wall(); return; } save.level = i; persist(); SFX.menu(); setAttract(i); renderLevels(); wrap.children[n].focus(); });
+    b.addEventListener('click', () => { if (locked) { SFX.wall(); toast('Finish ' + LEVELS[i - 1].name + ' to unlock ' + lv.name + ', or turn on Unlock all levels in Options.'); return; } save.level = i; persist(); SFX.menu(); setAttract(i); renderLevels(); wrap.children[n].focus(); });
     b.addEventListener('dblclick', () => { if (!locked) startLevel(i); });
     wrap.appendChild(b);
   });
@@ -2144,6 +2148,9 @@ $('#pauseBtn').addEventListener('click', () => { audioInit(); pauseGame(); });
 $('#resumeBtn').addEventListener('click', resumeGame);
 $('#restartBtn').addEventListener('click', () => startLevel(run.lvl));
 $('#quitBtn').addEventListener('click', toMenu);
+function toLevels() { toMenu(); show('levels'); }
+$('#pauseLevelsBtn').addEventListener('click', toLevels);
+$('#continueBtn').addEventListener('click', () => startLevel(validLevel(save.level) ? save.level : 0));
 
 // ---- shared daily leaderboard: each signed-in player keeps one row with their best score of the day
 const Shared = { db: null, uid: null };
@@ -2240,6 +2247,7 @@ $('#nextBtn').addEventListener('click', () => startLevel(Math.min(run.lvl + 1, L
 $('#retryBtn').addEventListener('click', () => startLevel(run.lvl));
 $('#resScoresBtn').addEventListener('click', () => { if (pendingHS) return submitName(); scoreTab = scoreDefs().findIndex(d => d.id === run.def.id); goTo('scores'); });
 $('#resMenuBtn').addEventListener('click', () => { if (pendingHS) submitName(); toMenu(); });
+$('#resLevelsBtn').addEventListener('click', () => { if (pendingHS) submitName(); toLevels(); });
 
 // ================================================================ full screen
 const fsBtn = $('#fsBtn'), pauseBtnEl = $('#pauseBtn');
