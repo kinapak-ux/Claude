@@ -401,6 +401,7 @@ document.addEventListener('keydown',e=>{
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&playing&&menu.hidden)openMenu()});
 
 setMode('classic');
+{const qm=new URLSearchParams(location.search).get('mode');if(MODES[qm]){setMode(qm);history.replaceState(null,'',location.pathname);}}
 })();
 </script>
 
