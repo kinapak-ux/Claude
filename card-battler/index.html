@@ -176,7 +176,7 @@ select.txt{width:100%;font:inherit;font-size:16px;font-weight:700;padding:12px;b
 .rv.anim:not(.s2) .t-out,.rv.anim:not(.s2) .headline,.rv.anim:not(.s1) .plog{opacity:0}
 .rv.anim:not(.s2) .tile.win{transform:none;box-shadow:none}
 .rv.anim:not(.s2) .tile.lose{filter:none}
-.t-pow{margin:1.6cqw 3.5cqw 0;padding:1.2cqw 2.5cqw;border-radius:2.5cqw;font-size:max(10px,5.2cqw);font-weight:800;line-height:1.2;color:var(--mut);background:rgba(255,255,255,.06);border:.6cqw solid rgba(255,255,255,.14);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-pow{margin:1.6cqw 3.5cqw 0;padding:1.2cqw 2.5cqw;border-radius:2.5cqw;font-size:max(10px,5.2cqw);font-weight:800;line-height:1.2;color:var(--mut);background:rgba(255,255,255,.06);border:.6cqw solid rgba(255,255,255,.14);overflow-wrap:anywhere}
 .rv:not(.anim) .t-pow.fired,.rv.s1 .t-pow.fired{color:#ffe9a0;background:rgba(255,204,77,.2);border-color:#ffcc4d;box-shadow:0 0 4cqw rgba(255,204,77,.6)}
 .rv.anim.s1:not(.s2) .t-pow.fired{animation:powflash .5s ease-in-out 3}
 .rv:not(.anim) .t-pow.muted,.rv.s1 .t-pow.muted{text-decoration:line-through;opacity:.55}
@@ -195,6 +195,8 @@ select.txt{width:100%;font:inherit;font-size:16px;font-weight:700;padding:12px;b
 .cd321.pop{animation:cdpop .9s ease-out}
 @keyframes cdpop{0%{transform:scale(1.9);opacity:0}25%{transform:scale(1);opacity:1}100%{transform:scale(.92)}}
 .foot.hold{visibility:hidden}
+.foot.pin{position:sticky;bottom:0;z-index:5;margin:10px -16px 0;padding:14px 16px calc(6px + env(safe-area-inset-bottom));background:linear-gradient(rgba(13,7,24,0),#0d0718 26%)}
+.foot.pin .wait{margin-top:6px;font-size:13px}
 .btn .cdbar{position:absolute;left:0;bottom:0;height:5px;background:rgba(58,32,0,.45);border-radius:0 0 16px 16px}
 .btn.cd{position:relative;overflow:hidden}
 .t-num.zap{animation:zap .6s}
@@ -649,10 +651,11 @@ function resolveRound(g, stat) {
 }
 
 // Reveal pacing, shared by the host (to time the next round) and every phone (to animate).
-// Before the cards flip, players look at their own card: until everyone taps Ready
-// ('tap', with a long safety timeout), or for a 3-2-1 countdown ('count').
-const PEEK_MODES = {tap: 'Wait until everyone taps Ready', count: '3-2-1 countdown'};
-const ANNOUNCE_MS = 3000, PEEK_TIMEOUT_MS = 60000, COUNTDOWN_MS = 2000;
+// Game pace. 'tap': players look at their card until everyone taps Ready, and read the
+// result until everyone taps Next round (each with a long safety timeout so a phone left
+// on the table can't stall the game). 'count': a 3-2-1 countdown, then a short countdown.
+const PEEK_MODES = {tap: 'Players tap when they\u2019re ready', count: 'Automatic countdowns'};
+const ANNOUNCE_MS = 3000, PEEK_TIMEOUT_MS = 60000, NEXT_TIMEOUT_MS = 120000, COUNTDOWN_MS = 2000;
 function revealTiming(R) {
   let shown = 250 + R.plays.length * 420 + 450;
   if (R.log.length) shown += 1700;
@@ -748,7 +751,8 @@ function scheduleHost() {
   } else if (g.phase === 'reveal') {
     const need = needReady();
     const left = need.filter(p => !g.ready.includes(p));
-    const wait = g.revealAt + revealTiming(g.result).next + 400 - Date.now();
+    const T = revealTiming(g.result);
+    const wait = g.revealAt + (g.peekMode === 'tap' && need.length ? T.shown + NEXT_TIMEOUT_MS : T.next + 400) - Date.now();
     HOST.timers.adv = setTimeout(advance, need.length && !left.length ? 300 : Math.max(300, wait));
   }
 }
@@ -972,7 +976,7 @@ function render() {
   UI.key = key; clearAnim();
   if (v.phase === 'lobby') { app.innerHTML = lobbyHTML(v); return; }
   app.innerHTML = `<div class="topbar"><button class="iconbtn" data-act="quit" aria-label="Leave game">✕</button><div class="grow"></div>${v.code ? `<span class="mut" style="font-weight:800;font-size:13px">Game ${v.code}</span>` : ''}<button class="iconbtn" data-act="sound" aria-label="Sound">${SFX.on ? '🔊' : '🔇'}</button></div>
-    <div id="netbar">${netbarHTML()}</div><div id="hud">${hudHTML(v)}</div><div id="main">${mainHTML(v)}</div><div id="foot" class="foot">${footHTML(v)}</div>`;
+    <div id="netbar">${netbarHTML()}</div><div id="hud">${hudHTML(v)}</div><div id="main">${mainHTML(v)}</div><div id="foot" class="foot${v.phase === 'reveal' ? ' pin' : ''}">${footHTML(v)}</div>`;
   if (v.phase === 'choose' || (v.phase === 'reveal' && !v.shown)) { window.scrollTo(0, 0); fitCard(); }
   if (v.phase === 'reveal') runReveal(v);
   if (v.phase === 'choose' && v.chooser === ME.pid && v.top) { SFX.turn(); vibrate(40); }
@@ -1021,7 +1025,7 @@ function lobbyHTML(v) {
   <div class="panel"><h3 style="margin-bottom:8px">Game length</h3>
     ${amHost ? `<select class="txt" data-act="mode">${Object.entries(MODES).map(([k, m]) => `<option value="${k}"${k === v.mode ? ' selected' : ''}>${m.n}: ${m.d}</option>`).join('')}</select>` : `<div style="font-weight:800">${MODES[v.mode].n} <span class="mut">· ${MODES[v.mode].d}</span></div>`}
   </div>
-  <div class="panel"><h3 style="margin-bottom:8px">Before the cards flip</h3>
+  <div class="panel"><h3 style="margin-bottom:8px">Game pace</h3>
     ${amHost ? `<select class="txt" data-act="peekMode">${Object.entries(PEEK_MODES).map(([k, n]) => `<option value="${k}"${k === v.peek ? ' selected' : ''}>${n}</option>`).join('')}</select>` : `<div style="font-weight:800">${PEEK_MODES[v.peek]}</div>`}
   </div>
   ${amHost ? `<button class="btn gold" data-act="start" ${v.players.length < 2 ? 'disabled' : ''}>⚔️ Start the battle!</button>${v.players.length < 2 ? '<div class="wait">You need at least 2 players.</div>' : ''}` : `<div class="wait dots">Waiting for the host to start</div>`}
@@ -1122,6 +1126,11 @@ function footHTML(v) {
   if (v.phase === 'reveal') {
     const iNeed = v.need.includes(ME.pid) && !v.ready.includes(ME.pid);
     const next = v.over ? 'See who won' : 'Next round';
+    if (v.peekMode === 'tap' && v.need.length) {
+      if (iNeed) return `<button class="btn gold" data-act="ready">${next} ➜</button><div class="wait">Check the cards and powers (tap a card to see it close up), then tap when you\u2019re ready.</div>`;
+      const left = v.need.filter(p => !v.ready.includes(p) && p !== ME.pid);
+      return `<div class="wait">${v.need.includes(ME.pid) ? '✅ ' : ''}${left.length ? 'Waiting for ' + left.map(p => pname(v, p)).join(', ') : `<span class="dots">${next} coming</span>`}</div>`;
+    }
     return iNeed
       ? `<button class="btn gold cd" data-act="ready">${next} ➜ <span class="cdtxt"></span><span class="cdbar"></span></button>`
       : `<div class="wait">${v.need.includes(ME.pid) ? '✅ Ready! ' : ''}<span class="dots">${next} coming</span> <span class="cdtxt"></span></div>`;
@@ -1177,7 +1186,7 @@ function runReveal(v) {
   later(() => {
     rv.classList.add('s2');
     if (foot) foot.classList.remove('hold');
-    UI.cdStart = Date.now(); UI.cdEnd = UI.cdStart + (T.next - T.shown);
+    if (v.peekMode !== 'tap' || !v.need.length) { UI.cdStart = Date.now(); UI.cdEnd = UI.cdStart + (T.next - T.shown); }
     tickCountdown(); UI.cdTimer = setInterval(tickCountdown, 100);
     if (!R.win) SFX.tie(); else if (R.win === ME.pid) { SFX.win(); vibrate([60, 40, 120]); confetti(18); } else SFX.lose();
   }, tt);
