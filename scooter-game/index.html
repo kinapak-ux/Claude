@@ -102,15 +102,19 @@ tr.me td{color:var(--hivis)}
 /* in-game buttons */
 #pauseBtn{position:absolute;top:calc(var(--u)*5);right:calc(var(--u)*5);width:calc(var(--u)*20);height:calc(var(--u)*18);font-family:var(--f-display);font-size:calc(var(--u)*6);background:#0c0a18aa;color:var(--ink);border:0;box-shadow:inset 0 0 0 calc(var(--u)*1) var(--muted);cursor:pointer;padding:0}
 #pauseBtn:hover,#pauseBtn:focus-visible{background:var(--hivis);color:#14111f}
+#fsBtn{position:absolute;top:calc(var(--u)*5);right:calc(var(--u)*5);width:calc(var(--u)*20);height:calc(var(--u)*18);background:#0c0a18aa;color:var(--ink);border:0;box-shadow:inset 0 0 0 calc(var(--u)*1) var(--muted);cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center}
+#fsBtn svg{width:calc(var(--u)*11);height:calc(var(--u)*11)}
+#fsBtn:hover,#fsBtn:focus-visible{background:var(--hivis);color:#14111f}
+#stage.ingame #fsBtn{right:calc(var(--u)*29)}
 #touch{position:absolute;inset:0;pointer-events:none}
 .tc{position:absolute;pointer-events:auto;width:calc(var(--u)*34);height:calc(var(--u)*34);border:0;border-radius:50%;background:#ffffff1f;box-shadow:inset 0 0 0 calc(var(--u)*1) #ffffff55;color:#fff;font-family:var(--f-display);font-size:calc(var(--u)*6);touch-action:none;padding:0}
 .tc.on{background:#ffcc0099;color:#14111f}
-.tc[data-act=left]{left:calc(var(--u)*6);bottom:calc(var(--u)*8)}
-.tc[data-act=down]{left:calc(var(--u)*42);bottom:calc(var(--u)*4)}
-.tc[data-act=right]{left:calc(var(--u)*78);bottom:calc(var(--u)*8)}
-.tc[data-act=t1]{right:calc(var(--u)*82);bottom:calc(var(--u)*8)}
-.tc[data-act=t2]{right:calc(var(--u)*46);bottom:calc(var(--u)*30)}
-.tc[data-act=jump]{right:calc(var(--u)*6);bottom:calc(var(--u)*6);width:calc(var(--u)*42);height:calc(var(--u)*42)}
+.tc[data-act=left]{left:calc(var(--u)*8);bottom:calc(var(--u)*16);width:calc(var(--u)*44);height:calc(var(--u)*44)}
+.tc[data-act=down]{left:calc(var(--u)*58);bottom:calc(var(--u)*4);width:calc(var(--u)*40);height:calc(var(--u)*40)}
+.tc[data-act=right]{left:calc(var(--u)*104);bottom:calc(var(--u)*16);width:calc(var(--u)*44);height:calc(var(--u)*44)}
+.tc[data-act=jump]{right:calc(var(--u)*8);bottom:calc(var(--u)*8);width:calc(var(--u)*56);height:calc(var(--u)*56);font-size:calc(var(--u)*7)}
+.tc[data-act=t1]{right:calc(var(--u)*78);bottom:calc(var(--u)*12);width:calc(var(--u)*48);height:calc(var(--u)*48);font-size:calc(var(--u)*7)}
+.tc[data-act=t2]{right:calc(var(--u)*12);bottom:calc(var(--u)*78);width:calc(var(--u)*48);height:calc(var(--u)*48);font-size:calc(var(--u)*7)}
 .confirm{color:var(--bad)}
 @media (prefers-reduced-motion: reduce){.newhs{animation:none}}
 </style>
@@ -181,7 +185,7 @@ tr.me td{color:var(--hivis)}
               <dt>K or X</dt><dd>Trick 2</dd>
               <dt>Down / S</dt><dd>Hold with a trick for flips</dd>
               <dt>Esc / P</dt><dd>Pause and options</dd>
-              <dt>Touch</dt><dd>Arrows, JUMP, T1 and T2 buttons</dd>
+              <dt>Touch</dt><dd>Arrows, JUMP, T1 and T2. Slide your thumb from JUMP onto T1 or T2</dd>
               <dt>Gamepad</dt><dd>A jump, X trick 1, B trick 2</dd>
             </dl>
           </div>
@@ -231,6 +235,7 @@ tr.me td{color:var(--hivis)}
         </div>
       </section>
     </div>
+    <button id="fsBtn" aria-label="Full screen" title="Full screen" hidden><svg viewBox="0 0 11 11" aria-hidden="true"><path d="M1 4V1h3M7 1h3v3M10 7v3H7M4 10H1V7" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
   </div>
 </div>
 
@@ -539,9 +544,9 @@ function musicStart(bpm) { Music.bpm = bpm; Music.on = true; Music.step = 0; if 
 // ================================================================ input
 const held = { left: false, right: false, down: false, jump: false, t1: false, t2: false };
 const buf = { jump: 0, t1: 0, t2: 0 };
-function press(a) { if (!held[a] && a in buf) buf[a] = .14; held[a] = true; }
+function press(a) { if (!held[a] && a in buf) buf[a] = a === 'jump' ? .14 : .25; held[a] = true; }
 function release(a) { held[a] = false; }
-function clearInput() { for (const k in held) held[k] = false; for (const k in buf) buf[k] = 0; document.querySelectorAll('.tc.on').forEach(b => b.classList.remove('on')); }
+function clearInput() { for (const k in held) held[k] = false; for (const k in buf) buf[k] = 0; document.querySelectorAll('.tc.on').forEach(b => b.classList.remove('on')); touchMap.clear(); }
 const KEYMAP = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowDown: 'down', KeyS: 'down', ArrowUp: 'jump', KeyW: 'jump', Space: 'jump', KeyJ: 't1', KeyZ: 't1', KeyK: 't2', KeyX: 't2' };
 const inGame = () => state === 'play' || state === 'countdown' || state === 'finish';
 window.addEventListener('keydown', e => {
@@ -561,13 +566,20 @@ window.addEventListener('keydown', e => {
 window.addEventListener('keyup', e => { const a = KEYMAP[e.code]; if (a) release(a); });
 window.addEventListener('blur', () => { clearInput(); if (state === 'play' || state === 'countdown') pauseGame(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden && (state === 'play' || state === 'countdown')) pauseGame(); });
-document.querySelectorAll('.tc').forEach(btn => {
-  const a = btn.dataset.act;
-  btn.addEventListener('pointerdown', e => { e.preventDefault(); audioInit(); try { btn.setPointerCapture(e.pointerId); } catch (_) {} press(a); btn.classList.add('on'); });
-  const up = () => { release(a); btn.classList.remove('on'); };
-  btn.addEventListener('pointerup', up); btn.addEventListener('pointercancel', up); btn.addEventListener('lostpointercapture', up);
-  btn.addEventListener('contextmenu', e => e.preventDefault());
-});
+// Touch buttons: each finger can slide from one button to another (e.g. JUMP straight onto T1).
+const touchMap = new Map(), touchEl = $('#touch');
+function setFinger(id, btn) {
+  const prev = touchMap.get(id);
+  if (prev === btn) return;
+  touchMap.delete(id);
+  if (prev && ![...touchMap.values()].includes(prev)) { release(prev.dataset.act); prev.classList.remove('on'); }
+  if (btn) { touchMap.set(id, btn); press(btn.dataset.act); btn.classList.add('on'); }
+}
+const tcAt = (x, y) => { const el = document.elementFromPoint(x, y); return el && el.closest ? el.closest('.tc') : null; };
+touchEl.addEventListener('pointerdown', e => { const b = e.target.closest('.tc'); if (!b) return; e.preventDefault(); audioInit(); setFinger(e.pointerId, b); });
+touchEl.addEventListener('pointermove', e => { if (touchMap.has(e.pointerId)) setFinger(e.pointerId, tcAt(e.clientX, e.clientY)); });
+for (const t of ['pointerup', 'pointercancel']) touchEl.addEventListener(t, e => setFinger(e.pointerId, null));
+touchEl.addEventListener('contextmenu', e => e.preventDefault());
 // gamepad
 let padPrev = {};
 function pollPad() {
@@ -1277,10 +1289,10 @@ function drawHUD() {
   }
   // weather badge + wind
   const W = WEATHER[run.weather];
-  if (W.mult > 1) txt(W.name.toUpperCase() + ' x' + W.mult, VW - 34, 9, '#7af0ff', 8, 'right');
+  if (W.mult > 1) txt(W.name.toUpperCase() + ' x' + W.mult, VW - 58, 9, '#7af0ff', 8, 'right');
   if (W.wind) {
-    const w = run.wind, len = Math.round(Math.abs(w) / 4), ax = VW - 60, ay = 22;
-    txt('WIND', VW - 34, 19, '#a39bc9', 8, 'right');
+    const w = run.wind, len = Math.round(Math.abs(w) / 4), ax = VW - 84, ay = 22;
+    txt('WIND', VW - 58, 19, '#a39bc9', 8, 'right');
     ctx.fillStyle = '#7af0ff'; ctx.fillRect(w >= 0 ? ax : ax - len, ay + 13, len, 2);
     const tip = w >= 0 ? ax + len : ax - len; ctx.fillRect(tip - (w >= 0 ? 2 : 0), ay + 11, 2, 6);
   }
@@ -1475,6 +1487,7 @@ function renderOptions() {
     ['Music: ' + (o.music ? 'On' : 'Off'), () => { o.music = !o.music; applyAudioOpts(); }],
     ['Sound effects: ' + (o.sfx ? 'On' : 'Off'), () => { o.sfx = !o.sfx; applyAudioOpts(); }],
     ['Screen shake: ' + (o.shake ? 'On' : 'Off'), () => { o.shake = !o.shake; }],
+    ...(fsOK ? [['Full screen: ' + (isFS() ? 'On' : 'Off'), () => { toggleFS(); }]] : []),
     ['Touch buttons: ' + ({ auto: 'Auto', on: 'On', off: 'Off' })[o.touch], () => { o.touch = { auto: 'on', on: 'off', off: 'auto' }[o.touch]; }],
     [resetArmed ? 'Press again to erase all progress' : 'Reset progress', () => {
       if (!resetArmed) { resetArmed = true; return; }
@@ -1483,7 +1496,7 @@ function renderOptions() {
   ];
   items.forEach(([label, fn, warn], i) => {
     const b = document.createElement('button'); b.className = 'btn ghost' + (warn ? ' confirm' : ''); b.textContent = label;
-    b.addEventListener('click', () => { if (i !== 4) resetArmed = false; fn(); persist(); SFX.menu(); renderOptions(); wrap.children[i].focus(); });
+    b.addEventListener('click', () => { if (i !== items.length - 1) resetArmed = false; fn(); persist(); SFX.menu(); renderOptions(); wrap.children[i].focus(); });
     wrap.appendChild(b);
   });
 }
@@ -1559,6 +1572,26 @@ $('#nextBtn').addEventListener('click', () => startLevel(Math.min(run.lvl + 1, L
 $('#retryBtn').addEventListener('click', () => startLevel(run.lvl));
 $('#resScoresBtn').addEventListener('click', () => { if (pendingHS) return submitName(); scoreTab = run.lvl; goTo('scores'); });
 $('#resMenuBtn').addEventListener('click', () => { if (pendingHS) submitName(); toMenu(); });
+
+// ================================================================ full screen
+const fsBtn = $('#fsBtn'), pauseBtnEl = $('#pauseBtn');
+const fsOK = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+const isFS = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+async function toggleFS() {
+  try {
+    if (isFS()) await (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    else {
+      const el = document.documentElement;
+      await (el.requestFullscreen || el.webkitRequestFullscreen).call(el, { navigationUI: 'hide' });
+      try { await screen.orientation.lock('landscape'); } catch (_) {}
+    }
+  } catch (e) {}
+}
+function onFSChange() { fsBtn.setAttribute('aria-label', isFS() ? 'Exit full screen' : 'Full screen'); fsBtn.title = fsBtn.getAttribute('aria-label'); setTimeout(fit, 60); if (curScreen === 'options' && !overlay.hidden) renderOptions(); }
+document.addEventListener('fullscreenchange', onFSChange); document.addEventListener('webkitfullscreenchange', onFSChange);
+fsBtn.hidden = !fsOK;
+fsBtn.addEventListener('click', () => { audioInit(); toggleFS(); fsBtn.blur(); });
+new MutationObserver(() => stage.classList.toggle('ingame', !pauseBtnEl.hidden)).observe(pauseBtnEl, { attributes: true, attributeFilter: ['hidden'] });
 
 // ================================================================ boot
 if (isTouch) $('#titleFoot').textContent = 'Tap to choose. Turn your phone sideways for the best view.';
