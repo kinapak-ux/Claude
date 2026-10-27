@@ -319,6 +319,14 @@ body.fill #stage{box-shadow:none}
           <button class="btn ghost small" id="resMenuBtn">Menu</button>
         </div>
       </section>
+
+      <section class="screen" id="scr-rider" data-back="title" hidden>
+        <h2>Who's riding?</h2>
+        <span class="label">Every run's score saves under this name until you close the game.</span>
+        <div class="row" id="riderPicks"></div>
+        <div class="namebox"><input id="riderInput" maxlength="10" autocomplete="off" spellcheck="false" aria-label="Rider name" placeholder="NAME"><button class="btn" id="riderGo">Ride!</button></div>
+        <button class="btn ghost small" id="riderBack">Back</button>
+      </section>
     </div>
     <div id="toast" role="status" hidden></div>
     <button id="fsBtn" aria-label="Full screen" title="Full screen" hidden><svg viewBox="0 0 11 11" aria-hidden="true"><path d="M1 4V1h3M7 1h3v3M10 7v3H7M4 10H1V7" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
@@ -622,10 +630,10 @@ const LEVELS = [
     },
   },
   {
-    id: 'plaza', name: 'Skate Plaza', sub: '90 second score attack', theme: 'plaza', seed: 61, target: 15000, target2: 30000, bpm: 140, mode: 'timed', limit: 90,
+    id: 'plaza', name: 'Skate Plaza', sub: '60 second score attack', theme: 'plaza', seed: 61, target: 10000, target2: 20000, bpm: 140, mode: 'timed', limit: 60,
     extra: { text: 'Backflip out of a quarter pipe', test: r => r.qpFlip },
     build(b) {
-      b.wall(60, 320); b.qpL(64); b.L(-80, 140); b.spawn(150); b.sign(220, '90 SECONDS. SCORE ALL YOU CAN'); b.power(320, 34, 'spring');
+      b.wall(60, 320); b.qpL(64); b.L(-80, 140); b.spawn(150); b.sign(220, '60 SECONDS. SCORE ALL YOU CAN'); b.power(320, 34, 'spring');
       b.run(220); b.k(50, 24); b.L(110, 100); b.run(150);
       b.rail(20, 200, 22); b.cans(40, 40, 4, 44); b.run(280);
       b.rail(80, 120, 46); b.L(140, 110); b.fb(60, 30, 160, 60); b.run(170);
@@ -1069,7 +1077,7 @@ window.addEventListener('keydown', e => {
   }
   if (state === 'editor' && !overlay.hidden && editorKey(e)) return;
   const ae = document.activeElement;
-  if (ae && ae.tagName === 'INPUT') { if (e.code === 'Enter') { e.preventDefault(); submitName(); } return; }
+  if (ae && ae.tagName === 'INPUT') { if (e.code === 'Enter') { e.preventDefault(); if (ae.id === 'riderInput') riderGo(); else submitName(); } return; }
   if (e.code === 'Escape') { e.preventDefault(); if (curScreen === 'pause') resumeGame(); else goBack(); return; }
   const dirs = { ArrowUp: -1, ArrowLeft: -1, ArrowDown: 1, ArrowRight: 1, KeyW: -1, KeyS: 1, KeyA: -1, KeyD: 1 };
   if (e.code in dirs) { e.preventDefault(); moveFocus(dirs[e.code]); }
@@ -1150,6 +1158,7 @@ const curWeather = () => run ? run.weather : L && L.def.daily ? L.def.weather : 
 function startLevel(i) {
   audioInit();
   const def = getDef(i);
+  if (!riderName && !def.editing) { askRider(() => startLevel(i)); return; }
   save.level = i; persist();
   const night = !!save.night && nightOK(def);
   L = buildLevel(def, night);
@@ -2462,7 +2471,7 @@ function showResults() {
   const timeBonus = L.timed ? 0 : Math.max(0, Math.round((L.par * 1.3 - time) * 60 * run.mult));
   const total = run.score + timeBonus;
   run.total = total;
-  if (window.FamilyScores && total > 0 && !def.custom && !def.editing) FamilyScores.submit('scootcity', def.name, total, { fallbackName: save.lastName });
+  if (window.FamilyScores && total > 0 && !def.custom && !def.editing) FamilyScores.submit('scootcity', def.name, total, riderName ? { player: niceName(riderName) } : { fallbackName: save.lastName });
   const chs = challenges(def), done = {};
   for (const c of chs) done[c.k] = !!c.test(run, total);
   const ch = save.chal[def.id] = save.chal[def.id] || {};
@@ -2491,38 +2500,81 @@ function showResults() {
   const rank = list.findIndex(e => total > e.score);
   const pos = rank < 0 ? list.length : rank;
   const hs = $('#resHS'); hs.innerHTML = '';
-  pendingHS = null;
+  pendingHS = null; lastHS = null;
+  const who = riderName || save.lastName || 'RIDER';
   if (pos < 8 && total > 0) {
-    pendingHS = { def, entry: { name: '', score: total, time, sc: SCOOTERS[run.scooter].name, w: cond } };
-    hs.innerHTML = `<span class="newhs">${def.daily ? 'Post your daily score' : 'New high score! Rank ' + (pos + 1)}</span><label class="label" for="nameInput">Name</label><input id="nameInput" maxlength="10" autocomplete="off" spellcheck="false" value="${esc(save.lastName)}"><button class="btn small" id="saveHS">Save</button>`;
-    $('#saveHS').addEventListener('click', submitName);
-  } else if (unlockedNew) hs.innerHTML = `<span class="newhs">${esc(LEVELS[run.lvl + 1].name)} unlocked</span>`;
+    // Saved straight away under the rider's name, so a high score is never lost by skipping a button.
+    const entry = { name: who, score: total, time, sc: SCOOTERS[run.scooter].name, w: cond };
+    const list2 = save.scores[def.id] = save.scores[def.id] || [];
+    list2.push(entry); list2.sort((a, b) => b.score - a.score); list2.length = Math.min(list2.length, 8);
+    persist();
+    lastHS = { def, entry };
+    if (def.daily) postDaily({ date: def.key, name: who, score: total, time, sc: entry.sc, w: entry.w });
+    hs.innerHTML = `<span class="newhs">${def.daily ? 'Daily score saved' : 'New high score! Rank ' + (pos + 1)}</span><span class="label" id="savedAs">Saved as ${esc(who)}</span><button class="btn ghost small" id="renameHS">Change name</button>`;
+    $('#renameHS').addEventListener('click', renameHS);
+  } else if (total > 0) hs.innerHTML = `<span class="label">Riding as ${esc(who)}</span>`;
+  if (unlockedNew) hs.insertAdjacentHTML('beforeend', `<span class="newhs">${esc(LEVELS[run.lvl + 1].name)} unlocked</span>`);
   const starsNow = starsTotal(), newly = [...CHARS, ...OUTFITS].filter(u => u.need > starsBefore && u.need <= starsNow).map(u => u.name);
   if (newly.length && !save.allRiders) hs.insertAdjacentHTML('beforeend', `<span class="newhs">Unlocked: ${esc(newly.join(', '))}</span>`);
   $('#resEditBtn').hidden = !run.def.custom;
   if (ghostNote) hs.insertAdjacentHTML('beforeend', `<span class="label">${ghostNote}</span>`);
   $('#nextBtn').hidden = !num || run.lvl + 1 >= LEVELS.length;
   show('results');
-  const inp = $('#nameInput'); if (inp && !isTouch) { inp.focus(); inp.select(); }
+}
+// Change the name on the score that was just saved (and ride under the new name from now on).
+let lastHS = null;
+function renameHS() {
+  if (!lastHS) return;
+  pendingHS = lastHS;
+  $('#resHS').innerHTML = `<label class="label" for="nameInput">Name</label><input id="nameInput" maxlength="10" autocomplete="off" spellcheck="false" value="${esc(lastHS.entry.name)}"><button class="btn small" id="saveHS">Save</button>`;
+  $('#saveHS').addEventListener('click', submitName);
+  const inp = $('#nameInput'); inp.focus(); inp.select();
 }
 function submitName() {
   if (!pendingHS) return;
-  const inp = $('#nameInput'); const name = (inp.value || 'RIDER').toUpperCase().replace(/[^A-Z0-9 ._-]/g, '').trim().slice(0, 10) || 'RIDER';
+  const inp = $('#nameInput'); const name = cleanRider(inp && inp.value) || 'RIDER';
   const { def, entry } = pendingHS;
-  save.lastName = name; entry.name = name;
-  const list = save.scores[def.id] = save.scores[def.id] || [];
-  list.push(entry); list.sort((a, b) => b.score - a.score); list.length = Math.min(list.length, 8);
-  const at = list.indexOf(entry);
-  persist(); SFX.select();
-  scoreTab = scoreDefs().findIndex(d => d.id === def.id);
+  entry.name = name; setRider(name);
   pendingHS = null;
   $('#resHS').innerHTML = '<span class="label">Score saved as ' + esc(name) + '</span>';
-  if (def.daily) postDaily({ date: def.key, name, score: entry.score, time: entry.time, sc: entry.sc, w: entry.w }).then(ok => { if (curScreen === 'scores') renderScores(at); if (!ok) toast('Saved on this device. The shared board needs the published page while signed in.'); });
-  show('scores'); renderScores(at);
+  SFX.select();
+  if (def.daily) postDaily({ date: def.key, name, score: entry.score, time: entry.time, sc: entry.sc, w: entry.w });
 }
+
+// The rider's name is asked once per session (until the game is closed), then every run saves under it.
+const RIDER_KEY = 'scootcity.rider';
+let riderName = (() => { try { return sessionStorage.getItem(RIDER_KEY) || ''; } catch (e) { return ''; } })();
+let riderNext = null;
+function cleanRider(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9 ._-]/g, '').trim().slice(0, 10); }
+function niceName(n) { return n.charAt(0) + n.slice(1).toLowerCase(); }
+function setRider(n) {
+  riderName = n;
+  try { sessionStorage.setItem(RIDER_KEY, n); } catch (e) {}
+  save.lastName = n; save.riders = [n].concat((save.riders || []).filter(x => x !== n)).slice(0, 6); persist();
+  if (window.FamilyScores) FamilyScores.setName(niceName(n));
+}
+function askRider(then) {
+  riderNext = then;
+  const fam = window.FamilyScores ? cleanRider(FamilyScores.name()) : '';
+  const known = (save.riders || []).slice();
+  if (fam && !known.includes(fam)) known.unshift(fam);
+  $('#riderPicks').innerHTML = known.map(n => `<button class="btn ghost small" data-rider="${esc(n)}">${esc(n)}</button>`).join('');
+  $('#riderInput').value = known.length ? '' : (save.lastName !== 'RIDER' ? save.lastName : '');
+  show('rider');
+  if (!isTouch && !known.length) $('#riderInput').focus();
+}
+function riderGo(n) {
+  n = cleanRider(typeof n === 'string' ? n : $('#riderInput').value);
+  if (!n) { toast('Type your name first'); $('#riderInput').focus(); return; }
+  setRider(n); SFX.select();
+  const go = riderNext; riderNext = null; if (go) go();
+}
+$('#riderGo').addEventListener('click', () => riderGo());
+$('#riderPicks').addEventListener('click', e => { const b = e.target.closest('[data-rider]'); if (b) riderGo(b.dataset.rider); });
+$('#riderBack').addEventListener('click', () => { riderNext = null; toMenu(); });
 $('#nextBtn').addEventListener('click', () => startLevel(Math.min(run.lvl + 1, LEVELS.length - 1)));
 $('#retryBtn').addEventListener('click', () => startLevel(run.lvl));
-$('#resScoresBtn').addEventListener('click', () => { if (pendingHS) return submitName(); scoreTab = scoreDefs().findIndex(d => d.id === run.def.id); goTo('scores'); });
+$('#resScoresBtn').addEventListener('click', () => { if (pendingHS) submitName(); scoreTab = scoreDefs().findIndex(d => d.id === run.def.id); goTo('scores'); });
 $('#resMenuBtn').addEventListener('click', () => { if (pendingHS) submitName(); toMenu(); });
 $('#resLevelsBtn').addEventListener('click', () => { if (pendingHS) submitName(); toLevels(); });
 

@@ -13,55 +13,106 @@
 <meta name="apple-mobile-web-app-title" content="Times Tables">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Nunito:wght@600;800;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;800;900&display=swap">
 <link rel="stylesheet" href="../kit.css">
 <style>
-:root{--bg:#060b24;--bg2:#1b3a8a;--accent:#3fe0ff;--accent-ink:#00222e;--display:"Orbitron",Impact,system-ui,sans-serif;--gold:#ffd84d}
+:root{--bg:#060b24;--bg2:#1b3a8a;--accent:#3fe0ff;--accent-ink:#00222e;--display:"Fredoka","Nunito",system-ui,sans-serif;--gold:#ffd84d;--tint:rgba(80,140,255,.55)}
+/* each world has its own colours */
+body[data-world=ocean]{--bg:#021a2e;--bg2:#0b6f94;--accent:#5fe3ff;--tint:rgba(60,200,255,.45)}
+body[data-world=candy]{--bg:#2a0722;--bg2:#b8327a;--accent:#ff8fd0;--accent-ink:#3a0024;--tint:rgba(255,95,168,.6)}
+body[data-world=forest]{--bg:#06180d;--bg2:#2c7a3c;--accent:#b6f56a;--accent-ink:#13300a;--tint:rgba(140,220,80,.55)}
 body{background:radial-gradient(1px 1px at 20% 30%,#fff8,transparent),radial-gradient(1px 1px at 70% 80%,#fff6,transparent),radial-gradient(1.5px 1.5px at 40% 60%,#fff9,transparent),radial-gradient(1px 1px at 85% 20%,#fff7,transparent),radial-gradient(ellipse at 50% -10%,var(--bg2),var(--bg) 65%) fixed;background-color:var(--bg)}
+h1,h2,.title{font-weight:700}
 .title{font-size:clamp(30px,9.5vw,46px);line-height:1.1}
-.title .rk{display:inline-block;transform:rotate(-45deg)}
 .howto{font-size:14px;line-height:1.5;color:var(--mut)}
-.chip.t{min-width:46px;text-align:center;font-family:var(--display);font-size:15px}
+.chip.t{min-width:46px;text-align:center;font-family:var(--display);font-size:16px}
 .best{font-size:13px;opacity:.85;font-weight:800}
+.gempill{display:inline-flex;align-items:center;gap:4px;padding:0 12px;height:42px;border-radius:12px;background:rgba(0,0,0,.3);border:1px solid var(--line);font-family:var(--display);font-weight:700;font-size:18px}
+.me{display:flex;align-items:center;gap:14px}
+.me .face{font-size:64px;line-height:1;animation:bob 2.2s ease-in-out infinite;flex:none}
+@keyframes bob{50%{transform:translateY(-6px) rotate(-4deg)}}
+.me b{display:block;font-family:var(--display);font-size:20px}
+.btn small{font-weight:800;opacity:.85;font-size:13px}
 
 /* playing screens fill the phone exactly, with no scrolling */
 .game{position:fixed;inset:0;display:flex;flex-direction:column;max-width:560px;margin:0 auto;padding:calc(8px + env(safe-area-inset-top)) 12px calc(10px + env(safe-area-inset-bottom))}
-.hud{display:flex;align-items:center;gap:8px;font-weight:900}
-.hud .score{font-family:var(--display);font-size:22px;color:var(--accent);flex:1;text-align:center}
-.hud .shields{font-size:20px;letter-spacing:2px;min-width:72px;text-align:right}
-.hud .shields .gone{opacity:.2;filter:grayscale(1)}
+.hud{display:flex;align-items:center;gap:6px;font-weight:900}
+.hud .score{font-family:var(--display);font-weight:700;font-size:24px;color:var(--accent);flex:1;text-align:center}
+.hud .gems{font-family:var(--display);font-size:15px;white-space:nowrap}
+.hud .hearts{font-size:18px;letter-spacing:1px;white-space:nowrap}
+.hud .hearts .gone{opacity:.2;filter:grayscale(1)}
 .sub{display:flex;justify-content:space-between;font-weight:900;font-size:13px;color:var(--mut);margin:6px 2px}
 .combo{color:var(--gold)}
-.field{flex:1;position:relative;min-height:180px;border-radius:20px;border:1px solid var(--line);background:linear-gradient(rgba(10,20,60,.35),rgba(30,10,60,.45));overflow:hidden}
-.rock{position:absolute;left:50%;top:0;transform:translateX(-50%);width:min(60vw,240px);padding:26px 10px;border-radius:46% 54% 50% 50% / 55% 45% 55% 45%;background:radial-gradient(circle at 35% 30%,#9c8b7a,#5d4d40 60%,#3a2e26);box-shadow:inset -10px -12px 0 rgba(0,0,0,.25),0 8px 24px rgba(0,0,0,.5);text-align:center;font-family:var(--display);font-weight:900;font-size:clamp(28px,9vw,40px);color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.5);white-space:nowrap}
-.rock.gold{background:radial-gradient(circle at 35% 30%,#fff3a6,#f2b51f 55%,#a86b00);color:#3a2000;text-shadow:none;box-shadow:0 0 30px #ffd84d,inset -10px -12px 0 rgba(0,0,0,.18)}
+.field{flex:1;position:relative;min-height:180px;border-radius:20px;border:1px solid var(--line);background:linear-gradient(rgba(255,255,255,.04),rgba(0,0,0,.25));overflow:hidden;touch-action:manipulation}
+/* the falling sums: a different look in each world */
+.rock{position:absolute;left:50%;top:0;transform:translateX(-50%);width:min(60vw,240px);padding:26px 10px;border-radius:46% 54% 50% 50% / 55% 45% 55% 45%;background:radial-gradient(circle at 35% 30%,#9c8b7a,#5d4d40 60%,#3a2e26);box-shadow:inset -10px -12px 0 rgba(0,0,0,.25),0 8px 24px rgba(0,0,0,.5);text-align:center;font-family:var(--display);font-weight:700;font-size:clamp(30px,9.5vw,42px);color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.45);white-space:nowrap;z-index:1}
+[data-world=ocean] .rock{background:radial-gradient(circle at 30% 25%,rgba(255,255,255,.55),rgba(140,220,255,.25) 35%,rgba(40,150,210,.3) 75%);border:2px solid rgba(190,240,255,.75);border-radius:50%;box-shadow:inset 0 0 22px rgba(255,255,255,.3),0 6px 20px rgba(0,0,0,.3)}
+[data-world=candy] .rock{background:radial-gradient(circle at 35% 30%,#ffd6ec,#ff5fa8 55%,#c21d6e);border-radius:40px;box-shadow:0 8px 20px rgba(0,0,0,.4)}
+[data-world=candy] .rock::before,[data-world=candy] .rock::after{content:"";position:absolute;top:50%;transform:translateY(-50%);border-top:22px solid transparent;border-bottom:22px solid transparent}
+[data-world=candy] .rock::before{left:-28px;border-right:32px solid #ff8cc4}
+[data-world=candy] .rock::after{right:-28px;border-left:32px solid #ff8cc4}
+[data-world=forest] .rock{background:radial-gradient(circle at 40% 35%,#fffbd0,#d4f56a 45%,#5aa02c);color:#1f3a0c;text-shadow:none;border-radius:50%;box-shadow:0 0 30px rgba(212,245,106,.8)}
+body .rock.gold{background:radial-gradient(circle at 35% 30%,#fff3a6,#f2b51f 55%,#a86b00);color:#3a2000;text-shadow:none;box-shadow:0 0 30px #ffd84d}
+body .rock.crashed{background:radial-gradient(circle at 35% 30%,#ff8a8a,#b3243a 60%,#5a0f1c);color:#fff}
 .rock.boom{animation:boom .4s ease-out forwards}
-.rock.crashed{background:radial-gradient(circle at 35% 30%,#ff8a8a,#b3243a 60%,#5a0f1c)}
 @keyframes boom{to{transform:translateX(-50%) scale(1.6);opacity:0;filter:blur(4px)}}
-.ship{position:absolute;left:50%;bottom:6px;font-size:46px;transform:translateX(-50%) rotate(-45deg);filter:drop-shadow(0 0 10px rgba(63,224,255,.6))}
-.ship.hit{animation:hit .5s}
-@keyframes hit{25%{transform:translateX(-58%) rotate(-30deg)}50%{transform:translateX(-42%) rotate(-60deg)}}
-.laser{position:absolute;left:50%;width:6px;margin-left:-3px;border-radius:3px;background:linear-gradient(#fff,var(--accent));box-shadow:0 0 14px var(--accent);animation:zap .3s ease-out forwards}
+.hero{position:absolute;left:50%;bottom:6px;font-size:50px;line-height:1;transform:translateX(-50%) rotate(var(--rot,0deg));filter:drop-shadow(0 0 10px rgba(255,255,255,.35));z-index:2}
+.hero.hop{animation:hop .35s ease-out}
+@keyframes hop{50%{transform:translateX(-50%) translateY(-14px) rotate(var(--rot,0deg)) scale(1.1)}}
+.hero.hit{animation:hit .5s}
+@keyframes hit{25%{transform:translateX(-62%) rotate(var(--rot,0deg))}50%{transform:translateX(-38%) rotate(var(--rot,0deg))}75%{transform:translateX(-58%) rotate(var(--rot,0deg))}}
+.say{position:absolute;left:calc(50% + 26px);bottom:58px;background:#fff;color:#2a1838;border-radius:14px 14px 14px 4px;padding:5px 10px;font-weight:900;font-size:14px;white-space:nowrap;z-index:3;pointer-events:none;animation:say 1.6s ease-out forwards;max-width:60%}
+@keyframes say{0%{transform:scale(.5);opacity:0}12%{transform:scale(1);opacity:1}80%{opacity:1}100%{opacity:0}}
+.laser{position:absolute;left:50%;width:8px;margin-left:-4px;border-radius:4px;box-shadow:0 0 16px #fff;animation:zap .3s ease-out forwards;z-index:1}
 @keyframes zap{to{opacity:0;width:2px}}
-.float{position:absolute;left:50%;transform:translateX(-50%);font-family:var(--display);font-weight:900;font-size:24px;color:var(--gold);text-shadow:0 2px 0 #000;pointer-events:none;animation:up 1s ease-out forwards;white-space:nowrap}
+.float{position:absolute;left:50%;transform:translateX(-50%);font-family:var(--display);font-weight:700;font-size:24px;color:var(--gold);text-shadow:0 2px 0 #000;pointer-events:none;animation:up 1s ease-out forwards;white-space:nowrap;z-index:4}
 @keyframes up{to{transform:translate(-50%,-60px);opacity:0}}
-.banner{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;font-family:var(--display);font-size:clamp(26px,8vw,40px);color:var(--gold);text-shadow:0 4px 0 #000;animation:ban 1.3s ease-out forwards;text-align:center}
+.pt{position:absolute;font-size:22px;pointer-events:none;animation:pt .75s ease-out forwards;z-index:4}
+@keyframes pt{to{transform:translate(var(--dx),var(--dy)) scale(.4) rotate(180deg);opacity:0}}
+.banner{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;font-family:var(--display);font-weight:700;font-size:clamp(26px,8vw,38px);color:var(--gold);text-shadow:0 4px 0 #000;animation:ban 1.5s ease-out forwards;text-align:center;z-index:5;padding:0 10px}
+.banner small{display:block;font-family:Nunito,sans-serif;font-weight:900;font-size:16px;color:#fff;margin-top:6px}
 @keyframes ban{0%{transform:scale(.4);opacity:0}20%{transform:scale(1.1);opacity:1}80%{opacity:1}100%{opacity:0}}
-.answer{margin:10px 0;height:58px;border-radius:16px;border:3px solid var(--accent);background:rgba(0,0,0,.4);display:grid;place-items:center;font-family:var(--display);font-size:32px;font-weight:900;letter-spacing:4px}
+/* bosses */
+.boss{position:absolute;left:0;right:0;top:6px;text-align:center;z-index:2;pointer-events:none}
+.boss .be{font-size:58px;line-height:1;display:inline-block;animation:hover 1.6s ease-in-out infinite}
+.boss .nm{font-size:12px;font-weight:900;color:#ffc2cf}
+.boss .hp{width:150px;height:10px;margin:3px auto 0;border-radius:6px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.4);overflow:hidden}
+.boss .hp i{display:block;height:100%;background:linear-gradient(90deg,#ff5c7a,#ffb03f);transition:width .3s}
+.boss.hurt .be{animation:hurt .35s}
+.boss.down .be{animation:down 1.1s forwards}
+@keyframes hover{50%{transform:translateY(6px)}}
+@keyframes hurt{30%{transform:translateX(-10px) rotate(-12deg);filter:brightness(2)}70%{transform:translateX(10px) rotate(12deg)}}
+@keyframes down{to{transform:rotate(540deg) scale(0);opacity:0}}
+/* Bubble Pop */
+.popq{position:absolute;left:8px;right:8px;top:8px;z-index:3;text-align:center;font-family:var(--display);font-weight:700;font-size:clamp(30px,10vw,44px);background:rgba(0,0,0,.35);border-radius:16px;padding:6px 8px;pointer-events:none}
+.popq.gold{color:var(--gold);box-shadow:0 0 20px rgba(255,216,77,.6)}
+.popq.bad{color:var(--bad)}
+.popq .hb{font-size:.8em}
+.bub{--bs:min(21vw,90px);position:absolute;top:0;width:var(--bs);height:var(--bs);border-radius:50%;border:2px solid rgba(255,255,255,.65);background:radial-gradient(circle at 30% 25%,rgba(255,255,255,.75),var(--tint) 40%,rgba(0,0,0,.15) 100%);font-family:var(--display);font-weight:700;font-size:calc(var(--bs) * .34);color:#fff;text-shadow:0 2px 3px rgba(0,0,0,.6);cursor:pointer;touch-action:manipulation;padding:0;z-index:2}
+.bub.gold{--tint:rgba(255,200,40,.85)}
+.bub.pop{animation:bpop .25s forwards;pointer-events:none}
+@keyframes bpop{to{transform:scale(1.6);opacity:0}}
+.bub.bad{filter:grayscale(1);opacity:.45;pointer-events:none}
+.bub.gone{opacity:0;transition:opacity .3s;pointer-events:none}
+.answer{margin:10px 0;height:58px;border-radius:16px;border:3px solid var(--accent);background:rgba(0,0,0,.4);display:grid;place-items:center;font-family:var(--display);font-size:34px;font-weight:700;letter-spacing:4px}
 .answer.bad{border-color:var(--bad);animation:shake .3s}
 .answer.good{border-color:var(--good);color:var(--good)}
 @keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
 .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.pad button{height:clamp(46px,7.4vh,64px);border:0;border-radius:16px;background:rgba(255,255,255,.1);border-bottom:4px solid rgba(0,0,0,.4);font-family:var(--display);font-size:26px;font-weight:900;color:var(--ink);cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none}
-.pad button:active,.pad button.dn{transform:translateY(3px);border-bottom-width:1px;background:rgba(63,224,255,.25)}
+.pad button{height:clamp(46px,7.4vh,64px);border:0;border-radius:16px;background:rgba(255,255,255,.1);border-bottom:4px solid rgba(0,0,0,.4);font-family:var(--display);font-size:28px;font-weight:700;color:var(--ink);cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.pad button:active,.pad button.dn{transform:translateY(3px);border-bottom-width:1px;background:rgba(255,255,255,.25)}
 .pad button.fn{font-size:20px;color:var(--mut)}
 .overlay{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:rgba(4,6,20,.85);backdrop-filter:blur(4px);padding:16px}
+.hint{text-align:center;font-weight:900;color:var(--mut);font-size:14px;margin-top:8px}
 
 /* training */
 .qcard{flex:1;display:grid;place-items:center;text-align:center;border-radius:20px;border:1px solid var(--line);background:rgba(0,0,0,.25);padding:12px;position:relative;min-height:150px}
-.qcard .q{font-family:var(--display);font-size:clamp(36px,12vw,60px);font-weight:900}
+.qcard .q{font-family:var(--display);font-size:clamp(40px,13vw,64px);font-weight:700}
 .qcard .fb{font-weight:900;font-size:18px;min-height:26px;margin-top:6px}
-.qcard .tip{font-size:15px;line-height:1.45;color:var(--ink);background:rgba(63,224,255,.12);border:1px solid rgba(63,224,255,.4);border-radius:14px;padding:10px 12px;margin-top:10px;max-width:420px}
+.qcard .tip{font-size:15px;line-height:1.45;color:var(--ink);background:rgba(255,255,255,.1);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-top:10px;max-width:420px}
+.qcard .pal{position:absolute;left:10px;top:10px;display:flex;align-items:flex-start;gap:6px;text-align:left}
+.qcard .pal span:first-child{font-size:38px;line-height:1}
+.qcard .pal .bubble{background:#fff;color:#2a1838;border-radius:12px 12px 12px 3px;padding:4px 9px;font-weight:900;font-size:14px;margin-top:4px}
 .bar{height:8px;border-radius:9px;background:rgba(255,255,255,.12);overflow:hidden;flex:1}
 .bar i{display:block;height:100%;background:var(--accent);transition:width .3s}
 
@@ -75,12 +126,26 @@ body{background:radial-gradient(1px 1px at 20% 30%,#fff8,transparent),radial-gra
 .grid .l3{background:#1f7a4c}
 .key{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;font-size:13px;color:var(--mut);margin-top:10px}
 .key span::before{content:"";display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px;background:var(--c)}
-.big{font-family:var(--display);font-size:46px;color:var(--accent);text-align:center;line-height:1.1}
+.big{font-family:var(--display);font-weight:700;font-size:50px;color:var(--accent);text-align:center;line-height:1.1}
 .stat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
 .stat div{background:rgba(0,0,0,.25);border-radius:14px;padding:10px 4px;font-size:12px;color:var(--mut);font-weight:800}
-.stat b{display:block;font-family:var(--display);font-size:20px;color:var(--ink)}
+.stat b{display:block;font-family:var(--display);font-size:22px;color:var(--ink)}
 .facts{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
 .facts span{background:rgba(255,92,122,.15);border:1px solid rgba(255,92,122,.5);border-radius:10px;padding:5px 9px;font-weight:900}
+
+/* shop */
+.shop{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px}
+.item{border:2px solid var(--line);background:rgba(0,0,0,.25);border-radius:16px;padding:10px 6px;text-align:center;cursor:pointer;color:var(--ink);font:inherit}
+.item .e{font-size:44px;line-height:1.1}
+.item .n{font-weight:900;font-size:13px;margin-top:4px;min-height:34px;display:grid;place-items:center}
+.item .c{font-family:var(--display);font-weight:700;font-size:15px;margin-top:2px}
+.item.on{border-color:var(--accent);background:rgba(255,255,255,.12)}
+.item.locked{opacity:.75}
+.item.locked .e{filter:grayscale(.7)}
+.item.afford{border-color:var(--gold);animation:glow 1.6s ease-in-out infinite}
+@keyframes glow{50%{box-shadow:0 0 16px rgba(255,216,77,.55)}}
+.goal{font-size:14px;color:var(--mut);text-align:center}
+.goal .bar{margin-top:6px}
 </style>
 </head>
 <body>
@@ -93,28 +158,62 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
 const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const pick = l => l[Math.floor(Math.random() * l.length)];
+const shuffle = l => { for (let i = l.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [l[i], l[j]] = [l[j], l[i]]; } return l; };
 let toastT = 0;
 function toast(m, ms) { const t = $('#toast'); t.innerHTML = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), ms || 2500); }
 function vibrate(p) { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} }
+function confetti(n) { const bits = world().parts.concat(['🎉', '⭐']); for (let i = 0; i < n; i++) { const d = document.createElement('div'); d.className = 'conf'; d.textContent = bits[i % bits.length]; d.style.left = Math.random() * 100 + 'vw'; d.style.animationDuration = (2 + Math.random() * 2.5) + 's'; document.body.appendChild(d); setTimeout(() => d.remove(), 6000); } }
 
 const ALL = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 const TOTAL_FACTS = 78;              // every different pair from 1×1 to 12×12
-const TRAIN_LEN = 20, PER_LEVEL = 8;
+const TRAIN_LEN = 20, PER_LEVEL = 8, BOSS_EVERY = 3;
 // How tricky each table is: tricky facts score more, so practising the hard tables pays off.
 const HARD = {1: 1, 2: 1, 5: 1, 10: 1, 11: 1, 3: 2, 4: 2, 9: 2, 6: 3, 7: 3, 8: 3, 12: 3};
 const hard = (a, b) => Math.max(HARD[a], HARD[b]);
+
+// Who you play as, and where. Both are bought with gems earned by answering sums.
+const BUDDIES = [
+  {id: 'rocket', e: '🚀', n: 'Rocket', cost: 0, rot: -45, beam: 'linear-gradient(#fff,#3fe0ff)'},
+  {id: 'unicorn', e: '🦄', n: 'Sparkle the Unicorn', cost: 0, beam: 'linear-gradient(#ff5f6d,#ffc371,#fff86b,#5fff9a,#5fc8ff,#b45fff)'},
+  {id: 'cat', e: '🐱', n: 'Whiskers the Cat', cost: 25, beam: 'linear-gradient(#fff,#ff8ad8)'},
+  {id: 'dolphin', e: '🐬', n: 'Splash the Dolphin', cost: 40, beam: 'linear-gradient(#fff,#5fe3ff)'},
+  {id: 'fairy', e: '🧚', n: 'Twinkle the Fairy', cost: 60, beam: 'linear-gradient(#fff,#e7a6ff,#ff8ad8)'},
+  {id: 'dragon', e: '🐉', n: 'Ember the Dragon', cost: 90, beam: 'linear-gradient(#fff6a0,#ff9a3c,#ff3c3c)'},
+  {id: 'mermaid', e: '🧜‍♀️', n: 'Coral the Mermaid', cost: 120, beam: 'linear-gradient(#fff,#4fffd2,#5fa8ff)'},
+  {id: 'panda', e: '🐼', n: 'Bamboo the Panda', cost: 150, beam: 'linear-gradient(#fff,#b6ff6b)'},
+  {id: 'owl', e: '🦉', n: 'Professor Hoot', cost: 200, beam: 'linear-gradient(#fff,#ffd84d)'},
+];
+const WORLDS = [
+  {id: 'space', n: 'Outer Space', e: '🌌', cost: 0, boss: {e: '👾', n: 'Zorg'}, parts: ['✨', '⭐', '💫']},
+  {id: 'ocean', n: 'Under the Sea', e: '🐠', cost: 30, boss: {e: '🦈', n: 'Chomper the Shark'}, parts: ['🫧', '🐟', '✨']},
+  {id: 'candy', n: 'Candy Land', e: '🍭', cost: 60, boss: {e: '🐊', n: 'Sugar Croc'}, parts: ['🍬', '🍭', '💖']},
+  {id: 'forest', n: 'Fairy Forest', e: '🍄', cost: 100, boss: {e: '🐸', n: 'King Croak'}, parts: ['🌸', '🍃', '✨']},
+];
+let ME = Object.assign({gems: 0, buddies: ['rocket', 'unicorn'], worlds: ['space'], buddy: 'rocket', world: 'space'}, load('ttb-player', {}));
+const savePlayer = () => save('ttb-player', ME);
+const buddy = () => BUDDIES.find(b => b.id === ME.buddy) || BUDDIES[0];
+const world = () => WORLDS.find(w => w.id === ME.world) || WORLDS[0];
+function applyWorld() { document.body.dataset.world = world().id; }
+function addGems(n) { ME.gems += n; if (A) A.gems += n; savePlayer(); }
+// The cheapest thing still to unlock, to give something to aim for.
+function nextGoal() { return BUDDIES.concat(WORLDS).filter(x => x.cost && !ME.buddies.includes(x.id) && !ME.worlds.includes(x.id)).sort((a, b) => a.cost - b.cost)[0]; }
 
 const SFX = {
   ctx: null,
   init() { if (!this.ctx) try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
   tone(f, t, d, type, v, f2) { if (!this.ctx) return; const c = this.ctx, o = c.createOscillator(), g = c.createGain(), s = c.currentTime + t; o.type = type || 'triangle'; o.frequency.setValueAtTime(f, s); if (f2) o.frequency.exponentialRampToValueAtTime(f2, s + d); g.gain.setValueAtTime(.0001, s); g.gain.exponentialRampToValueAtTime(v || .12, s + .01); g.gain.exponentialRampToValueAtTime(.0001, s + d); o.connect(g); g.connect(c.destination); o.start(s); o.stop(s + d + .05); },
   key() { this.tone(600, 0, .04, 'square', .03); },
-  zap() { this.tone(1400, 0, .18, 'sawtooth', .07, 200); this.tone(90, .12, .3, 'triangle', .2, 40); },
-  gold() { [880, 1175, 1480].forEach((f, i) => this.tone(f, i * .07, .2, 'triangle', .1)); },
+  zap() { this.tone(1400, 0, .18, 'sawtooth', .06, 200); this.tone(523, .05, .12, 'sine', .08); this.tone(784, .1, .15, 'sine', .08); },
+  pop() { this.tone(700, 0, .08, 'sine', .14, 1600); this.tone(1200, .06, .1, 'sine', .08); },
+  gold() { [880, 1175, 1480, 1760].forEach((f, i) => this.tone(f, i * .07, .2, 'triangle', .1)); },
   bad() { this.tone(170, 0, .25, 'square', .07); },
   crash() { this.tone(120, 0, .6, 'sawtooth', .16, 30); },
   level() { [523, 659, 784, 1047].forEach((f, i) => this.tone(f, i * .1, .25)); },
+  boss() { [196, 185, 175, 165].forEach((f, i) => this.tone(f, i * .18, .3, 'sawtooth', .09)); },
+  win() { [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => this.tone(f, i * .12, .3)); },
   star() { [1047, 1319, 1568, 2093].forEach((f, i) => this.tone(f, i * .08, .3, 'sine', .1)); },
+  buy() { [659, 880, 1109, 1319].forEach((f, i) => this.tone(f, i * .09, .25, 'sine', .12)); },
   over() { [392, 330, 262].forEach((f, i) => this.tone(f, i * .2, .4)); },
 };
 
@@ -132,7 +231,7 @@ function record(a, b, ok, ms) {
   f.n++;
   if (ok) { f.r++; f.s++; f.t = f.t ? Math.round(f.t * .6 + ms * .4) : Math.round(ms); } else f.s = 0;
   save('ttb-facts', facts);
-  if (was < 3 && lvl(f) === 3) { SFX.star(); toast(`⭐ New star: <b>${Math.min(a, b)} × ${Math.max(a, b)} = ${a * b}</b>`); }
+  if (was < 3 && lvl(f) === 3) { addGems(5); SFX.star(); toast(`⭐ New star: <b>${Math.min(a, b)} × ${Math.max(a, b)} = ${a * b}</b> · +5 💎`); }
 }
 const WEIGHT = [3, 6, 3, 1];   // shaky facts come up most, stars least
 let lastKey = '';
@@ -141,13 +240,20 @@ function makeQ(allowMissing, only) {
   if (only && only.length) pool = only.map(([a, b]) => ({a, b, w: 1}));
   else tables.forEach(a => { for (let b = 1; b <= 12; b++) pool.push({a, b, w: WEIGHT[lvl(facts[fk(a, b)])] * (b === 1 ? .4 : 1)}); });
   if (pool.length > 1) pool = pool.filter(p => fk(p.a, p.b) !== lastKey);
-  let r = Math.random() * pool.reduce((s, p) => s + p.w, 0), pick = pool[0];
-  for (const p of pool) { r -= p.w; if (r <= 0) { pick = p; break; } }
-  lastKey = fk(pick.a, pick.b);
-  const [x, y] = Math.random() < .5 ? [pick.a, pick.b] : [pick.b, pick.a];
+  let r = Math.random() * pool.reduce((s, p) => s + p.w, 0), got = pool[0];
+  for (const p of pool) { r -= p.w; if (r <= 0) { got = p; break; } }
+  lastKey = fk(got.a, got.b);
+  const [x, y] = Math.random() < .5 ? [got.a, got.b] : [got.b, got.a];
   const missing = allowMissing && y > 1 && Math.random() < .2;
   return {a: x, b: y, p: x * y, missing, ans: missing ? y : x * y,
     text: missing ? `${x} × ? = ${x * y}` : `${x} × ${y}`, full: `${x} × ${y} = ${x * y}`};
+}
+// Wrong answers for Bubble Pop that look believable: neighbouring sums, digits swapped, added instead of times.
+function wrongs(q) {
+  const {a, b} = q, p = q.ans, out = new Set();
+  shuffle([a * (b + 1), a * (b - 1), (a + 1) * b, (a - 1) * b, p + 10, p - 10, p + 2, p - 2, +String(p).split('').reverse().join(''), a + b, p + a, p - b])
+    .forEach(x => { if (x > 0 && x !== p && out.size < 3) out.add(x); });
+  return [...out];
 }
 function tip(a, b) {
   const x = Math.min(a, b), y = Math.max(a, b), p = x * y;
@@ -166,40 +272,51 @@ function tip(a, b) {
   if (x === 6 && y % 2 === 0) return `6 × an even number ends in the same digit: 6 × ${y} = ${p}.`;
   return `Use one you know: ${x} × ${y - 1} = ${x * (y - 1)}, then add one more ${x} → ${p}.`;
 }
+const PRAISE = ['Nice!', 'Brilliant!', 'Spot on!', 'Yes!', 'Superb!', 'Nailed it!', 'Amazing!', 'Woohoo!', 'Super star!', 'You rock!'];
 
 /* ================= screens ================= */
 const UI = {screen: 'home'};
 let A = null, T = null, raf = 0;
 const app = $('#app');
+const playing = () => UI.screen === 'blast' || UI.screen === 'pop';
 function render() {
   cancelAnimationFrame(raf);
-  document.body.style.overflow = UI.screen === 'blast' || UI.screen === 'train' ? 'hidden' : '';
+  applyWorld();
+  document.body.style.overflow = playing() || UI.screen === 'train' ? 'hidden' : '';
   if (UI.screen === 'home') app.innerHTML = homeHTML();
-  else if (UI.screen === 'blast') { app.innerHTML = blastHTML(); nextRock(); raf = requestAnimationFrame(tick); }
-  else if (UI.screen === 'blastOver') app.innerHTML = blastOverHTML();
+  else if (playing()) { app.innerHTML = playHTML(UI.screen); next(); raf = requestAnimationFrame(tick); }
+  else if (UI.screen === 'over') app.innerHTML = overHTML();
   else if (UI.screen === 'train') { app.innerHTML = trainHTML(); nextTrain(); }
   else if (UI.screen === 'trainOver') app.innerHTML = trainOverHTML();
   else if (UI.screen === 'chart') app.innerHTML = chartHTML();
+  else if (UI.screen === 'shop') app.innerHTML = shopHTML();
   window.scrollTo(0, 0);
 }
 const tablesLabel = () => tables.length === ALL.length ? 'all tables' : tables.length === 1 ? `the ${tables[0]}s` : `${tables.slice(0, -1).join(', ')} and ${tables[tables.length - 1]}`;
+function goalHTML() {
+  const g = nextGoal(); if (!g) return '<div class="goal">🏆 You’ve unlocked everything!</div>';
+  return `<div class="goal">${ME.gems >= g.cost ? `🎁 You can unlock <b>${g.e} ${esc(g.n)}</b> now!` : `Next to unlock: <b>${g.e} ${esc(g.n)}</b> · ${g.cost - ME.gems} more 💎`}<div class="bar"><i style="width:${Math.min(100, 100 * ME.gems / g.cost)}%"></i></div></div>`;
+}
 function homeHTML() {
-  const best = load('ttb-best', 0);
+  const b = buddy(), w = world();
   return `<main class="wrap">
-  <div class="top"><a class="iconbtn" href="/">🏠 Main menu</a><div class="grow"></div><a class="iconbtn" href="../leaderboard/">🏆</a></div>
-  <h1 class="title"><span class="rk">🚀</span> Times Table Blaster</h1>
-  <p class="subtitle">Blast the asteroids before they hit your rocket!</p>
-  <div class="stack">
+  <div class="top"><a class="iconbtn" href="/">🏠 Main menu</a><div class="grow"></div><span class="gempill">💎 ${ME.gems}</span><a class="iconbtn" href="../leaderboard/">🏆</a></div>
+  <h1 class="title">Times Table Blaster</h1>
+  <div class="stack" style="margin-top:12px">
+    <div class="panel stack" style="gap:10px"><div class="me"><span class="face"><span style="display:inline-block;${b.rot ? `transform:rotate(${b.rot}deg)` : ''}">${b.e}</span></span><div><b>${esc(b.n)}</b><span class="mut">in ${w.e} ${esc(w.n)}</span></div></div>
+      ${goalHTML()}
+      ${ME.picked ? '<button class="btn ghost" data-act="shop">🛍️ Buddies &amp; worlds</button>' : '<button class="btn" data-act="shop">✨ Pick your buddy!</button>'}</div>
     <div class="panel"><div class="label">Your name</div><input class="txt" id="name" maxlength="16" placeholder="Type your name" value="${esc(FamilyScores.name())}" autocomplete="off" style="margin-top:6px"></div>
     <div class="panel"><div class="label" style="margin-bottom:8px">Which tables?</div>
       <div class="chips">${ALL.map(t => `<button class="chip t${tables.includes(t) ? ' on' : ''}" data-t="${t}">${t}</button>`).join('')}
       <button class="chip${tables.length === ALL.length ? ' on' : ''}" data-t="all">All</button></div>
       <div class="mut" style="font-size:13px;margin-top:8px">Practising ${tablesLabel()}. Tricky tables (6, 7, 8 and 12) score the most points.</div></div>
-    <button class="btn" data-act="blast">🚀 Blast off!${best ? `<span class="best"> · best ${best.toLocaleString()}</span>` : ''}</button>
-    <button class="btn alt" data-act="train">🎯 Training (no timer, with tips)</button>
-    <button class="btn green" data-act="chart">⭐ Star chart · ${starCount()} of ${TOTAL_FACTS}</button>
-    <div class="panel howto"><b style="color:var(--ink)">How to play:</b> an asteroid with a sum on it falls towards your rocket. Type the answer to blast it! Answer fast for extra points, and get answers right in a row for a combo: <b>×2</b> after 5, <b>×3</b> after 10. Golden asteroids are worth triple and fix a shield. If 3 asteroids get through, it's game over.
-      <br><br>Get a sum right 3 times in a row, quickly, and it earns a <b>⭐ star</b> on your chart. The game asks you the ones you find tricky more often.</div>
+    <button class="btn" data-act="blast">${b.e} Blast off! <small>type the answers${load('ttb-best', 0) ? ' · best ' + load('ttb-best', 0).toLocaleString() : ''}</small></button>
+    <button class="btn alt" data-act="pop">🫧 Bubble Pop <small>tap the answers${load('ttb-best-pop', 0) ? ' · best ' + load('ttb-best-pop', 0).toLocaleString() : ''}</small></button>
+    <button class="btn green" data-act="train">🎯 Training <small>no timer, with tips</small></button>
+    <button class="btn ghost" data-act="chart">⭐ Star chart · ${starCount()} of ${TOTAL_FACTS}</button>
+    <div class="panel howto"><b style="color:var(--ink)">How to play:</b> sums fall towards ${esc(b.n)}. Answer them to zap them! Quick answers score more, and 5 right in a row doubles your points. Golden ones are worth triple and give back a heart. Every few levels a <b>boss</b> attacks: keep answering to beat it!
+      <br><br>Every right answer earns <b>💎 gems</b> for new buddies and worlds. Get a sum right 3 times in a row, quickly, to earn its <b>⭐ star</b> and 5 bonus gems.</div>
     <a class="btn ghost" href="../leaderboard/">🏆 Family leaderboard</a>
     <a class="btn ghost" href="/">🏠 Exit to main menu</a>
   </div></main>`;
@@ -207,46 +324,144 @@ function homeHTML() {
 function needName() { const el = $('#name'), n = el ? el.value.trim() : FamilyScores.name(); if (!n) { toast('Type your name first!'); el && el.focus(); return false; } FamilyScores.setName(n); return true; }
 const pad = () => `<div class="pad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button data-k="${n}">${n}</button>`).join('')}<button class="fn" data-k="C">Clear</button><button data-k="0">0</button><button class="fn" data-k="B">⌫</button></div>`;
 
-/* ================= Blast off: the arcade game ================= */
-const fallMs = () => Math.max(3600, 10500 - (A.level - 1) * 800);
-function startBlast() { A = {score: 0, shields: 3, combo: 0, bestCombo: 0, level: 1, blasted: 0, right: 0, wrong: 0, missed: {}, q: null, entry: '', busy: true, paused: false, newStars: starCount()}; UI.screen = 'blast'; render(); }
-function blastHTML() {
-  return `<div class="game">
-    <div class="hud"><button class="iconbtn" data-act="quit">✕ Exit</button><span class="score" id="score">0</span><button class="iconbtn" data-act="pause">⏸</button><span class="shields" id="shields"></span></div>
-    <div class="sub"><span id="lvl">Level 1</span><span class="combo" id="combo"></span></div>
-    <div class="field" id="field"><div class="rock" id="rock"></div><div class="ship" id="ship">🚀</div></div>
-    <div class="answer" id="ans"></div>${pad()}</div>`;
+/* ================= Blast off and Bubble Pop ================= */
+function startGame(mode) {
+  A = {mode, score: 0, hearts: 3, combo: 0, bestCombo: 0, level: 1, done: 0, missed: {}, q: null, entry: '', busy: true, paused: false, gems: 0, boss: null, bosses: 0, stars: starCount(), bubs: []};
+  UI.screen = mode; render();
 }
-function hud() {
-  $('#score').textContent = A.score.toLocaleString();
-  $('#shields').innerHTML = [0, 1, 2].map(i => `<span class="${i < A.shields ? '' : 'gone'}">🛡️</span>`).join('');
-  $('#lvl').textContent = `Level ${A.level}`;
-  const m = mult();
-  $('#combo').textContent = A.combo >= 2 ? `🔥 ${A.combo} in a row${m > 1 ? ` · ×${m}` : ''}` : '';
-  $('#ans').textContent = A.entry || '';
+function playHTML(mode) {
+  const b = buddy();
+  return `<div class="game">
+    <div class="hud"><button class="iconbtn" data-act="quit">✕ Exit</button><span class="gems" id="gems"></span><span class="score" id="score">0</span><button class="iconbtn" data-act="pause">⏸</button><span class="hearts" id="hearts"></span></div>
+    <div class="sub"><span id="lvl">Level 1</span><span class="combo" id="combo"></span></div>
+    <div class="field" id="field">${mode === 'pop' ? '<div class="popq" id="popq"></div>' : '<div class="rock" id="rock"></div>'}<div class="hero" id="hero" style="${b.rot ? `--rot:${b.rot}deg` : ''}">${b.e}</div></div>
+    ${mode === 'blast' ? '<div class="answer" id="ans"></div>' + pad() : '<div class="hint">Tap the bubble with the right answer before it floats away!</div>'}</div>`;
 }
 const mult = () => A.combo >= 10 ? 3 : A.combo >= 5 ? 2 : 1;
-function nextRock() {
-  if (!A || UI.screen !== 'blast') return;
-  A.q = makeQ(A.level >= 3);
-  A.q.gold = A.blasted >= 3 && Math.random() < .12;
-  A.q.t0 = A.paused || performance.now(); A.q.y = 0;
-  A.entry = ''; A.busy = false;
-  const r = $('#rock'); r.className = 'rock' + (A.q.gold ? ' gold' : ''); r.textContent = A.q.text; r.style.top = '0px';
-  $('#ans').className = 'answer';
-  hud();
+const fallMs = () => Math.max(3600, 10500 - (A.level - 1) * 750);
+const riseMs = () => Math.max(3600, 8500 - (A.level - 1) * 550);
+function hud() {
+  $('#score').textContent = A.score.toLocaleString();
+  $('#gems').textContent = '💎 ' + ME.gems;
+  $('#hearts').innerHTML = [0, 1, 2].map(i => `<span class="${i < A.hearts ? '' : 'gone'}">💖</span>`).join('');
+  $('#lvl').textContent = A.boss ? `⚠️ Boss battle!` : `Level ${A.level}`;
+  const m = mult();
+  $('#combo').textContent = A.combo >= 2 ? `🔥 ${A.combo} in a row${m > 1 ? ` · ×${m}` : ''}` : '';
+  const ans = $('#ans'); if (ans) ans.textContent = A.entry || '';
 }
+function next() { if (!A || !playing()) return; if (A.mode === 'blast') nextRock(); else nextPop(); }
 function tick(now) {
   raf = requestAnimationFrame(tick);
   if (!A || A.busy || A.paused) return;
-  const f = $('#field'), r = $('#rock'); if (!f || !r) return;
+  if (A.mode === 'blast') blastTick(now); else popTick(now);
+}
+const field = () => $('#field');
+function float(text, top, color) { const d = document.createElement('div'); d.className = 'float'; d.textContent = text; d.style.top = top + 'px'; if (color) d.style.color = color; field().appendChild(d); setTimeout(() => d.remove(), 1000); }
+function banner(html, ms) { const d = document.createElement('div'); d.className = 'banner'; d.innerHTML = html; if (ms) d.style.animationDuration = ms + 'ms'; field().appendChild(d); setTimeout(() => d.remove(), ms || 1500); }
+function say(text) { const f = field(); if (!f) return; f.querySelectorAll('.say').forEach(s => s.remove()); const d = document.createElement('div'); d.className = 'say'; d.textContent = text; f.appendChild(d); setTimeout(() => d.remove(), 1600); }
+function burst(x, y) {
+  const parts = world().parts, f = field();
+  for (let i = 0; i < 9; i++) {
+    const d = document.createElement('div'), a = i / 9 * Math.PI * 2 + Math.random() * .5, r = 50 + Math.random() * 40;
+    d.className = 'pt'; d.textContent = parts[i % parts.length];
+    d.style.left = x - 11 + 'px'; d.style.top = y - 11 + 'px';
+    d.style.setProperty('--dx', Math.cos(a) * r + 'px'); d.style.setProperty('--dy', Math.sin(a) * r + 'px');
+    f.appendChild(d); setTimeout(() => d.remove(), 800);
+  }
+}
+function heroDo(cls) { const h = $('#hero'); if (!h) return; h.classList.remove('hop', 'hit'); void h.offsetWidth; h.classList.add(cls); }
+
+// A right answer, in either game: points, gems, combos, levels and bosses.
+function scored(q, y, top) {
+  A.combo++; A.bestCombo = Math.max(A.bestCombo, A.combo);
+  const h = hard(q.a, q.b), pts = (10 * h + Math.round((1 - Math.min(1, y)) * 10 * h)) * mult() * (q.gold ? 3 : 1);
+  A.score += pts; addGems(q.gold ? 3 : 1);
+  float(`+${pts}`, top, q.gold ? '#ffd84d' : null);
+  if (q.gold) { SFX.gold(); if (A.hearts < 3) { A.hearts++; setTimeout(() => float('💖 +1', top + 40, '#ff8ad8'), 150); } } else if (A.mode === 'pop') SFX.pop(); else SFX.zap();
+  vibrate(20); heroDo('hop');
+  let wait = A.mode === 'pop' ? 550 : 450;
+  if (A.boss) {
+    A.boss.hp -= q.gold ? 2 : 1;
+    const bx = $('#boss'); bx.querySelector('.hp i').style.width = Math.max(0, 100 * A.boss.hp / A.boss.max) + '%';
+    bx.classList.remove('hurt'); void bx.offsetWidth; bx.classList.add('hurt');
+    if (A.boss.hp <= 0) { bossDown(); wait = 1900; }
+  } else {
+    A.done++;
+    if (A.done % PER_LEVEL === 0) {
+      A.level++; addGems(2);
+      if (A.level % BOSS_EVERY === 0) { startBoss(); wait = 1900; }
+      else { SFX.level(); banner(`Level ${A.level}!<small>Getting faster… +2 💎</small>`); wait = 1400; }
+    } else if (A.combo === 5 || A.combo === 10 || A.combo === 20) { banner(`🔥 ${A.combo} in a row!<small>×${mult()} points</small>`, 1200); say(A.combo >= 10 ? 'Unstoppable!' : 'On fire!'); }
+    else if (Math.random() < .18) say(pick(PRAISE));
+  }
+  hud(); return wait;
+}
+function startBoss() {
+  const w = world(), max = 5 + A.bosses * 2;
+  A.boss = {hp: max, max};
+  SFX.boss(); vibrate([60, 60, 60]);
+  const d = document.createElement('div'); d.className = 'boss'; d.id = 'boss';
+  d.innerHTML = `<div class="be">${w.boss.e}</div><div class="nm">${esc(w.boss.n)}</div><div class="hp"><i style="width:100%"></i></div>`;
+  field().appendChild(d);
+  banner(`⚠️ ${esc(w.boss.n)} attacks!<small>Answer ${max} sums to beat ${w.boss.e}</small>`, 1800);
+  say("We've got this!");
+}
+function bossDown() {
+  const w = world(), bx = $('#boss');
+  A.bosses++; A.boss = null; addGems(10);
+  bx.classList.add('down'); setTimeout(() => bx.remove(), 1100);
+  SFX.win(); confetti(30); vibrate([30, 30, 30, 30, 80]);
+  banner(`🎉 You beat ${esc(w.boss.n)}!<small>+10 💎</small>`, 1800);
+  say('Hooray!!');
+}
+function gameOver() {
+  cancelAnimationFrame(raf);
+  const key = A.mode === 'pop' ? 'ttb-best-pop' : 'ttb-best', best = load(key, 0);
+  A.newBest = A.score > best;
+  if (A.newBest) save(key, A.score);
+  A.newStars = starCount() - A.stars;
+  if (A.score > 0) FamilyScores.submit('timestables', A.mode === 'pop' ? 'bubble' : 'blast', A.score, {player: FamilyScores.name(), detail: `level ${A.level}, ${tablesLabel()}`});
+  reportStars();
+  SFX.over(); UI.screen = 'over'; render();
+  if (A.newBest) confetti(40);
+}
+function reportStars() {
+  const n = starCount();
+  if (n > load('ttb-stars-sent', 0)) { save('ttb-stars-sent', n); FamilyScores.submit('timestables', 'stars', n, {player: FamilyScores.name()}); }
+}
+function overHTML() {
+  const missed = Object.values(A.missed);
+  return `<main class="wrap"><div class="stack">
+    <h1 class="title" style="margin-top:20px">${A.newBest ? '🏆 New best!' : A.mode === 'pop' ? '🫧 Game over' : '💥 Game over'}</h1>
+    <div class="big">${A.score.toLocaleString()}</div><div class="center mut">points</div>
+    <div class="stat"><div><b>${A.level}</b>level</div><div><b>${A.bestCombo}</b>best streak</div><div><b>${A.bosses}</b>boss${A.bosses === 1 ? '' : 'es'} beaten</div></div>
+    <div class="panel center stack" style="gap:8px"><div>💎 <b>+${A.gems}</b> gems this game · you have <b>${ME.gems}</b></div>${goalHTML()}</div>
+    ${A.newStars > 0 ? `<div class="panel center">⭐ You earned <b>${A.newStars}</b> new star${A.newStars === 1 ? '' : 's'}! That's ${starCount()} of ${TOTAL_FACTS}.</div>` : ''}
+    ${missed.length ? `<div class="panel center"><div class="label" style="margin-bottom:8px">Practise these</div><div class="facts">${missed.slice(0, 8).map(([a, b]) => `<span>${a} × ${b} = ${a * b}</span>`).join('')}</div>
+      <button class="btn alt sm" style="margin:12px auto 0" data-act="trainMissed">🎯 Train on these</button></div>` : A.done ? '<div class="panel center">🎯 Not a single mistake. Amazing!</div>' : ''}
+    <button class="btn" data-act="${A.mode}">${A.mode === 'pop' ? '🫧' : buddy().e} Play again</button>
+    ${nextGoal() && ME.gems >= nextGoal().cost ? '<button class="btn green" data-act="shop">🎁 Unlock something new!</button>' : ''}
+    <a class="btn ghost" href="../leaderboard/">🏆 Family leaderboard</a>
+    <button class="btn ghost" data-act="home">${buddy().e} Times Table Blaster menu</button></div></main>`;
+}
+
+/* ---- Blast off: type the answer to zap the falling sum ---- */
+function nextRock() {
+  A.q = makeQ(A.level >= 3);
+  A.q.gold = A.done >= 3 && !A.boss && Math.random() < .12;
+  A.q.t0 = A.paused || performance.now(); A.q.y = 0;
+  A.entry = ''; A.busy = false;
+  const r = $('#rock'); r.className = 'rock' + (A.q.gold ? ' gold' : ''); r.textContent = A.q.text; r.style.top = (A.boss ? 100 : 0) + 'px';
+  $('#ans').className = 'answer';
+  hud();
+}
+function blastTick(now) {
+  const f = field(), r = $('#rock'); if (!f || !r) return;
   A.q.y = Math.min(1, (now - A.q.t0) / fallMs());
-  const room = f.clientHeight - r.offsetHeight - 56;
-  r.style.top = Math.max(0, A.q.y * room) + 'px';
+  const start = A.boss ? 100 : 0, room = f.clientHeight - r.offsetHeight - 60 - start;
+  r.style.top = start + Math.max(0, A.q.y * room) + 'px';
   if (A.q.y >= 1) crash();
 }
-function float(text, top, color) { const d = document.createElement('div'); d.className = 'float'; d.textContent = text; d.style.top = top + 'px'; if (color) d.style.color = color; $('#field').appendChild(d); setTimeout(() => d.remove(), 1000); }
-function banner(text) { const d = document.createElement('div'); d.className = 'banner'; d.innerHTML = text; $('#field').appendChild(d); setTimeout(() => d.remove(), 1300); }
 function blastKey(k) {
   if (!A || A.busy || A.paused) return;
   if (k === 'B') A.entry = A.entry.slice(0, -1);
@@ -254,88 +469,111 @@ function blastKey(k) {
   else if (A.entry.length < 3) A.entry += k;
   hud();
   if (/^\d+$/.test(k) && A.entry.length >= String(A.q.ans).length) {
-    if (+A.entry === A.q.ans) hit(); else miss();
+    if (+A.entry === A.q.ans) zap(); else wrongTyped();
   }
 }
-function hit() {
+function zap() {
   const q = A.q, ms = performance.now() - q.t0;
   A.busy = true;
   if (!q.wrong) record(q.a, q.b, true, ms);
-  A.right++; A.combo++; A.bestCombo = Math.max(A.bestCombo, A.combo); A.blasted++;
-  const h = hard(q.a, q.b), pts = (10 * h + Math.round((1 - q.y) * 10 * h)) * mult() * (q.gold ? 3 : 1);
-  A.score += pts;
-  const r = $('#rock'), f = $('#field'), top = r.offsetTop + r.offsetHeight;
-  const l = document.createElement('div'); l.className = 'laser'; l.style.top = top + 'px'; l.style.height = Math.max(0, f.clientHeight - top - 46) + 'px'; f.appendChild(l); setTimeout(() => l.remove(), 300);
+  const r = $('#rock'), f = field(), top = r.offsetTop + r.offsetHeight;
+  const l = document.createElement('div'); l.className = 'laser'; l.style.background = buddy().beam; l.style.top = top + 'px'; l.style.height = Math.max(0, f.clientHeight - top - 50) + 'px'; f.appendChild(l); setTimeout(() => l.remove(), 300);
+  burst(f.clientWidth / 2, r.offsetTop + r.offsetHeight / 2);
   r.textContent = q.missing ? q.full : `${q.text} = ${q.p}`; r.classList.add('boom');
   $('#ans').className = 'answer good';
-  float(`+${pts}`, r.offsetTop, q.gold ? '#ffd84d' : null);
-  if (q.gold) { SFX.gold(); if (A.shields < 3) { A.shields++; setTimeout(() => float('🛡️ +1', r.offsetTop + 40, '#5cffb0'), 150); } } else SFX.zap();
-  vibrate(20);
-  hud();
-  let wait = 450;
-  if (A.blasted % PER_LEVEL === 0) { A.level++; SFX.level(); banner(`Level ${A.level}!<br><small style="font-size:16px;font-family:Nunito">The asteroids are getting faster</small>`); wait = 1300; hud(); }
-  else if (A.combo === 5 || A.combo === 10) banner(`🔥 ${A.combo} in a row!<br>×${mult()} points`);
-  setTimeout(nextRock, wait);
+  setTimeout(next, scored(q, q.y, r.offsetTop));
 }
-function miss() {
+function wrongTyped() {
   const q = A.q;
   if (!q.wrong) { q.wrong = true; record(q.a, q.b, false); A.missed[fk(q.a, q.b)] = [q.a, q.b]; }
-  A.wrong++; A.combo = 0; SFX.bad(); vibrate(60);
+  A.combo = 0; SFX.bad(); vibrate(60); say('Try again!');
   const a = $('#ans'); a.className = 'answer'; void a.offsetWidth; a.className = 'answer bad';
   setTimeout(() => { if (A && A.q === q && !A.busy) { A.entry = ''; hud(); } }, 300);
 }
 function crash() {
   const q = A.q;
-  A.busy = true; A.shields--; A.combo = 0;
+  A.busy = true; A.hearts--; A.combo = 0;
   if (!q.wrong) { record(q.a, q.b, false); A.missed[fk(q.a, q.b)] = [q.a, q.b]; }
   SFX.crash(); vibrate([80, 40, 120]);
   const r = $('#rock'); r.classList.add('crashed'); r.textContent = q.full;
-  const s = $('#ship'); s.classList.remove('hit'); void s.offsetWidth; s.classList.add('hit');
+  heroDo('hit'); say(`Oops! It's ${q.ans}`);
   hud();
-  setTimeout(() => { if (!A) return; if (A.shields <= 0) blastOver(); else nextRock(); }, 1600);
+  setTimeout(() => { if (!A || !playing()) return; if (A.hearts <= 0) gameOver(); else next(); }, 1700);
 }
+
+/* ---- Bubble Pop: tap the bubble with the right answer ---- */
+function nextPop() {
+  const f = field();
+  A.q = makeQ(false);
+  A.q.gold = A.done >= 3 && !A.boss && Math.random() < .12;
+  A.q.t0 = A.paused || performance.now(); A.q.y = 0; A.busy = false;
+  const pq = $('#popq'); pq.className = 'popq' + (A.q.gold ? ' gold' : ''); pq.innerHTML = `${A.q.gold ? '🌟 ' : ''}${A.q.text} = ?`;
+  pq.style.top = (A.boss ? 96 : 8) + 'px';
+  f.querySelectorAll('.bub').forEach(b => b.remove());
+  A.bubs = shuffle([A.q.ans].concat(wrongs(A.q))).map((v, i) => {
+    const d = document.createElement('button'); d.className = 'bub' + (A.q.gold ? ' gold' : ''); d.textContent = v; d.dataset.v = v;
+    d.style.left = `calc(${12.5 + 25 * i}% - var(--bs) / 2)`; d.style.top = f.clientHeight + 'px';
+    f.appendChild(d);
+    return {el: d, v, ph: Math.random() * 6, sp: .88 + Math.random() * .24};
+  });
+  $('#hero').style.opacity = '0';
+  hud();
+}
+function popTick(now) {
+  const f = field(); if (!f) return;
+  const H = f.clientHeight, prog = (now - A.q.t0) / riseMs(), top = A.boss ? 96 : 8;
+  A.q.y = prog;
+  A.bubs.forEach(b => {
+    const s = b.el.offsetHeight, y = H - Math.min(prog * b.sp, 1.2) * (H + s);
+    b.el.style.top = y + 'px';
+    b.el.style.transform = `translateX(${Math.sin(now / 450 + b.ph) * 8}px)`;
+    if (b.v === A.q.ans && y < top - s * .3) escaped();
+  });
+}
+function popTap(el) {
+  if (!A || A.busy || A.paused) return;
+  const q = A.q, v = +el.dataset.v;
+  if (v === q.ans) {
+    A.busy = true;
+    if (!q.wrong) record(q.a, q.b, true, performance.now() - q.t0);
+    const f = field(), fr = f.getBoundingClientRect(), r = el.getBoundingClientRect();
+    burst(r.left - fr.left + r.width / 2, r.top - fr.top + r.height / 2);
+    el.classList.add('pop'); A.bubs.forEach(b => { if (b.el !== el) b.el.classList.add('gone'); });
+    $('#popq').innerHTML = q.full;
+    setTimeout(next, scored(q, q.y, Math.max(40, r.top - fr.top)));
+  } else {
+    el.classList.add('bad');
+    if (!q.wrong) { q.wrong = true; record(q.a, q.b, false); A.missed[fk(q.a, q.b)] = [q.a, q.b]; }
+    A.combo = 0; A.hearts--; SFX.bad(); vibrate(60);
+    hud();
+    if (A.hearts <= 0) { A.busy = true; showAnswer(); setTimeout(() => A && playing() && gameOver(), 1700); }
+  }
+}
+function escaped() {
+  const q = A.q;
+  A.busy = true; A.hearts--; A.combo = 0;
+  if (!q.wrong) { record(q.a, q.b, false); A.missed[fk(q.a, q.b)] = [q.a, q.b]; }
+  SFX.crash(); vibrate([80, 40, 120]);
+  showAnswer(); hud();
+  setTimeout(() => { if (!A || !playing()) return; if (A.hearts <= 0) gameOver(); else next(); }, 1700);
+}
+function showAnswer() { const pq = $('#popq'); pq.className = 'popq bad'; pq.textContent = A.q.full; A.bubs.forEach(b => b.el.classList.add('gone')); }
+
 function pause(on) {
-  if (!A || UI.screen !== 'blast') return;
+  if (!A || !playing()) return;
   if (on && !A.paused) {
     A.paused = performance.now();
     const o = document.createElement('div'); o.className = 'overlay'; o.id = 'pause';
-    o.innerHTML = `<div class="stack center" style="width:min(80vw,300px)"><div class="big">Paused</div><button class="btn" data-act="resume">▶ Carry on</button><button class="btn ghost" data-act="quitNow">✕ Stop this game</button></div>`;
+    o.innerHTML = `<div class="stack center" style="width:min(80vw,300px)"><div style="font-size:60px">${buddy().e}</div><div class="big">Paused</div><button class="btn" data-act="resume">▶ Carry on</button><button class="btn ghost" data-act="quitNow">✕ Stop this game</button></div>`;
     $('.game').appendChild(o);
   } else if (!on && A.paused) {
     if (A.q) A.q.t0 += performance.now() - A.paused;
     A.paused = false; const o = $('#pause'); o && o.remove();
   }
 }
-function blastOver() {
-  cancelAnimationFrame(raf);
-  const best = load('ttb-best', 0);
-  A.newBest = A.score > best;
-  if (A.newBest) save('ttb-best', A.score);
-  A.newStars = starCount() - A.newStars;
-  if (A.score > 0) FamilyScores.submit('timestables', 'blast', A.score, {player: FamilyScores.name(), detail: `level ${A.level}, ${tablesLabel()}`});
-  reportStars();
-  SFX.over(); UI.screen = 'blastOver'; render();
-}
-function reportStars() {
-  const n = starCount();
-  if (n > load('ttb-stars-sent', 0)) { save('ttb-stars-sent', n); FamilyScores.submit('timestables', 'stars', n, {player: FamilyScores.name()}); }
-}
-function blastOverHTML() {
-  const total = A.right + Object.keys(A.missed).length, missed = Object.values(A.missed);
-  return `<main class="wrap"><div class="stack">
-    <h1 class="title" style="margin-top:20px">${A.newBest ? '🏆 New best!' : '💥 Game over'}</h1>
-    <div class="big">${A.score.toLocaleString()}</div><div class="center mut">points</div>
-    <div class="stat"><div><b>${A.level}</b>level</div><div><b>${A.blasted}</b>blasted</div><div><b>${A.bestCombo}</b>best streak</div></div>
-    ${A.newStars > 0 ? `<div class="panel center">⭐ You earned <b>${A.newStars}</b> new star${A.newStars === 1 ? '' : 's'}! That's ${starCount()} of ${TOTAL_FACTS}.</div>` : ''}
-    ${missed.length ? `<div class="panel center"><div class="label" style="margin-bottom:8px">Practise these</div><div class="facts">${missed.slice(0, 8).map(([a, b]) => `<span>${a} × ${b} = ${a * b}</span>`).join('')}</div>
-      <button class="btn alt sm" style="margin:12px auto 0" data-act="trainMissed">🎯 Train on these</button></div>` : total ? '<div class="panel center">🎯 Not a single mistake. Amazing!</div>' : ''}
-    <button class="btn" data-act="blast">🚀 Play again</button>
-    <a class="btn ghost" href="../leaderboard/">🏆 Family leaderboard</a>
-    <button class="btn ghost" data-act="home">🚀 Times Table Blaster menu</button></div></main>`;
-}
 
 /* ================= Training: calm practice with tips ================= */
-function startTrain(only) { T = {i: 0, right: 0, only: only || null, again: [], wrongs: {}, q: null, entry: '', busy: true, startStars: starCount()}; UI.screen = 'train'; render(); }
+function startTrain(only) { T = {i: 0, right: 0, only: only || null, again: [], wrongs: {}, q: null, entry: '', busy: true, startStars: starCount(), gems: 0}; UI.screen = 'train'; render(); }
 function trainHTML() {
   return `<div class="game">
     <div class="hud"><button class="iconbtn" data-act="quit">✕ Exit</button><div class="bar"><i id="prog" style="width:0"></i></div><span id="count" style="min-width:52px;text-align:right">0/${TRAIN_LEN}</span></div>
@@ -343,18 +581,18 @@ function trainHTML() {
     <div class="qcard" id="qcard"></div>
     <div class="answer" id="ans"></div>${pad()}</div>`;
 }
+const pal = text => `<div class="pal"><span>${buddy().e}</span><span class="bubble">${esc(text)}</span></div>`;
 function nextTrain() {
   if (T.i >= TRAIN_LEN) { trainOver(); return; }
   const due = T.again.findIndex(x => x.at <= T.i);
-  if (due >= 0) { const [d] = T.again.splice(due, 1); const [x, y] = Math.random() < .5 ? [d.a, d.b] : [d.b, d.a]; T.q = {a: x, b: y, p: x * y, ans: x * y, text: `${x} × ${y}`, full: `${x} × ${y} = ${x * y}`}; }
+  if (due >= 0) { const [d] = T.again.splice(due, 1); const [x, y] = Math.random() < .5 ? [d.a, d.b] : [d.b, d.a]; T.q = {a: x, b: y, p: x * y, ans: x * y, text: `${x} × ${y}`, full: `${x} × ${y} = ${x * y}`, again: true}; }
   else T.q = makeQ(true, T.only);
   T.q.t0 = performance.now(); T.entry = ''; T.busy = false;
-  $('#qcard').innerHTML = `<div><div class="q">${T.q.text}</div><div class="fb"></div></div>`;
+  $('#qcard').innerHTML = pal(T.q.again ? 'This one again!' : T.i === 0 ? "Let's go!" : T.i === TRAIN_LEN - 1 ? 'Last one!' : pick(['You can do it!', 'Hmm…', 'Ready?', 'Think…', 'Go for it!'])) + `<div><div class="q">${T.q.text}</div><div class="fb"></div></div>`;
   $('#ans').className = 'answer'; $('#ans').textContent = '';
   $('#prog').style.width = (100 * T.i / TRAIN_LEN) + '%'; $('#count').textContent = `${T.i}/${TRAIN_LEN}`;
-  $('#right').textContent = T.i ? `✅ ${T.right} right` : '';
+  $('#right').textContent = T.i ? `✅ ${T.right} right · 💎 ${T.gems}` : '';
 }
-const PRAISE = ['Nice!', 'Brilliant!', 'Spot on!', 'Yes!', 'Superb!', 'Nailed it!', 'Great!'];
 function trainKey(k) {
   if (!T || T.busy) return;
   if (k === 'B') T.entry = T.entry.slice(0, -1);
@@ -365,17 +603,16 @@ function trainKey(k) {
   const q = T.q, ms = performance.now() - q.t0;
   T.busy = true;
   if (+T.entry === q.ans) {
-    record(q.a, q.b, true, ms); T.right++; T.i++; SFX.zap();
+    record(q.a, q.b, true, ms); T.right++; T.i++; T.gems++; addGems(1); SFX.zap();
     $('#ans').className = 'answer good';
-    $('#qcard .fb').innerHTML = `✅ ${PRAISE[Math.floor(Math.random() * PRAISE.length)]} <span class="mut">${(ms / 1000).toFixed(1)}s</span>`;
-    $('#qcard .q').textContent = q.missing ? q.full : `${q.text} = ${q.p}`;
-    setTimeout(nextTrain, 750);
+    $('#qcard').innerHTML = pal(pick(PRAISE)) + `<div><div class="q">${q.missing ? q.full : `${q.text} = ${q.p}`}</div><div class="fb">✅ +1 💎 <span class="mut">${(ms / 1000).toFixed(1)}s</span></div></div>`;
+    setTimeout(nextTrain, 800);
   } else {
     record(q.a, q.b, false); SFX.bad();
     T.wrongs[fk(q.a, q.b)] = [q.a, q.b];
     T.again.push({a: q.a, b: q.b, at: T.i + 3}); T.i++;
     $('#ans').className = 'answer bad';
-    $('#qcard').innerHTML = `<div><div class="q" style="color:var(--bad)">${q.full}</div><div class="tip">💡 ${esc(tip(q.a, q.b))}</div>
+    $('#qcard').innerHTML = pal("Let's learn this one!") + `<div><div class="q" style="color:var(--bad)">${q.full}</div><div class="tip">💡 ${esc(tip(q.a, q.b))}</div>
       <button class="btn sm" style="margin:12px auto 0" data-act="gotit">Got it 👍</button><div class="mut" style="font-size:13px;margin-top:6px">This one will come back in a moment.</div></div>`;
   }
 }
@@ -383,19 +620,22 @@ function trainOver() {
   T.newStars = starCount() - T.startStars;
   reportStars(); SFX.level();
   UI.screen = 'trainOver'; render();
+  if (T.right >= 18) confetti(30);
 }
 function trainOverHTML() {
   const w = Object.values(T.wrongs);
   return `<main class="wrap"><div class="stack">
     <h1 class="title" style="margin-top:20px">${T.right === TRAIN_LEN ? '🌟 Perfect!' : T.right >= 15 ? '🎉 Great work!' : '💪 Good practice!'}</h1>
+    <div class="center" style="font-size:60px">${buddy().e}</div>
     <div class="big">${T.right}/${TRAIN_LEN}</div><div class="center mut">right first time</div>
+    <div class="panel center stack" style="gap:8px"><div>💎 <b>+${T.gems}</b> gems · you have <b>${ME.gems}</b></div>${goalHTML()}</div>
     ${T.newStars > 0 ? `<div class="panel center">⭐ You earned <b>${T.newStars}</b> new star${T.newStars === 1 ? '' : 's'}!</div>` : ''}
     <div class="panel center">Star chart: <b>${starCount()} of ${TOTAL_FACTS}</b> ⭐</div>
     ${w.length ? `<div class="panel center"><div class="label" style="margin-bottom:8px">Keep practising</div><div class="facts">${w.map(([a, b]) => `<span>${a} × ${b} = ${a * b}</span>`).join('')}</div>
       <button class="btn alt sm" style="margin:12px auto 0" data-act="trainMissed">🎯 Train on these</button></div>` : ''}
     <button class="btn" data-act="train">🎯 Train again</button>
-    <button class="btn green" data-act="blast">🚀 Blast off!</button>
-    <button class="btn ghost" data-act="home">🚀 Times Table Blaster menu</button></div></main>`;
+    <button class="btn green" data-act="blast">${buddy().e} Blast off!</button>
+    <button class="btn ghost" data-act="home">${buddy().e} Times Table Blaster menu</button></div></main>`;
 }
 
 /* ================= Star chart ================= */
@@ -408,7 +648,7 @@ function chartHTML() {
   return `<main class="wrap">
   <div class="top"><button class="iconbtn" data-act="home">← Back</button><div class="grow"></div><a class="iconbtn" href="/">🏠</a></div>
   <h1 class="title" style="font-size:32px">⭐ Star chart</h1>
-  <p class="subtitle"><b style="color:var(--gold)">${counts[3]} of ${TOTAL_FACTS}</b> stars earned. Get a sum right 3 times in a row, quickly, to earn its star.</p>
+  <p class="subtitle"><b style="color:var(--gold)">${counts[3]} of ${TOTAL_FACTS}</b> stars earned. Get a sum right 3 times in a row, quickly, to earn its star (and 5 💎).</p>
   <div class="panel" style="padding:10px"><div class="grid">${g}</div>
     <div class="key"><span style="--c:#1f7a4c">⭐ Star (${counts[3]})</span><span style="--c:#7a6514">Learning (${counts[2]})</span><span style="--c:#7a2236">Tricky (${counts[1]})</span><span style="--c:rgba(255,255,255,.15)">Not tried (${counts[0]})</span></div></div>
   <div class="stack" style="margin-top:12px">
@@ -416,20 +656,52 @@ function chartHTML() {
     <button class="btn ghost" data-act="reset">Start the chart again</button></div></main>`;
 }
 
+/* ================= Shop: buddies and worlds ================= */
+function shopHTML() {
+  const card = (kind, x) => {
+    const owned = (kind === 'buddy' ? ME.buddies : ME.worlds).includes(x.id), on = (kind === 'buddy' ? ME.buddy : ME.world) === x.id;
+    return `<button class="item${on ? ' on' : owned ? '' : ME.gems >= x.cost ? ' afford' : ' locked'}" data-buy="${kind}:${x.id}"><div class="e">${owned ? x.e : x.e}</div><div class="n">${esc(x.n)}</div><div class="c">${on ? '✓ Chosen' : owned ? 'Choose' : '💎 ' + x.cost}</div></button>`;
+  };
+  return `<main class="wrap">
+  <div class="top"><button class="iconbtn" data-act="home">← Back</button><div class="grow"></div><span class="gempill">💎 ${ME.gems}</span></div>
+  <h1 class="title" style="font-size:32px">🛍️ Buddies &amp; worlds</h1>
+  <p class="subtitle">Earn 💎 gems: 1 for each right answer, 3 for golden ones, 5 for each new star and 10 for beating a boss.</p>
+  <div class="stack">
+    <div class="panel"><div class="label" style="margin-bottom:10px">Choose your buddy</div><div class="shop">${BUDDIES.map(b => card('buddy', b)).join('')}</div></div>
+    <div class="panel"><div class="label" style="margin-bottom:10px">Choose your world</div><div class="shop">${WORLDS.map(w => card('world', w)).join('')}</div></div>
+    <button class="btn" data-act="home">${buddy().e} Let's play!</button>
+  </div></main>`;
+}
+function buy(spec) {
+  const [kind, id] = spec.split(':'), list = kind === 'buddy' ? BUDDIES : WORLDS, x = list.find(i => i.id === id), owned = kind === 'buddy' ? ME.buddies : ME.worlds;
+  if (!x) return;
+  if (!owned.includes(id)) {
+    if (ME.gems < x.cost) { toast(`You need <b>${x.cost - ME.gems}</b> more 💎 for ${x.e} ${esc(x.n)}. Keep playing!`); SFX.bad(); return; }
+    ME.gems -= x.cost; owned.push(id);
+    SFX.buy(); toast(`🎉 You unlocked <b>${x.e} ${esc(x.n)}</b>!`); setTimeout(() => confetti(36), 50);
+  } else SFX.key();
+  if (kind === 'buddy') ME.buddy = id; else ME.world = id;
+  ME.picked = true;
+  savePlayer(); render();
+}
+
 /* ================= events ================= */
 const press = k => { SFX.key(); if (UI.screen === 'blast') blastKey(k); else if (UI.screen === 'train') trainKey(k); };
-// The number pad reacts on touch-down so typing feels instant.
+// The number pad and the bubbles react on touch-down so they feel instant.
 document.addEventListener('pointerdown', e => {
+  const bub = e.target.closest('.bub'); if (bub) { e.preventDefault(); SFX.init(); popTap(bub); return; }
   const b = e.target.closest('[data-k]'); if (!b) return;
   e.preventDefault(); SFX.init();
   b.classList.add('dn'); setTimeout(() => b.classList.remove('dn'), 90);
   press(b.dataset.k);
 });
 document.addEventListener('keydown', e => {
-  if (UI.screen !== 'blast' && UI.screen !== 'train') return;
+  if (UI.screen === 'pop' && /^[1-4]$/.test(e.key) && A && A.bubs[+e.key - 1]) { popTap(A.bubs[+e.key - 1].el); return; }
+  if (UI.screen !== 'blast' && UI.screen !== 'train' && UI.screen !== 'pop') return;
+  if (e.key === 'Escape' && playing()) { pause(!A.paused); return; }
+  if (UI.screen === 'pop') return;
   if (/^\d$/.test(e.key)) press(e.key);
   else if (e.key === 'Backspace') press('B');
-  else if (e.key === 'Escape' && UI.screen === 'blast') pause(!A.paused);
   else if (e.key === 'Enter' && UI.screen === 'train') { const g = $('[data-act=gotit]'); g && g.click(); }
 });
 document.addEventListener('click', e => {
@@ -440,31 +712,34 @@ document.addEventListener('click', e => {
     else { const n = +t.dataset.t; tables = tables.includes(n) ? tables.filter(x => x !== n) : tables.concat(n).sort((a, b) => a - b); if (!tables.length) { tables = [n]; toast('Pick at least one table!'); } }
     save('ttb-tables', tables); render(); return;
   }
+  const by = e.target.closest('[data-buy]'); if (by) { buy(by.dataset.buy); return; }
   const cell = e.target.closest('[data-cell]');
   if (cell) { const [r, c] = cell.dataset.cell.split(',').map(Number), f = facts[fk(r, c)], l = lvl(f); toast(`<b>${r} × ${c} = ${r * c}</b><br>${['Not tried yet', 'Tricky: keep practising!', 'Learning: nearly there', '⭐ Star!'][l]}${f && f.n ? ` · right ${f.r} of ${f.n}` : ''}`); return; }
   const el = e.target.closest('[data-act]'); if (!el) return;
   switch (el.dataset.act) {
-    case 'blast': if (UI.screen !== 'home' || needName()) startBlast(); break;
+    case 'blast': case 'pop': if (UI.screen !== 'home' || needName()) startGame(el.dataset.act); break;
     case 'train': if (UI.screen !== 'home' || needName()) startTrain(); break;
-    case 'trainMissed': startTrain(Object.values((UI.screen === 'blastOver' ? A.missed : T.wrongs))); break;
+    case 'trainMissed': startTrain(Object.values((UI.screen === 'over' ? A.missed : T.wrongs))); break;
     case 'trainTricky': { const l = []; for (let a = 1; a <= 12; a++) for (let b = a; b <= 12; b++) if (lvl(facts[fk(a, b)]) === 1) l.push([a, b]); if (needName()) startTrain(l); break; }
     case 'chart': UI.screen = 'chart'; render(); break;
+    case 'shop': UI.screen = 'shop'; render(); break;
     case 'gotit': nextTrain(); break;
     case 'pause': pause(true); break;
     case 'resume': pause(false); break;
     case 'quit':
-      if (UI.screen === 'blast') { pause(true); break; }
+      if (playing()) { pause(true); break; }
       if (UI.screen === 'train' && T.i > 0 && !confirm('Stop training?')) break;
       goHome(); break;
-    case 'quitNow': if (A && A.score > 0) { A.shields = 0; blastOver(); } else goHome(); break;
-    case 'reset': if (confirm('Clear all your stars and start the chart again?')) { facts = {}; save('ttb-facts', facts); save('ttb-stars-sent', 0); render(); } break;
+    case 'quitNow': if (A && A.score > 0) { A.hearts = 0; gameOver(); } else goHome(); break;
+    case 'reset': if (confirm('Clear all your stars and start the chart again? (Your gems and buddies stay.)')) { facts = {}; save('ttb-facts', facts); save('ttb-stars-sent', 0); render(); } break;
     case 'home': goHome(); break;
   }
 });
 function goHome() { cancelAnimationFrame(raf); A = null; T = null; UI.screen = 'home'; render(); }
 document.addEventListener('input', e => { if (e.target.id === 'name') FamilyScores.setName(e.target.value); });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') pause(true); });
-if (new URLSearchParams(location.search).get('mode') === 'chart') UI.screen = 'chart';
+const MODE = new URLSearchParams(location.search).get('mode');
+if (MODE === 'chart' || MODE === 'shop') UI.screen = MODE;
 render();
 </script>
 <script>if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));</script>
