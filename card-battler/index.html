@@ -172,6 +172,11 @@ select.txt{width:100%;font:inherit;font-size:16px;font-weight:700;padding:12px;b
 .rv.anim:not(.s2) .t-out,.rv.anim:not(.s2) .headline,.rv.anim:not(.s1) .plog{opacity:0}
 .rv.anim:not(.s2) .tile.win{transform:none;box-shadow:none}
 .rv.anim:not(.s2) .tile.lose{filter:none}
+.t-pow{margin:1.6cqw 3.5cqw 0;padding:1.2cqw 2.5cqw;border-radius:2.5cqw;font-size:5.2cqw;font-weight:800;line-height:1.2;color:var(--mut);background:rgba(255,255,255,.06);border:.6cqw solid rgba(255,255,255,.14);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rv:not(.anim) .t-pow.fired,.rv.s1 .t-pow.fired{color:#ffe9a0;background:rgba(255,204,77,.2);border-color:#ffcc4d;box-shadow:0 0 4cqw rgba(255,204,77,.6)}
+.rv.anim.s1:not(.s2) .t-pow.fired{animation:powflash .5s ease-in-out 3}
+.rv:not(.anim) .t-pow.muted,.rv.s1 .t-pow.muted{text-decoration:line-through;opacity:.55}
+@keyframes powflash{0%,100%{transform:scale(1);box-shadow:0 0 4cqw rgba(255,204,77,.6)}50%{transform:scale(1.07);background:rgba(255,220,120,.55);color:#fff;box-shadow:0 0 0 1cqw #ffcc4d,0 0 10cqw #ffcc4d}}
 .t-stat{font-size:5.4cqw;font-weight:800;text-align:center;color:var(--mut);margin-top:-1cqw}
 .rv:not(.pre) .announce{display:none}
 .rv.pre .vs,.rv.pre .headline,.rv.pre .plog{display:none}
@@ -544,28 +549,28 @@ function resolveRound(g, stat) {
   const log = [];
   const silencers = plays.filter(pl => C(pl).p && C(pl).p.type === 'silence');
   plays.forEach(pl => { const p = C(pl).p; pl.on = !!p && (!silencers.length || p.type === 'silence'); });
-  silencers.forEach(pl => log.push(`🔇 ${nm(pl)}'s ${C(pl).name} used ${C(pl).p.name}: all other powers are cancelled!`));
+  silencers.forEach(pl => (pl.fired = true) && log.push(`🔇 ${nm(pl)}'s ${C(pl).name} used ${C(pl).p.name}: all other powers are cancelled!`));
   const has = (pl, t) => pl.on && C(pl).p.type === t;
 
   plays.forEach(pl => {
     const c = C(pl); pl.base = c.s[stat]; pl.val = pl.base;
     if (has(pl, 'shapeshift')) {
       const best = STATS.reduce((a, s) => c.s[s.k] > c.s[a] ? s.k : a, stat);
-      if (best !== stat) { pl.val = c.s[best]; pl.notes.push(`🌀 uses ${SN(best)}`); log.push(`🌀 ${c.name} shapeshifts and uses ${SN(best)} (${c.s[best]}) instead!`); }
+      if (best !== stat) { pl.fired = true; pl.val = c.s[best]; pl.notes.push(`🌀 uses ${SN(best)}`); log.push(`🌀 ${c.name} shapeshifts and uses ${SN(best)} (${c.s[best]}) instead!`); }
     }
   });
   plays.forEach(pl => {
     const c = C(pl), p = c.p;
-    if (has(pl, 'boost') && p.stats.includes(stat)) { pl.val += p.amt; pl.notes.push(`💥 +${p.amt}`); log.push(`💥 ${c.name}'s ${p.name} adds +${p.amt}!`); }
-    if (has(pl, 'allboost')) { pl.val += p.amt; pl.notes.push(`🌈 +${p.amt}`); log.push(`🌈 ${c.name}'s ${p.name} adds +${p.amt}!`); }
+    if (has(pl, 'boost') && p.stats.includes(stat)) { pl.fired = true; pl.val += p.amt; pl.notes.push(`💥 +${p.amt}`); log.push(`💥 ${c.name}'s ${p.name} adds +${p.amt}!`); }
+    if (has(pl, 'allboost')) { pl.fired = true; pl.val += p.amt; pl.notes.push(`🌈 +${p.amt}`); log.push(`🌈 ${c.name}'s ${p.name} adds +${p.amt}!`); }
     if (has(pl, 'pack')) {
       const next = byPid(pl.pid).deck[0];
-      if (next) { const add = Math.floor(CARD[next].s[stat] / 2); pl.val += add; pl.notes.push(`🐾 +${add}`); log.push(`🐾 ${c.name} calls ${CARD[next].name} for help: +${add}!`); }
+      if (next) { pl.fired = true; const add = Math.floor(CARD[next].s[stat] / 2); pl.val += add; pl.notes.push(`🐾 +${add}`); log.push(`🐾 ${c.name} calls ${CARD[next].name} for help: +${add}!`); }
     }
   });
   plays.forEach(pl => {
     if (!has(pl, 'curse')) return;
-    const amt = C(pl).p.amt;
+    const amt = C(pl).p.amt; pl.fired = true;
     plays.forEach(o => { if (o !== pl) { o.val = Math.max(0, o.val - amt); o.notes.push(`<span class="neg">☠️ −${amt}</span>`); } });
     log.push(`☠️ ${C(pl).name}'s ${C(pl).p.name}: every other card loses ${amt}!`);
   });
@@ -573,13 +578,14 @@ function resolveRound(g, stat) {
     if (!has(pl, 'shatter')) return;
     const opp = plays.filter(o => o !== pl).sort((a, b) => b.val - a.val)[0];
     if (!opp) return;
+    pl.fired = true;
     const was = opp.val; opp.val = Math.floor(opp.val / 2);
     opp.notes.push(`<span class="neg">🪨 halved</span>`);
     log.push(`🪨 ${C(pl).name}'s ${C(pl).p.name} halves ${C(opp).name} from ${was} to ${opp.val}!`);
   });
   const reversers = plays.filter(pl => has(pl, 'reverse'));
   const low = reversers.length % 2 === 1;
-  reversers.forEach(pl => log.push(`🔄 ${C(pl).name} casts ${C(pl).p.name}!`));
+  reversers.forEach(pl => (pl.fired = true) && log.push(`🔄 ${C(pl).name} casts ${C(pl).p.name}!`));
   if (reversers.length > 1) log.push(`🔄 Two topsy-turvy spells cancel out. Highest wins after all!`);
 
   const best = low ? Math.min(...plays.map(p => p.val)) : Math.max(...plays.map(p => p.val));
@@ -588,13 +594,13 @@ function resolveRound(g, stat) {
   if (tied.length === 1) win = tied[0];
   else {
     const lucky = tied.filter(p => has(p, 'lucky'));
-    if (lucky.length === 1) { win = lucky[0]; log.push(`🍀 It was a tie, but ${C(win).name}'s ${C(win).p.name} breaks it!`); }
+    if (lucky.length === 1) { win = lucky[0]; win.fired = true; log.push(`🍀 It was a tie, but ${C(win).name}'s ${C(win).p.name} breaks it!`); }
   }
 
   const spoils = [];
   plays.forEach(pl => {
     if (pl === win) return;
-    if (has(pl, 'phoenix')) { byPid(pl.pid).deck.push(pl.id); pl.out = 'phoenix'; log.push(`🕊️ ${C(pl).name} escapes back to ${nm(pl)}'s deck!`); }
+    if (has(pl, 'phoenix')) { pl.fired = true; byPid(pl.pid).deck.push(pl.id); pl.out = 'phoenix'; log.push(`🕊️ ${C(pl).name} escapes back to ${nm(pl)}'s deck!`); }
     else { spoils.push(pl.id); pl.out = win ? 'lose' : 'tie'; }
   });
   let won = 0, stolen = null, toPot = 0;
@@ -605,7 +611,7 @@ function resolveRound(g, stat) {
     win.out = 'win';
     if (has(win, 'steal')) {
       const rival = g.players.filter(p => p !== w && p.deck.length).sort((a, b) => b.deck.length - a.deck.length)[0];
-      if (rival) { const cid = rival.deck.shift(); w.deck.push(cid); stolen = {from: rival.pid, id: cid}; log.push(`🖐️ ${C(win).name} also steals ${CARD[cid].name} from ${rival.name}!`); }
+      if (rival) { win.fired = true; const cid = rival.deck.shift(); w.deck.push(cid); stolen = {from: rival.pid, id: cid}; log.push(`🖐️ ${C(win).name} also steals ${CARD[cid].name} from ${rival.name}!`); }
     }
     g.chooser = win.pid;
   } else {
@@ -616,7 +622,7 @@ function resolveRound(g, stat) {
     const seat = g.players.findIndex(p => p.pid === g.chooser);
     for (let k = 1; k <= g.players.length; k++) { const p = g.players[(seat + k) % g.players.length]; if (p.deck.length) { g.chooser = p.pid; break; } }
   }
-  g.result = {round: g.round, stat, by: g._choosing, plays: plays.map(p => ({pid: p.pid, id: p.id, base: p.base, val: p.val, notes: p.notes, out: p.out})), log, win: win ? win.pid : null, low, won, toPot, stolen, pot: g.pot.length};
+  g.result = {round: g.round, stat, by: g._choosing, plays: plays.map(p => ({pid: p.pid, id: p.id, base: p.base, val: p.val, notes: p.notes, out: p.out, fired: !!p.fired, muted: !!C(p).p && !p.on})), log, win: win ? win.pid : null, low, won, toPot, stolen, pot: g.pot.length};
   g.phase = 'reveal';
   g.ready = [];
   g.over = alive.length <= 1 || (MODES[g.mode].rounds && g.round >= MODES[g.mode].rounds) || g.round >= 250;
@@ -627,7 +633,7 @@ function resolveRound(g, stat) {
 const ANNOUNCE_MS = 2000, COUNTDOWN_MS = 2000;
 function revealTiming(R) {
   let shown = ANNOUNCE_MS + 250 + R.plays.length * 420 + 450;
-  if (R.log.length) shown += 1100;
+  if (R.log.length) shown += 1700;
   return {shown, next: shown + COUNTDOWN_MS + (R.log.length ? 2000 : 0)};
 }
 
@@ -1004,6 +1010,7 @@ function revealHTML(v) {
       <div class="tile-in"><div class="t-who">${pv ? pv.av : ''} ${pname(v, pl.pid)}</div>
       <div class="t-art">${artInner(c)}</div>
       <div class="t-name">${esc(c.name)}</div>
+      ${c.p ? `<div class="t-pow${pl.fired ? ' fired' : ''}${pl.muted ? ' muted' : ''}">${pl.muted ? '🔇' : PICON[c.p.type]} ${esc(c.p.name)}</div>` : ''}
       <div class="t-num" data-base="${pl.base}" data-val="${pl.val}">${pl.val}</div>
       <div class="t-stat">${SI(R.stat)} ${SN(R.stat)}</div>
       <div class="t-notes"><div>${pl.notes.join(' ')}</div></div></div></div></div>`;
@@ -1067,7 +1074,7 @@ function runReveal(v) {
       rv.classList.add('s1'); SFX.power();
       tiles.forEach(t => { const n = t.querySelector('.t-num'); if (n.dataset.base !== n.dataset.val) { n.classList.add('zap'); count(n, +n.dataset.base, +n.dataset.val, 500); } });
     }, tt);
-    tt += 1100;
+    tt += 1700;
   } else rv.classList.add('s1');
   later(() => {
     rv.classList.add('s2');
