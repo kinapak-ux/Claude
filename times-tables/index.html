@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Times Table Blaster</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#060b24">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Times Tables">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Nunito:wght@600;800;900&display=swap">
+<link rel="stylesheet" href="../kit.css">
+<style>
+:root{--bg:#060b24;--bg2:#1b3a8a;--accent:#3fe0ff;--accent-ink:#00222e;--display:"Orbitron",Impact,system-ui,sans-serif;--gold:#ffd84d}
+body{background:radial-gradient(1px 1px at 20% 30%,#fff8,transparent),radial-gradient(1px 1px at 70% 80%,#fff6,transparent),radial-gradient(1.5px 1.5px at 40% 60%,#fff9,transparent),radial-gradient(1px 1px at 85% 20%,#fff7,transparent),radial-gradient(ellipse at 50% -10%,var(--bg2),var(--bg) 65%) fixed;background-color:var(--bg)}
+.title{font-size:clamp(30px,9.5vw,46px);line-height:1.1}
+.title .rk{display:inline-block;transform:rotate(-45deg)}
+.howto{font-size:14px;line-height:1.5;color:var(--mut)}
+.chip.t{min-width:46px;text-align:center;font-family:var(--display);font-size:15px}
+.best{font-size:13px;opacity:.85;font-weight:800}
+
+/* playing screens fill the phone exactly, with no scrolling */
+.game{position:fixed;inset:0;display:flex;flex-direction:column;max-width:560px;margin:0 auto;padding:calc(8px + env(safe-area-inset-top)) 12px calc(10px + env(safe-area-inset-bottom))}
+.hud{display:flex;align-items:center;gap:8px;font-weight:900}
+.hud .score{font-family:var(--display);font-size:22px;color:var(--accent);flex:1;text-align:center}
+.hud .shields{font-size:20px;letter-spacing:2px;min-width:72px;text-align:right}
+.hud .shields .gone{opacity:.2;filter:grayscale(1)}
+.sub{display:flex;justify-content:space-between;font-weight:900;font-size:13px;color:var(--mut);margin:6px 2px}
+.combo{color:var(--gold)}
+.field{flex:1;position:relative;min-height:180px;border-radius:20px;border:1px solid var(--line);background:linear-gradient(rgba(10,20,60,.35),rgba(30,10,60,.45));overflow:hidden}
+.rock{position:absolute;left:50%;top:0;transform:translateX(-50%);width:min(60vw,240px);padding:26px 10px;border-radius:46% 54% 50% 50% / 55% 45% 55% 45%;background:radial-gradient(circle at 35% 30%,#9c8b7a,#5d4d40 60%,#3a2e26);box-shadow:inset -10px -12px 0 rgba(0,0,0,.25),0 8px 24px rgba(0,0,0,.5);text-align:center;font-family:var(--display);font-weight:900;font-size:clamp(28px,9vw,40px);color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.5);white-space:nowrap}
+.rock.gold{background:radial-gradient(circle at 35% 30%,#fff3a6,#f2b51f 55%,#a86b00);color:#3a2000;text-shadow:none;box-shadow:0 0 30px #ffd84d,inset -10px -12px 0 rgba(0,0,0,.18)}
+.rock.boom{animation:boom .4s ease-out forwards}
+.rock.crashed{background:radial-gradient(circle at 35% 30%,#ff8a8a,#b3243a 60%,#5a0f1c)}
+@keyframes boom{to{transform:translateX(-50%) scale(1.6);opacity:0;filter:blur(4px)}}
+.ship{position:absolute;left:50%;bottom:6px;font-size:46px;transform:translateX(-50%) rotate(-45deg);filter:drop-shadow(0 0 10px rgba(63,224,255,.6))}
+.ship.hit{animation:hit .5s}
+@keyframes hit{25%{transform:translateX(-58%) rotate(-30deg)}50%{transform:translateX(-42%) rotate(-60deg)}}
+.laser{position:absolute;left:50%;width:6px;margin-left:-3px;border-radius:3px;background:linear-gradient(#fff,var(--accent));box-shadow:0 0 14px var(--accent);animation:zap .3s ease-out forwards}
+@keyframes zap{to{opacity:0;width:2px}}
+.float{position:absolute;left:50%;transform:translateX(-50%);font-family:var(--display);font-weight:900;font-size:24px;color:var(--gold);text-shadow:0 2px 0 #000;pointer-events:none;animation:up 1s ease-out forwards;white-space:nowrap}
+@keyframes up{to{transform:translate(-50%,-60px);opacity:0}}
+.banner{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;font-family:var(--display);font-size:clamp(26px,8vw,40px);color:var(--gold);text-shadow:0 4px 0 #000;animation:ban 1.3s ease-out forwards;text-align:center}
+@keyframes ban{0%{transform:scale(.4);opacity:0}20%{transform:scale(1.1);opacity:1}80%{opacity:1}100%{opacity:0}}
+.answer{margin:10px 0;height:58px;border-radius:16px;border:3px solid var(--accent);background:rgba(0,0,0,.4);display:grid;place-items:center;font-family:var(--display);font-size:32px;font-weight:900;letter-spacing:4px}
+.answer.bad{border-color:var(--bad);animation:shake .3s}
+.answer.good{border-color:var(--good);color:var(--good)}
+@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pad button{height:clamp(46px,7.4vh,64px);border:0;border-radius:16px;background:rgba(255,255,255,.1);border-bottom:4px solid rgba(0,0,0,.4);font-family:var(--display);font-size:26px;font-weight:900;color:var(--ink);cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.pad button:active,.pad button.dn{transform:translateY(3px);border-bottom-width:1px;background:rgba(63,224,255,.25)}
+.pad button.fn{font-size:20px;color:var(--mut)}
+.overlay{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:rgba(4,6,20,.85);backdrop-filter:blur(4px);padding:16px}
+
+/* training */
+.qcard{flex:1;display:grid;place-items:center;text-align:center;border-radius:20px;border:1px solid var(--line);background:rgba(0,0,0,.25);padding:12px;position:relative;min-height:150px}
+.qcard .q{font-family:var(--display);font-size:clamp(36px,12vw,60px);font-weight:900}
+.qcard .fb{font-weight:900;font-size:18px;min-height:26px;margin-top:6px}
+.qcard .tip{font-size:15px;line-height:1.45;color:var(--ink);background:rgba(63,224,255,.12);border:1px solid rgba(63,224,255,.4);border-radius:14px;padding:10px 12px;margin-top:10px;max-width:420px}
+.bar{height:8px;border-radius:9px;background:rgba(255,255,255,.12);overflow:hidden;flex:1}
+.bar i{display:block;height:100%;background:var(--accent);transition:width .3s}
+
+/* star chart */
+.grid{display:grid;grid-template-columns:repeat(13,1fr);gap:2px;font-weight:900;font-size:clamp(9px,2.6vw,13px);text-align:center}
+.grid div{aspect-ratio:1;display:grid;place-items:center;border-radius:5px}
+.grid .h{color:var(--accent);font-family:var(--display)}
+.grid .c{cursor:pointer;background:rgba(255,255,255,.06)}
+.grid .l1{background:#7a2236}
+.grid .l2{background:#7a6514}
+.grid .l3{background:#1f7a4c}
+.key{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;font-size:13px;color:var(--mut);margin-top:10px}
+.key span::before{content:"";display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px;background:var(--c)}
+.big{font-family:var(--display);font-size:46px;color:var(--accent);text-align:center;line-height:1.1}
+.stat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.stat div{background:rgba(0,0,0,.25);border-radius:14px;padding:10px 4px;font-size:12px;color:var(--mut);font-weight:800}
+.stat b{display:block;font-family:var(--display);font-size:20px;color:var(--ink)}
+.facts{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.facts span{background:rgba(255,92,122,.15);border:1px solid rgba(255,92,122,.5);border-radius:10px;padding:5px 9px;font-weight:900}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast"></div>
+<script src="../scores.js"></script>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
+const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+let toastT = 0;
+function toast(m, ms) { const t = $('#toast'); t.innerHTML = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), ms || 2500); }
+function vibrate(p) { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} }
+
+const ALL = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+const TOTAL_FACTS = 78;              // every different pair from 1×1 to 12×12
+const TRAIN_LEN = 20, PER_LEVEL = 8;
+// How tricky each table is: tricky facts score more, so practising the hard tables pays off.
+const HARD = {1: 1, 2: 1, 5: 1, 10: 1, 11: 1, 3: 2, 4: 2, 9: 2, 6: 3, 7: 3, 8: 3, 12: 3};
+const hard = (a, b) => Math.max(HARD[a], HARD[b]);
+
+const SFX = {
+  ctx: null,
+  init() { if (!this.ctx) try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
+  tone(f, t, d, type, v, f2) { if (!this.ctx) return; const c = this.ctx, o = c.createOscillator(), g = c.createGain(), s = c.currentTime + t; o.type = type || 'triangle'; o.frequency.setValueAtTime(f, s); if (f2) o.frequency.exponentialRampToValueAtTime(f2, s + d); g.gain.setValueAtTime(.0001, s); g.gain.exponentialRampToValueAtTime(v || .12, s + .01); g.gain.exponentialRampToValueAtTime(.0001, s + d); o.connect(g); g.connect(c.destination); o.start(s); o.stop(s + d + .05); },
+  key() { this.tone(600, 0, .04, 'square', .03); },
+  zap() { this.tone(1400, 0, .18, 'sawtooth', .07, 200); this.tone(90, .12, .3, 'triangle', .2, 40); },
+  gold() { [880, 1175, 1480].forEach((f, i) => this.tone(f, i * .07, .2, 'triangle', .1)); },
+  bad() { this.tone(170, 0, .25, 'square', .07); },
+  crash() { this.tone(120, 0, .6, 'sawtooth', .16, 30); },
+  level() { [523, 659, 784, 1047].forEach((f, i) => this.tone(f, i * .1, .25)); },
+  star() { [1047, 1319, 1568, 2093].forEach((f, i) => this.tone(f, i * .08, .3, 'sine', .1)); },
+  over() { [392, 330, 262].forEach((f, i) => this.tone(f, i * .2, .4)); },
+};
+
+/* ================= what each player knows ================= */
+// One record per fact (7×8 and 8×7 are the same fact): n seen, r right, s right in a row, t average time when right.
+let facts = load('ttb-facts', {});
+let tables = load('ttb-tables', ALL).filter(t => ALL.includes(t));
+if (!tables.length) tables = ALL.slice();
+const fk = (a, b) => Math.min(a, b) + 'x' + Math.max(a, b);
+// 0 not tried yet, 1 shaky (last one wrong), 2 learning, 3 star (3 right in a row and quick)
+function lvl(f) { if (!f || !f.n) return 0; if (f.s >= 3 && f.t < 5000) return 3; return f.s >= 1 ? 2 : 1; }
+const starCount = () => Object.values(facts).filter(f => lvl(f) === 3).length;
+function record(a, b, ok, ms) {
+  const k = fk(a, b), f = facts[k] || (facts[k] = {n: 0, r: 0, s: 0, t: 0}), was = lvl(f);
+  f.n++;
+  if (ok) { f.r++; f.s++; f.t = f.t ? Math.round(f.t * .6 + ms * .4) : Math.round(ms); } else f.s = 0;
+  save('ttb-facts', facts);
+  if (was < 3 && lvl(f) === 3) { SFX.star(); toast(`⭐ New star: <b>${Math.min(a, b)} × ${Math.max(a, b)} = ${a * b}</b>`); }
+}
+const WEIGHT = [3, 6, 3, 1];   // shaky facts come up most, stars least
+let lastKey = '';
+function makeQ(allowMissing, only) {
+  let pool = [];
+  if (only && only.length) pool = only.map(([a, b]) => ({a, b, w: 1}));
+  else tables.forEach(a => { for (let b = 1; b <= 12; b++) pool.push({a, b, w: WEIGHT[lvl(facts[fk(a, b)])] * (b === 1 ? .4 : 1)}); });
+  if (pool.length > 1) pool = pool.filter(p => fk(p.a, p.b) !== lastKey);
+  let r = Math.random() * pool.reduce((s, p) => s + p.w, 0), pick = pool[0];
+  for (const p of pool) { r -= p.w; if (r <= 0) { pick = p; break; } }
+  lastKey = fk(pick.a, pick.b);
+  const [x, y] = Math.random() < .5 ? [pick.a, pick.b] : [pick.b, pick.a];
+  const missing = allowMissing && y > 1 && Math.random() < .2;
+  return {a: x, b: y, p: x * y, missing, ans: missing ? y : x * y,
+    text: missing ? `${x} × ? = ${x * y}` : `${x} × ${y}`, full: `${x} × ${y} = ${x * y}`};
+}
+function tip(a, b) {
+  const x = Math.min(a, b), y = Math.max(a, b), p = x * y;
+  if (x === 7 && y === 8) return '5, 6, 7, 8 → 56 = 7 × 8. The numbers count up!';
+  if (x === 3 && y === 4) return '1, 2, 3, 4 → 12 = 3 × 4.';
+  if (x === 1) return `Anything × 1 stays the same: ${y}.`;
+  if (x === 10 || y === 10) { const o = x === 10 ? y : x; return `× 10: put a 0 on the end of ${o} → ${o * 10}.`; }
+  if (y === 11 && x <= 9) return `11 × ${x}: write ${x} twice → ${x}${x}.`;
+  if (y === 9 && x <= 9 || x === 9) { const o = x === 9 ? y : x; if (o <= 10) return `9s trick: start one below ${o} (that's ${o - 1}), then add on to make 9 → ${o - 1}${9 - (o - 1)}. The digits add up to 9!`; }
+  if (x === 2) return `× 2 is just doubling: ${y} + ${y} = ${p}.`;
+  if (x === 5 || y === 5) { const o = x === 5 ? y : x; return `× 5 is half of × 10: ${o} × 10 = ${o * 10}, half is ${p}.`; }
+  if (x === 4 || y === 4) { const o = x === 4 ? y : x; return `× 4 is double, then double again: ${o} → ${o * 2} → ${p}.`; }
+  if (y === 8 || x === 8) { const o = x === 8 ? y : x; return `× 8 is double three times: ${o} → ${o * 2} → ${o * 4} → ${p}.`; }
+  if (y === 12) return `× 12 is × 10 plus × 2: ${x * 10} + ${x * 2} = ${p}.`;
+  if (x === y) return `${x} × ${x} is a square number: ${p}. Squares are worth learning by heart!`;
+  if (x === 6 && y % 2 === 0) return `6 × an even number ends in the same digit: 6 × ${y} = ${p}.`;
+  return `Use one you know: ${x} × ${y - 1} = ${x * (y - 1)}, then add one more ${x} → ${p}.`;
+}
+
+/* ================= screens ================= */
+const UI = {screen: 'home'};
+let A = null, T = null, raf = 0;
+const app = $('#app');
+function render() {
+  cancelAnimationFrame(raf);
+  document.body.style.overflow = UI.screen === 'blast' || UI.screen === 'train' ? 'hidden' : '';
+  if (UI.screen === 'home') app.innerHTML = homeHTML();
+  else if (UI.screen === 'blast') { app.innerHTML = blastHTML(); nextRock(); raf = requestAnimationFrame(tick); }
+  else if (UI.screen === 'blastOver') app.innerHTML = blastOverHTML();
+  else if (UI.screen === 'train') { app.innerHTML = trainHTML(); nextTrain(); }
+  else if (UI.screen === 'trainOver') app.innerHTML = trainOverHTML();
+  else if (UI.screen === 'chart') app.innerHTML = chartHTML();
+  window.scrollTo(0, 0);
+}
+const tablesLabel = () => tables.length === ALL.length ? 'all tables' : tables.length === 1 ? `the ${tables[0]}s` : `${tables.slice(0, -1).join(', ')} and ${tables[tables.length - 1]}`;
+function homeHTML() {
+  const best = load('ttb-best', 0);
+  return `<main class="wrap">
+  <div class="top"><a class="iconbtn" href="/">🏠 Main menu</a><div class="grow"></div><a class="iconbtn" href="../leaderboard/">🏆</a></div>
+  <h1 class="title"><span class="rk">🚀</span> Times Table Blaster</h1>
+  <p class="subtitle">Blast the asteroids before they hit your rocket!</p>
+  <div class="stack">
+    <div class="panel"><div class="label">Your name</div><input class="txt" id="name" maxlength="16" placeholder="Type your name" value="${esc(FamilyScores.name())}" autocomplete="off" style="margin-top:6px"></div>
+    <div class="panel"><div class="label" style="margin-bottom:8px">Which tables?</div>
+      <div class="chips">${ALL.map(t => `<button class="chip t${tables.includes(t) ? ' on' : ''}" data-t="${t}">${t}</button>`).join('')}
+      <button class="chip${tables.length === ALL.length ? ' on' : ''}" data-t="all">All</button></div>
+      <div class="mut" style="font-size:13px;margin-top:8px">Practising ${tablesLabel()}. Tricky tables (6, 7, 8 and 12) score the most points.</div></div>
+    <button class="btn" data-act="blast">🚀 Blast off!${best ? `<span class="best"> · best ${best.toLocaleString()}</span>` : ''}</button>
+    <button class="btn alt" data-act="train">🎯 Training (no timer, with tips)</button>
+    <button class="btn green" data-act="chart">⭐ Star chart · ${starCount()} of ${TOTAL_FACTS}</button>
+    <div class="panel howto"><b style="color:var(--ink)">How to play:</b> an asteroid with a sum on it falls towards your rocket. Type the answer to blast it! Answer fast for extra points, and get answers right in a row for a combo: <b>×2</b> after 5, <b>×3</b> after 10. Golden asteroids are worth triple and fix a shield. If 3 asteroids get through, it's game over.
+      <br><br>Get a sum right 3 times in a row, quickly, and it earns a <b>⭐ star</b> on your chart. The game asks you the ones you find tricky more often.</div>
+    <a class="btn ghost" href="../leaderboard/">🏆 Family leaderboard</a>
+    <a class="btn ghost" href="/">🏠 Exit to main menu</a>
+  </div></main>`;
+}
+function needName() { const el = $('#name'), n = el ? el.value.trim() : FamilyScores.name(); if (!n) { toast('Type your name first!'); el && el.focus(); return false; } FamilyScores.setName(n); return true; }
+const pad = () => `<div class="pad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button data-k="${n}">${n}</button>`).join('')}<button class="fn" data-k="C">Clear</button><button data-k="0">0</button><button class="fn" data-k="B">⌫</button></div>`;
+
+/* ================= Blast off: the arcade game ================= */
+const fallMs = () => Math.max(3600, 10500 - (A.level - 1) * 800);
+function startBlast() { A = {score: 0, shields: 3, combo: 0, bestCombo: 0, level: 1, blasted: 0, right: 0, wrong: 0, missed: {}, q: null, entry: '', busy: true, paused: false, newStars: starCount()}; UI.screen = 'blast'; render(); }
+function blastHTML() {
+  return `<div class="game">
+    <div class="hud"><button class="iconbtn" data-act="quit">✕ Exit</button><span class="score" id="score">0</span><button class="iconbtn" data-act="pause">⏸</button><span class="shields" id="shields"></span></div>
+    <div class="sub"><span id="lvl">Level 1</span><span class="combo" id="combo"></span></div>
+    <div class="field" id="field"><div class="rock" id="rock"></div><div class="ship" id="ship">🚀</div></div>
+    <div class="answer" id="ans"></div>${pad()}</div>`;
+}
+function hud() {
+  $('#score').textContent = A.score.toLocaleString();
+  $('#shields').innerHTML = [0, 1, 2].map(i => `<span class="${i < A.shields ? '' : 'gone'}">🛡️</span>`).join('');
+  $('#lvl').textContent = `Level ${A.level}`;
+  const m = mult();
+  $('#combo').textContent = A.combo >= 2 ? `🔥 ${A.combo} in a row${m > 1 ? ` · ×${m}` : ''}` : '';
+  $('#ans').textContent = A.entry || '';
+}
+const mult = () => A.combo >= 10 ? 3 : A.combo >= 5 ? 2 : 1;
+function nextRock() {
+  if (!A || UI.screen !== 'blast') return;
+  A.q = makeQ(A.level >= 3);
+  A.q.gold = A.blasted >= 3 && Math.random() < .12;
+  A.q.t0 = A.paused || performance.now(); A.q.y = 0;
+  A.entry = ''; A.busy = false;
+  const r = $('#rock'); r.className = 'rock' + (A.q.gold ? ' gold' : ''); r.textContent = A.q.text; r.style.top = '0px';
+  $('#ans').className = 'answer';
+  hud();
+}
+function tick(now) {
+  raf = requestAnimationFrame(tick);
+  if (!A || A.busy || A.paused) return;
+  const f = $('#field'), r = $('#rock'); if (!f || !r) return;
+  A.q.y = Math.min(1, (now - A.q.t0) / fallMs());
+  const room = f.clientHeight - r.offsetHeight - 56;
+  r.style.top = Math.max(0, A.q.y * room) + 'px';
+  if (A.q.y >= 1) crash();
+}
+function float(text, top, color) { const d = document.createElement('div'); d.className = 'float'; d.textContent = text; d.style.top = top + 'px'; if (color) d.style.color = color; $('#field').appendChild(d); setTimeout(() => d.remove(), 1000); }
+function banner(text) { const d = document.createElement('div'); d.className = 'banner'; d.innerHTML = text; $('#field').appendChild(d); setTimeout(() => d.remove(), 1300); }
+function blastKey(k) {
+  if (!A || A.busy || A.paused) return;
+  if (k === 'B') A.entry = A.entry.slice(0, -1);
+  else if (k === 'C') A.entry = '';
+  else if (A.entry.length < 3) A.entry += k;
+  hud();
+  if (/^\d+$/.test(k) && A.entry.length >= String(A.q.ans).length) {
+    if (+A.entry === A.q.ans) hit(); else miss();
+  }
+}
+function hit() {
+  const q = A.q, ms = performance.now() - q.t0;
+  A.busy = true;
+  if (!q.wrong) record(q.a, q.b, true, ms);
+  A.right++; A.combo++; A.bestCombo = Math.max(A.bestCombo, A.combo); A.blasted++;
+  const h = hard(q.a, q.b), pts = (10 * h + Math.round((1 - q.y) * 10 * h)) * mult() * (q.gold ? 3 : 1);
+  A.score += pts;
+  const r = $('#rock'), f = $('#field'), top = r.offsetTop + r.offsetHeight;
+  const l = document.createElement('div'); l.className = 'laser'; l.style.top = top + 'px'; l.style.height = Math.max(0, f.clientHeight - top - 46) + 'px'; f.appendChild(l); setTimeout(() => l.remove(), 300);
+  r.textContent = q.missing ? q.full : `${q.text} = ${q.p}`; r.classList.add('boom');
+  $('#ans').className = 'answer good';
+  float(`+${pts}`, r.offsetTop, q.gold ? '#ffd84d' : null);
+  if (q.gold) { SFX.gold(); if (A.shields < 3) { A.shields++; setTimeout(() => float('🛡️ +1', r.offsetTop + 40, '#5cffb0'), 150); } } else SFX.zap();
+  vibrate(20);
+  hud();
+  let wait = 450;
+  if (A.blasted % PER_LEVEL === 0) { A.level++; SFX.level(); banner(`Level ${A.level}!<br><small style="font-size:16px;font-family:Nunito">The asteroids are getting faster</small>`); wait = 1300; hud(); }
+  else if (A.combo === 5 || A.combo === 10) banner(`🔥 ${A.combo} in a row!<br>×${mult()} points`);
+  setTimeout(nextRock, wait);
+}
+function miss() {
+  const q = A.q;
+  if (!q.wrong) { q.wrong = true; record(q.a, q.b, false); A.missed[fk(q.a, q.b)] = [q.a, q.b]; }
+  A.wrong++; A.combo = 0; SFX.bad(); vibrate(60);
+  const a = $('#ans'); a.className = 'answer'; void a.offsetWidth; a.className = 'answer bad';
+  setTimeout(() => { if (A && A.q === q && !A.busy) { A.entry = ''; hud(); } }, 300);
+}
+function crash() {
+  const q = A.q;
+  A.busy = true; A.shields--; A.combo = 0;
+  if (!q.wrong) { record(q.a, q.b, false); A.missed[fk(q.a, q.b)] = [q.a, q.b]; }
+  SFX.crash(); vibrate([80, 40, 120]);
+  const r = $('#rock'); r.classList.add('crashed'); r.textContent = q.full;
+  const s = $('#ship'); s.classList.remove('hit'); void s.offsetWidth; s.classList.add('hit');
+  hud();
+  setTimeout(() => { if (!A) return; if (A.shields <= 0) blastOver(); else nextRock(); }, 1600);
+}
+function pause(on) {
+  if (!A || UI.screen !== 'blast') return;
+  if (on && !A.paused) {
+    A.paused = performance.now();
+    const o = document.createElement('div'); o.className = 'overlay'; o.id = 'pause';
+    o.innerHTML = `<div class="stack center" style="width:min(80vw,300px)"><div class="big">Paused</div><button class="btn" data-act="resume">▶ Carry on</button><button class="btn ghost" data-act="quitNow">✕ Stop this game</button></div>`;
+    $('.game').appendChild(o);
+  } else if (!on && A.paused) {
+    if (A.q) A.q.t0 += performance.now() - A.paused;
+    A.paused = false; const o = $('#pause'); o && o.remove();
+  }
+}
+function blastOver() {
+  cancelAnimationFrame(raf);
+  const best = load('ttb-best', 0);
+  A.newBest = A.score > best;
+  if (A.newBest) save('ttb-best', A.score);
+  A.newStars = starCount() - A.newStars;
+  if (A.score > 0) FamilyScores.submit('timestables', 'blast', A.score, {player: FamilyScores.name(), detail: `level ${A.level}, ${tablesLabel()}`});
+  reportStars();
+  SFX.over(); UI.screen = 'blastOver'; render();
+}
+function reportStars() {
+  const n = starCount();
+  if (n > load('ttb-stars-sent', 0)) { save('ttb-stars-sent', n); FamilyScores.submit('timestables', 'stars', n, {player: FamilyScores.name()}); }
+}
+function blastOverHTML() {
+  const total = A.right + Object.keys(A.missed).length, missed = Object.values(A.missed);
+  return `<main class="wrap"><div class="stack">
+    <h1 class="title" style="margin-top:20px">${A.newBest ? '🏆 New best!' : '💥 Game over'}</h1>
+    <div class="big">${A.score.toLocaleString()}</div><div class="center mut">points</div>
+    <div class="stat"><div><b>${A.level}</b>level</div><div><b>${A.blasted}</b>blasted</div><div><b>${A.bestCombo}</b>best streak</div></div>
+    ${A.newStars > 0 ? `<div class="panel center">⭐ You earned <b>${A.newStars}</b> new star${A.newStars === 1 ? '' : 's'}! That's ${starCount()} of ${TOTAL_FACTS}.</div>` : ''}
+    ${missed.length ? `<div class="panel center"><div class="label" style="margin-bottom:8px">Practise these</div><div class="facts">${missed.slice(0, 8).map(([a, b]) => `<span>${a} × ${b} = ${a * b}</span>`).join('')}</div>
+      <button class="btn alt sm" style="margin:12px auto 0" data-act="trainMissed">🎯 Train on these</button></div>` : total ? '<div class="panel center">🎯 Not a single mistake. Amazing!</div>' : ''}
+    <button class="btn" data-act="blast">🚀 Play again</button>
+    <a class="btn ghost" href="../leaderboard/">🏆 Family leaderboard</a>
+    <button class="btn ghost" data-act="home">🚀 Times Table Blaster menu</button></div></main>`;
+}
+
+/* ================= Training: calm practice with tips ================= */
+function startTrain(only) { T = {i: 0, right: 0, only: only || null, again: [], wrongs: {}, q: null, entry: '', busy: true, startStars: starCount()}; UI.screen = 'train'; render(); }
+function trainHTML() {
+  return `<div class="game">
+    <div class="hud"><button class="iconbtn" data-act="quit">✕ Exit</button><div class="bar"><i id="prog" style="width:0"></i></div><span id="count" style="min-width:52px;text-align:right">0/${TRAIN_LEN}</span></div>
+    <div class="sub"><span>🎯 Training</span><span id="right"></span></div>
+    <div class="qcard" id="qcard"></div>
+    <div class="answer" id="ans"></div>${pad()}</div>`;
+}
+function nextTrain() {
+  if (T.i >= TRAIN_LEN) { trainOver(); return; }
+  const due = T.again.findIndex(x => x.at <= T.i);
+  if (due >= 0) { const [d] = T.again.splice(due, 1); const [x, y] = Math.random() < .5 ? [d.a, d.b] : [d.b, d.a]; T.q = {a: x, b: y, p: x * y, ans: x * y, text: `${x} × ${y}`, full: `${x} × ${y} = ${x * y}`}; }
+  else T.q = makeQ(true, T.only);
+  T.q.t0 = performance.now(); T.entry = ''; T.busy = false;
+  $('#qcard').innerHTML = `<div><div class="q">${T.q.text}</div><div class="fb"></div></div>`;
+  $('#ans').className = 'answer'; $('#ans').textContent = '';
+  $('#prog').style.width = (100 * T.i / TRAIN_LEN) + '%'; $('#count').textContent = `${T.i}/${TRAIN_LEN}`;
+  $('#right').textContent = T.i ? `✅ ${T.right} right` : '';
+}
+const PRAISE = ['Nice!', 'Brilliant!', 'Spot on!', 'Yes!', 'Superb!', 'Nailed it!', 'Great!'];
+function trainKey(k) {
+  if (!T || T.busy) return;
+  if (k === 'B') T.entry = T.entry.slice(0, -1);
+  else if (k === 'C') T.entry = '';
+  else if (T.entry.length < 3) T.entry += k;
+  $('#ans').textContent = T.entry;
+  if (!/^\d+$/.test(k) || T.entry.length < String(T.q.ans).length) return;
+  const q = T.q, ms = performance.now() - q.t0;
+  T.busy = true;
+  if (+T.entry === q.ans) {
+    record(q.a, q.b, true, ms); T.right++; T.i++; SFX.zap();
+    $('#ans').className = 'answer good';
+    $('#qcard .fb').innerHTML = `✅ ${PRAISE[Math.floor(Math.random() * PRAISE.length)]} <span class="mut">${(ms / 1000).toFixed(1)}s</span>`;
+    $('#qcard .q').textContent = q.missing ? q.full : `${q.text} = ${q.p}`;
+    setTimeout(nextTrain, 750);
+  } else {
+    record(q.a, q.b, false); SFX.bad();
+    T.wrongs[fk(q.a, q.b)] = [q.a, q.b];
+    T.again.push({a: q.a, b: q.b, at: T.i + 3}); T.i++;
+    $('#ans').className = 'answer bad';
+    $('#qcard').innerHTML = `<div><div class="q" style="color:var(--bad)">${q.full}</div><div class="tip">💡 ${esc(tip(q.a, q.b))}</div>
+      <button class="btn sm" style="margin:12px auto 0" data-act="gotit">Got it 👍</button><div class="mut" style="font-size:13px;margin-top:6px">This one will come back in a moment.</div></div>`;
+  }
+}
+function trainOver() {
+  T.newStars = starCount() - T.startStars;
+  reportStars(); SFX.level();
+  UI.screen = 'trainOver'; render();
+}
+function trainOverHTML() {
+  const w = Object.values(T.wrongs);
+  return `<main class="wrap"><div class="stack">
+    <h1 class="title" style="margin-top:20px">${T.right === TRAIN_LEN ? '🌟 Perfect!' : T.right >= 15 ? '🎉 Great work!' : '💪 Good practice!'}</h1>
+    <div class="big">${T.right}/${TRAIN_LEN}</div><div class="center mut">right first time</div>
+    ${T.newStars > 0 ? `<div class="panel center">⭐ You earned <b>${T.newStars}</b> new star${T.newStars === 1 ? '' : 's'}!</div>` : ''}
+    <div class="panel center">Star chart: <b>${starCount()} of ${TOTAL_FACTS}</b> ⭐</div>
+    ${w.length ? `<div class="panel center"><div class="label" style="margin-bottom:8px">Keep practising</div><div class="facts">${w.map(([a, b]) => `<span>${a} × ${b} = ${a * b}</span>`).join('')}</div>
+      <button class="btn alt sm" style="margin:12px auto 0" data-act="trainMissed">🎯 Train on these</button></div>` : ''}
+    <button class="btn" data-act="train">🎯 Train again</button>
+    <button class="btn green" data-act="blast">🚀 Blast off!</button>
+    <button class="btn ghost" data-act="home">🚀 Times Table Blaster menu</button></div></main>`;
+}
+
+/* ================= Star chart ================= */
+function chartHTML() {
+  const n = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  let g = '<div class="h">×</div>' + n.map(x => `<div class="h">${x}</div>`).join('');
+  n.forEach(r => { g += `<div class="h">${r}</div>` + n.map(c => { const l = lvl(facts[fk(r, c)]); return `<div class="c l${l}" data-cell="${r},${c}">${l === 3 ? '⭐' : r * c}</div>`; }).join(''); });
+  const counts = [0, 0, 0, 0];
+  for (let a = 1; a <= 12; a++) for (let b = a; b <= 12; b++) counts[lvl(facts[fk(a, b)])]++;
+  return `<main class="wrap">
+  <div class="top"><button class="iconbtn" data-act="home">← Back</button><div class="grow"></div><a class="iconbtn" href="/">🏠</a></div>
+  <h1 class="title" style="font-size:32px">⭐ Star chart</h1>
+  <p class="subtitle"><b style="color:var(--gold)">${counts[3]} of ${TOTAL_FACTS}</b> stars earned. Get a sum right 3 times in a row, quickly, to earn its star.</p>
+  <div class="panel" style="padding:10px"><div class="grid">${g}</div>
+    <div class="key"><span style="--c:#1f7a4c">⭐ Star (${counts[3]})</span><span style="--c:#7a6514">Learning (${counts[2]})</span><span style="--c:#7a2236">Tricky (${counts[1]})</span><span style="--c:rgba(255,255,255,.15)">Not tried (${counts[0]})</span></div></div>
+  <div class="stack" style="margin-top:12px">
+    ${counts[1] ? `<button class="btn alt" data-act="trainTricky">🎯 Train on the tricky ones</button>` : ''}
+    <button class="btn ghost" data-act="reset">Start the chart again</button></div></main>`;
+}
+
+/* ================= events ================= */
+const press = k => { SFX.key(); if (UI.screen === 'blast') blastKey(k); else if (UI.screen === 'train') trainKey(k); };
+// The number pad reacts on touch-down so typing feels instant.
+document.addEventListener('pointerdown', e => {
+  const b = e.target.closest('[data-k]'); if (!b) return;
+  e.preventDefault(); SFX.init();
+  b.classList.add('dn'); setTimeout(() => b.classList.remove('dn'), 90);
+  press(b.dataset.k);
+});
+document.addEventListener('keydown', e => {
+  if (UI.screen !== 'blast' && UI.screen !== 'train') return;
+  if (/^\d$/.test(e.key)) press(e.key);
+  else if (e.key === 'Backspace') press('B');
+  else if (e.key === 'Escape' && UI.screen === 'blast') pause(!A.paused);
+  else if (e.key === 'Enter' && UI.screen === 'train') { const g = $('[data-act=gotit]'); g && g.click(); }
+});
+document.addEventListener('click', e => {
+  SFX.init();
+  const t = e.target.closest('[data-t]');
+  if (t) {
+    if (t.dataset.t === 'all') tables = ALL.slice();
+    else { const n = +t.dataset.t; tables = tables.includes(n) ? tables.filter(x => x !== n) : tables.concat(n).sort((a, b) => a - b); if (!tables.length) { tables = [n]; toast('Pick at least one table!'); } }
+    save('ttb-tables', tables); render(); return;
+  }
+  const cell = e.target.closest('[data-cell]');
+  if (cell) { const [r, c] = cell.dataset.cell.split(',').map(Number), f = facts[fk(r, c)], l = lvl(f); toast(`<b>${r} × ${c} = ${r * c}</b><br>${['Not tried yet', 'Tricky: keep practising!', 'Learning: nearly there', '⭐ Star!'][l]}${f && f.n ? ` · right ${f.r} of ${f.n}` : ''}`); return; }
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  switch (el.dataset.act) {
+    case 'blast': if (UI.screen !== 'home' || needName()) startBlast(); break;
+    case 'train': if (UI.screen !== 'home' || needName()) startTrain(); break;
+    case 'trainMissed': startTrain(Object.values((UI.screen === 'blastOver' ? A.missed : T.wrongs))); break;
+    case 'trainTricky': { const l = []; for (let a = 1; a <= 12; a++) for (let b = a; b <= 12; b++) if (lvl(facts[fk(a, b)]) === 1) l.push([a, b]); if (needName()) startTrain(l); break; }
+    case 'chart': UI.screen = 'chart'; render(); break;
+    case 'gotit': nextTrain(); break;
+    case 'pause': pause(true); break;
+    case 'resume': pause(false); break;
+    case 'quit':
+      if (UI.screen === 'blast') { pause(true); break; }
+      if (UI.screen === 'train' && T.i > 0 && !confirm('Stop training?')) break;
+      goHome(); break;
+    case 'quitNow': if (A && A.score > 0) { A.shields = 0; blastOver(); } else goHome(); break;
+    case 'reset': if (confirm('Clear all your stars and start the chart again?')) { facts = {}; save('ttb-facts', facts); save('ttb-stars-sent', 0); render(); } break;
+    case 'home': goHome(); break;
+  }
+});
+function goHome() { cancelAnimationFrame(raf); A = null; T = null; UI.screen = 'home'; render(); }
+document.addEventListener('input', e => { if (e.target.id === 'name') FamilyScores.setName(e.target.value); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') pause(true); });
+if (new URLSearchParams(location.search).get('mode') === 'chart') UI.screen = 'chart';
+render();
+</script>
+<script>if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));</script>
+</body>
+</html>

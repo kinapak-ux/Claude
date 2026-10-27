@@ -49,7 +49,7 @@ jobs:
         run: python build.py --email ${{ inputs.send_email && 'force' || (github.event.schedule == '17 6,18 * * *' && 'auto' || 'off') }}
       - name: Add the family games
         if: steps.check.outcome == 'skipped' || steps.check.outputs.live == 'true'
-        run: cp -r card-battler top-trumps scoot-city chess hoop-shot echo-wheel family-quiz battleships snap-race leaderboard scores.js party.js kit.css site/
+        run: cp -r card-battler top-trumps scoot-city chess hoop-shot echo-wheel family-quiz battleships snap-race times-tables leaderboard scores.js party.js kit.css site/
       - if: steps.check.outcome == 'skipped' || steps.check.outputs.live == 'true'
         uses: actions/configure-pages@v5
       - if: steps.check.outcome == 'skipped' || steps.check.outputs.live == 'true'

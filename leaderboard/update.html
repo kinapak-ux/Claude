@@ -61,7 +61,7 @@ async function check() {
   try {
     await FamilyScores.list();
     if (FamilyScores.sheetUpdated()) { s.className = 'panel center ok'; s.innerHTML = '✅ <b>All done!</b> Your sheet is up to date and accepts scores from every game.'; FamilyScores.flush(); }
-    else { s.className = 'panel center old'; s.innerHTML = '⚠️ <b>Needs updating.</b> Your sheet works but can’t take Family Quiz, Battleships or Snap Race scores yet. Follow the steps below.'; }
+    else { s.className = 'panel center old'; s.innerHTML = '⚠️ <b>Needs updating.</b> Your sheet works but can’t take scores from the newest games (Family Quiz, Battleships, Snap Race and Times Table Blaster) yet. Follow the steps below.'; }
   } catch (e) {
     s.className = 'panel center old';
     s.textContent = e.message === 'not-set-up' ? 'The leaderboard isn’t connected yet. Set it up from the leaderboard page first.' : 'Couldn’t reach the sheet from here. Work networks often block it, so try on a phone or home Wi-Fi. You can still do the steps below.';
