@@ -1,0 +1,64 @@
+/**
+ * Family Games leaderboard.
+ * Paste this into the Apps Script editor of a Google Sheet (Extensions > Apps Script),
+ * then deploy it as a web app (Execute as: Me, Who has access: Anyone).
+ * The games send each score here, and the leaderboard page reads them back.
+ * Every score is a row in the "Scores" tab, so you can fix or delete any of them.
+ *
+ * @OnlyCurrentDoc
+ */
+const SHEET = 'Scores';
+const HEADERS = ['Time', 'Game', 'Board', 'Player', 'Score', 'Detail', 'Id'];
+const GAMES = ['cardbattler', 'hoopshot', 'echowheel', 'scootcity', 'chess'];
+
+function sheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(SHEET);
+    sh.appendRow(HEADERS);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function json_(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+// Read: the newest 5,000 scores.
+function doGet() {
+  const sh = sheet_(), last = sh.getLastRow();
+  if (last < 2) return json_({ ok: true, rows: [] });
+  const first = Math.max(2, last - 4999);
+  const rows = sh.getRange(first, 1, last - first + 1, 6).getValues()
+    .filter(r => r[1] && r[3] !== '')
+    .map(r => ({ t: new Date(r[0]).getTime(), g: r[1], b: String(r[2]), p: String(r[3]), s: Number(r[4]), d: String(r[5]) }));
+  return json_({ ok: true, rows });
+}
+
+// Write: up to 20 scores at a time. Each has an id, so a score sent twice is only saved once.
+function doPost(e) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    let list = JSON.parse(e.postData.contents);
+    if (!Array.isArray(list)) list = [list];
+    const sh = sheet_(), last = sh.getLastRow();
+    const seen = new Set(last >= 2 ? sh.getRange(Math.max(2, last - 499), 7, Math.min(500, last - 1), 1).getValues().map(r => String(r[0])) : []);
+    let added = 0;
+    list.slice(0, 20).forEach(x => {
+      const id = String(x.id || '').slice(0, 24), g = String(x.g || ''), b = String(x.b || '').slice(0, 40);
+      const p = String(x.p || '').trim().slice(0, 16), s = Number(x.s);
+      if (!id || seen.has(id) || GAMES.indexOf(g) < 0 || !p || !isFinite(s) || s < 0 || s > 1e7) return;
+      sh.appendRow([new Date(), g, b, p, s, String(x.d || '').slice(0, 200), id]);
+      seen.add(id);
+      added++;
+    });
+    return json_({ ok: true, added });
+  } catch (err) {
+    return json_({ ok: false, error: String(err) });
+  } finally {
+    lock.releaseLock();
+  }
+}

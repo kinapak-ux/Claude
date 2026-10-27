@@ -171,6 +171,7 @@ kbd{font-family:var(--body);background:var(--shell);border:1px solid var(--rim);
   <p class="help">Watch the wheel, then repeat the colours. Each round adds one more. Tap the pads or use keys <kbd>1</kbd> to <kbd>4</kbd>. The top 10 for each mode go on the board.</p>
 </div>
 
+<script src="../scores.js"></script>
 <script>
 (()=>{
 const $=id=>document.getElementById(id);
@@ -327,6 +328,7 @@ function gameOver(text){
   const score=seq.length-1;
   $('round').textContent='✕';$('msg').textContent=text||`Game over: ${score} round${score===1?'':'s'}`;
   $('start').textContent='Play again';
+  if(window.FamilyScores&&score>0)FamilyScores.submit('echowheel',mode,score);
   if(qualifies(mode,score)){
     pendingScore=score;sel.value=mode;renderBoard();
     $('entrytext').textContent=`${score} in ${MODES[mode].name}. Add your initials:`;
