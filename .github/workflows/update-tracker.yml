@@ -49,7 +49,7 @@ jobs:
         run: python build.py --email ${{ inputs.send_email && 'force' || (github.event.schedule == '17 6,18 * * *' && 'auto' || 'off') }}
       - name: Add Card Battler game
         if: steps.check.outcome == 'skipped' || steps.check.outputs.live == 'true'
-        run: cp -r top-trumps site/top-trumps
+        run: cp -r card-battler site/card-battler && cp -r top-trumps site/top-trumps
       - if: steps.check.outcome == 'skipped' || steps.check.outputs.live == 'true'
         uses: actions/configure-pages@v5
       - if: steps.check.outcome == 'skipped' || steps.check.outputs.live == 'true'
