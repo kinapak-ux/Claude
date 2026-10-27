@@ -329,6 +329,7 @@
   </div>
 </div>
 
+<script src="../scores.js"></script>
 <script>
 (() => {
   const wrap = document.getElementById('game');
@@ -543,11 +544,18 @@
   let mode = 'free', boardSort = 'streak', shownSecs = -1;
   const round = { left: ROUND_SECS, running: false, over: false };
 
+  let streakPost = null;
   function saveFamily() {
     const p = me();
     if (p) {
       if (mode === 'free') { p.score = st.score; p.makes = st.makes; }   // a timed round never touches free-play points
-      p.bestStreak = Math.max(p.bestStreak || 0, st.best);
+      const was = p.bestStreak || 0;
+      p.bestStreak = Math.max(was, st.best);
+      // A new record streak goes to the family leaderboard once the streak has settled.
+      if (p.bestStreak > was && window.FamilyScores) {
+        clearTimeout(streakPost);
+        streakPost = setTimeout(() => FamilyScores.submit('hoopshot', 'streak', p.bestStreak, { player: p.name }), 4000);
+      }
     }
     try { localStorage.setItem(FAMILY_KEY, JSON.stringify(fam)); } catch (e) {}
   }
@@ -605,6 +613,7 @@
     const prev = p ? (p.bestTimed || 0) : 0;
     const beat = !!p && st.score > prev;
     if (beat) p.bestTimed = st.score;
+    if (window.FamilyScores && st.score > 0) FamilyScores.submit('hoopshot', 'timed', st.score, { player: p && p.name });
     saveFamily();
     let note = '';
     if (p) {

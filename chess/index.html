@@ -335,6 +335,7 @@ body {
   </div>
 </div>
 
+<script src="../scores.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
@@ -1731,8 +1732,20 @@ function maybeAI() {
   }, 450);
 }
 
+let reportedGame = null;
+// Sends a finished game against the computer or online to the family leaderboard (once).
+function reportEnd() {
+  const net = isOnline(), mine = net ? online.color : mode === "ai" ? humanColor : null;
+  if (!mine || !window.FamilyScores) return;
+  const id = (net ? online.code : "ai") + ":" + moveList.map((m) => m.from + "-" + m.to).join(",");
+  if (reportedGame === id) return;
+  reportedGame = id;
+  const score = gameOver.type === "mate" ? (state.turn === mine ? 0 : 1) : 0.5;
+  FamilyScores.submit("chess", net ? "online" : "computer", score, { detail: gameOver.short + (net && online.opp ? " vs " + online.opp : "") });
+}
 function showEnd() {
   if (!gameOver) return;
+  reportEnd();
   $("endTitle").textContent = gameOver.title;
   $("endText").textContent = gameOver.text;
   $("endModal").hidden = false;

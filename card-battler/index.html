@@ -295,6 +295,7 @@ body[data-theme=christmas]{background:radial-gradient(ellipse at 50% -10%,#0f5a3
 <div id="app"></div>
 <div id="modal"></div>
 <div id="toast"></div>
+<script src="../scores.js"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -1229,7 +1230,16 @@ function render() {
   if (v.phase === 'choose' || (v.phase === 'reveal' && !v.shown)) { window.scrollTo(0, 0); fitCard(); }
   if (v.phase === 'reveal') runReveal(v);
   if (v.phase === 'choose' && v.chooser === ME.pid && v.top) { SFX.turn(); vibrate(40); }
-  if (v.phase === 'over') { SFX.fanfare(); confetti(); }
+  if (v.phase === 'over') { SFX.fanfare(); confetti(); reportResult(v); }
+}
+// Sends this player's result to the family leaderboard once per game.
+function reportResult(v) {
+  if (!window.FamilyScores || UI.reported === v.gid || !v.standings) return;
+  UI.reported = v.gid;
+  const st = v.standings, i = st.findIndex(s => s.pid === ME.pid);
+  if (i < 0) return;
+  const won = st[i].count === st[0].count && st.filter(s => s.count === st[0].count).length === 1;
+  FamilyScores.submit('cardbattler', 'game', won ? 1 : 0, {player: ME.name, detail: `${i + 1} of ${st.length}, ${st[i].count} cards`});
 }
 function netbarHTML() { return UI.offline ? `<div class="netbar">📡 Lost connection to the host. Reconnecting…</div>` : ''; }
 function vibrate(ms) { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} }
@@ -1250,6 +1260,7 @@ function homeHTML() {
     <button class="btn" data-act="join">🗝️ Join a game${params.get('join') ? ' (' + esc(params.get('join').toUpperCase().slice(0, 4)) + ')' : ''}</button>
     <button class="btn green" data-act="solo">⚔️ Practise against the computer</button>
     <button class="btn hero" data-act="hero">🎨 ${loadHero() ? 'Edit your hero card' : 'Design your own hero card'}</button>
+    <a class="btn ghost" href="../leaderboard/" style="text-decoration:none">🏆 Family leaderboard</a>
     <div class="row2"><button class="btn ghost" data-act="gallery">📒 Cards &amp; album</button><button class="btn ghost" data-act="rules">❓ How to play</button></div>
   </div>`;
 }
@@ -1438,7 +1449,7 @@ function footHTML(v) {
   }
   if (v.phase === 'over') {
     const amHost = HOST && v.host === ME.pid;
-    return `<div class="stack">${amHost ? `<button class="btn gold" data-act="again">🔁 Play again</button>` : `<div class="wait">The host can start another game.</div>`}<button class="btn ghost" data-act="leave">🏠 Home</button></div>`;
+    return `<div class="stack">${amHost ? `<button class="btn gold" data-act="again">🔁 Play again</button>` : `<div class="wait">The host can start another game.</div>`}<a class="btn ghost" href="../leaderboard/" style="text-decoration:none">🏆 Family leaderboard</a><button class="btn ghost" data-act="leave">🏠 Home</button></div>`;
   }
   return '';
 }

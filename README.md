@@ -93,3 +93,14 @@ Online chess works like Card Battler: one player taps **Online** and then **Star
 The shared high-score boards in Scoot City and Echo Wheel only work in the claude.ai versions. These copies keep scores on each phone instead.
 
 Each game folder holds the page (`index.html`), the app details (`manifest.webmanifest`), the icons, and `sw.js`, which keeps a copy of the game on the phone for offline play.
+
+## Family leaderboard
+
+All five games send their results to one shared leaderboard at
+**https://kinapak-ux.github.io/Claude/leaderboard/**. It shows each game's best scores, plus an overall Family Champion (5, 3, 2 and 1 points for the top four on each game's board).
+
+- The scores are kept in a Google Sheet in your own Google Drive, through a small Google Apps Script (`leaderboard/apps-script.txt`). The leaderboard page shows the setup steps until it's connected. Once deployed, its web app address goes into `ENDPOINT` in `scores.js`.
+- Each phone keeps its results until they've been sent, so nothing is lost while it's offline or before the sheet is connected.
+- Names come from the game (Card Battler, Hoop Shot) or are asked for once per phone. Each phone's name can be changed on the leaderboard page.
+- To fix or remove a score, edit or delete its row in the sheet's **Scores** tab.
+- The web app address is in this public repository, so anyone who found it could read or add scores. First names or nicknames are best.

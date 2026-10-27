@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#120a24">
+<title>Family Leaderboard</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Leaderboard">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#120a24;--ink:#f5ecff;--mut:#b9a8d6;--line:rgba(255,255,255,.13);--panel:rgba(255,255,255,.06);--gold:#ffcc4d;--silver:#d6dde8;--bronze:#e0a06a}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% -10%,#3a1d6e,#120a24 65%) fixed;background-color:var(--bg);color:var(--ink);font-family:Nunito,system-ui,sans-serif}
+main{max-width:560px;margin:0 auto;padding:16px 16px calc(32px + env(safe-area-inset-bottom))}
+h1{margin:6px 0 0;text-align:center;font-family:Cinzel,serif;font-size:clamp(28px,8vw,38px);background:linear-gradient(180deg,#fff6d0,#ffcc4d 55%,#d9831a);-webkit-background-clip:text;background-clip:text;color:transparent}
+h2{font-family:Cinzel,serif;font-size:19px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.sub{text-align:center;color:var(--mut);margin:4px 0 16px;font-weight:700;font-size:14px}
+.top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.top .grow{flex:1}
+.iconbtn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:12px;height:40px;padding:0 12px;font:inherit;font-weight:800;font-size:14px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px}
+.podium{display:grid;grid-template-columns:1fr 1.15fr 1fr;align-items:end;gap:8px;margin:6px 0 14px;text-align:center}
+.pod{border-radius:14px 14px 6px 6px;padding:10px 6px;font-weight:900}
+.pod .m{font-size:30px;line-height:1}
+.pod .n{font-size:15px;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pod .pts{font-family:Cinzel,serif;font-size:14px;opacity:.85}
+.p1{background:linear-gradient(180deg,rgba(255,204,77,.35),rgba(255,204,77,.1));border:2px solid var(--gold);min-height:130px}
+.p2{background:linear-gradient(180deg,rgba(214,221,232,.3),rgba(214,221,232,.08));border:2px solid var(--silver);min-height:105px}
+.p3{background:linear-gradient(180deg,rgba(224,160,106,.3),rgba(224,160,106,.08));border:2px solid var(--bronze);min-height:88px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:-2px 0 10px}
+.tabs button{border:1px solid var(--line);background:rgba(0,0,0,.2);color:var(--ink);border-radius:99px;padding:6px 11px;font:inherit;font-weight:800;font-size:13px;cursor:pointer}
+.tabs button.on{background:#8a5cff;border-color:#8a5cff}
+select{width:100%;font:inherit;font-weight:800;font-size:15px;padding:9px;border-radius:12px;border:1px solid var(--line);background:#1d1236;color:var(--ink);margin-bottom:10px}
+ol.rank{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+ol.rank li{display:grid;grid-template-columns:30px 1fr auto;align-items:center;gap:8px;padding:9px 12px;border-radius:12px;background:rgba(0,0,0,.22)}
+ol.rank li.me{outline:2px solid #8a5cff;background:rgba(138,92,255,.18)}
+.pos{font-family:Cinzel,serif;font-weight:800;text-align:center}
+.nm{font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nm small{display:block;font-weight:700;color:var(--mut);font-size:12px}
+.val{font-family:Cinzel,serif;font-weight:800;color:var(--gold);text-align:right}
+.empty{color:var(--mut);font-weight:700;font-size:14px;padding:6px 2px}
+.feed{display:grid;gap:6px;font-size:14px}
+.feed div{padding:8px 10px;border-radius:10px;background:rgba(0,0,0,.2)}
+.feed time{color:var(--mut);font-size:12px;margin-left:6px}
+.note{color:var(--mut);font-size:13px;margin:8px 0 0}
+.setup ol{padding-left:20px;line-height:1.55;margin:8px 0}
+.setup li{margin-bottom:6px}
+.setup code{background:rgba(0,0,0,.35);padding:1px 5px;border-radius:5px}
+.btn{display:block;width:100%;text-align:center;border:0;border-radius:14px;padding:13px;font:inherit;font-weight:900;font-size:16px;cursor:pointer;color:#3a2000;background:linear-gradient(180deg,#ffd75e,#e09a12);box-shadow:0 4px 0 #9a6200;margin-top:10px;text-decoration:none}
+textarea{width:100%;height:120px;margin-top:8px;border-radius:12px;border:1px solid var(--line);background:rgba(0,0,0,.35);color:var(--ink);font:12px/1.4 ui-monospace,monospace;padding:8px}
+.spin{display:inline-block;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script src="../scores.js"></script>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+const GAME = {
+  cardbattler: {n: 'Card Battler', i: '🐉', url: '../card-battler/'},
+  hoopshot: {n: 'Hoop Shot', i: '🏀', url: '../hoop-shot/'},
+  echowheel: {n: 'Echo Wheel', i: '🎡', url: '../echo-wheel/'},
+  scootcity: {n: 'Scoot City', i: '🛴', url: '../scoot-city/'},
+  chess: {n: 'Skirmish Chess', i: '♞', url: '../chess/'},
+};
+const ECHO_MODES = {classic: 'Classic', strict: 'Strict', turbo: 'Turbo', reverse: 'Reverse', scramble: 'Scramble', blitz: 'Blitz'};
+const POINTS = [5, 3, 2, 1];
+const S = {rows: null, err: null, tab: {hoop: 'timed', echo: 'classic', chess: 'computer'}, level: null, loading: false};
+const key = n => String(n).trim().toLowerCase();
+const meKey = () => key(FamilyScores.name());
+
+// Rankings: every board turns rows into [{name, value, sub}] sorted best first.
+function people(rows) {
+  const names = {};
+  rows.forEach(r => { names[key(r.p)] = r.p; });
+  return names;
+}
+function bestBy(rows) {
+  const out = {};
+  rows.forEach(r => { const k = key(r.p); if (!out[k] || r.s > out[k].value) out[k] = {k, name: r.p, value: r.s, when: r.t}; });
+  return Object.values(out).sort((a, b) => b.value - a.value || a.when - b.when);
+}
+function boards(rows) {
+  const g = id => rows.filter(r => r.g === id);
+  const cb = {};
+  g('cardbattler').forEach(r => { const k = key(r.p); cb[k] = cb[k] || {k, name: r.p, value: 0, played: 0}; cb[k].value += r.s >= 1 ? 1 : 0; cb[k].played++; });
+  const chessOf = b => {
+    const o = {};
+    g('chess').filter(r => r.b === b).forEach(r => { const k = key(r.p); o[k] = o[k] || {k, name: r.p, value: 0, played: 0}; o[k].value += r.s >= 1 ? 1 : 0; o[k].played++; });
+    return Object.values(o).sort((a, b2) => b2.value - a.value || a.played - b2.played);
+  };
+  const scootLevels = [...new Set(g('scootcity').map(r => r.b))];
+  const scootTotal = {};
+  scootLevels.forEach(l => bestBy(g('scootcity').filter(r => r.b === l)).forEach(x => { scootTotal[x.k] = scootTotal[x.k] || {k: x.k, name: x.name, value: 0, levels: 0}; scootTotal[x.k].value += x.value; scootTotal[x.k].levels++; }));
+  const echoAll = {};
+  Object.keys(ECHO_MODES).forEach(m => bestBy(g('echowheel').filter(r => r.b === m)).forEach(x => { if (!echoAll[x.k] || x.value > echoAll[x.k].value) echoAll[x.k] = x; }));
+  return {
+    card: Object.values(cb).sort((a, b) => b.value - a.value || (b.value / b.played) - (a.value / a.played)),
+    hoop: {timed: bestBy(g('hoopshot').filter(r => r.b === 'timed')), streak: bestBy(g('hoopshot').filter(r => r.b === 'streak'))},
+    echo: Object.fromEntries(Object.keys(ECHO_MODES).map(m => [m, bestBy(g('echowheel').filter(r => r.b === m))])),
+    echoBest: Object.values(echoAll).sort((a, b) => b.value - a.value),
+    scootLevels, scoot: l => bestBy(g('scootcity').filter(r => r.b === l)),
+    scootTotal: Object.values(scootTotal).sort((a, b) => b.value - a.value),
+    chess: {computer: chessOf('computer'), online: chessOf('online')},
+  };
+}
+// Family Champion: 5, 3, 2 and 1 points for the top four on each game's main board.
+function champion(B) {
+  const champs = [B.card, B.hoop.timed, B.hoop.streak, B.echoBest, B.scootTotal, B.chess.computer.concat(B.chess.online).reduce((acc, x) => { const e = acc.find(a => a.k === x.k); if (e) e.value += x.value; else acc.push(Object.assign({}, x)); return acc; }, []).sort((a, b) => b.value - a.value)];
+  const pts = {};
+  champs.forEach(list => list.filter(x => x.value > 0).slice(0, 4).forEach((x, i) => { pts[x.k] = pts[x.k] || {k: x.k, name: x.name, value: 0, firsts: 0}; pts[x.k].value += POINTS[i]; if (!i) pts[x.k].firsts++; }));
+  return Object.values(pts).sort((a, b) => b.value - a.value || b.firsts - a.firsts);
+}
+
+function rankHTML(list, fmt, sub) {
+  if (!list.length) return `<div class="empty">No scores yet. Be the first!</div>`;
+  const me = meKey();
+  return `<ol class="rank">${list.slice(0, 10).map((x, i) => `<li class="${x.k === me ? 'me' : ''}"><span class="pos">${x.value > 0 && ['🥇', '🥈', '🥉'][i] || i + 1}</span><span class="nm">${esc(x.name)}${sub ? `<small>${sub(x)}</small>` : ''}</span><span class="val">${fmt ? fmt(x) : x.value.toLocaleString()}</span></li>`).join('')}</ol>`;
+}
+const tabs = (group, opts) => `<div class="tabs">${Object.entries(opts).map(([k, n]) => `<button class="${S.tab[group] === k ? 'on' : ''}" data-tab="${group}" data-k="${k}">${n}</button>`).join('')}</div>`;
+const ago = t => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; };
+function feedLine(r) {
+  const n = `<b>${esc(r.p)}</b>`;
+  switch (r.g) {
+    case 'cardbattler': return r.s >= 1 ? `🐉 ${n} won a game of Card Battler!` : `🐉 ${n} played Card Battler (${esc(r.d)})`;
+    case 'hoopshot': return r.b === 'timed' ? `🏀 ${n} scored ${r.s} in the 60-second challenge` : `🏀 ${n} hit a streak of ${r.s} in a row`;
+    case 'echowheel': return `🎡 ${n} reached round ${r.s} in Echo Wheel ${ECHO_MODES[r.b] || ''}`;
+    case 'scootcity': return `🛴 ${n} scored ${r.s.toLocaleString()} on ${esc(r.b)}`;
+    case 'chess': return `♞ ${n} ${r.s >= 1 ? 'won' : r.s > 0 ? 'drew' : 'lost'} a chess game ${r.b === 'online' ? 'online' : 'against the computer'}`;
+  }
+  return '';
+}
+
+function render() {
+  const app = $('#app');
+  const top = `<div class="top"><a class="iconbtn" href="../" aria-label="Back">←</a><div class="grow"></div>${FamilyScores.ready ? `<button class="iconbtn" data-act="refresh">${S.loading ? '<span class="spin">↻</span>' : '↻'} Refresh</button>` : ''}</div>
+    <h1>🏆 Family Leaderboard</h1>`;
+  if (!FamilyScores.ready) { app.innerHTML = top + setupHTML(); return; }
+  const meName = FamilyScores.name();
+  const who = `<p class="sub">${meName ? `Playing as <b>${esc(meName)}</b> · <a href="#" data-act="rename" style="color:#c9b3ff">change</a>` : `<a href="#" data-act="rename" style="color:#c9b3ff">Set your name</a>`}${FamilyScores.waiting() ? ` · ${FamilyScores.waiting()} score${FamilyScores.waiting() === 1 ? '' : 's'} waiting to send` : ''}</p>`;
+  if (S.err) { app.innerHTML = top + who + `<div class="panel"><b>Couldn't load the scores.</b><p class="note">${esc(S.err)}. Check your internet, then tap Refresh.</p></div>`; return; }
+  if (!S.rows) { app.innerHTML = top + who + `<div class="panel empty"><span class="spin">↻</span> Loading scores…</div>`; return; }
+  const B = boards(S.rows), champ = champion(B);
+  if (!S.level || !B.scootLevels.includes(S.level)) S.level = B.scootLevels[0] || null;
+  const pod = champ.slice(0, 3);
+  const podium = pod.length ? `<div class="podium">${[1, 0, 2].map(i => pod[i] ? `<div class="pod p${i + 1}"><div class="m">${['👑', '🥈', '🥉'][i]}</div><div class="n">${esc(pod[i].name)}</div><div class="pts">${pod[i].value} pts</div></div>` : '<div></div>').join('')}</div>` : '';
+  const section = (g, body) => `<div class="panel"><h2>${GAME[g].i} ${GAME[g].n}<span class="grow"></span><a class="iconbtn" style="height:32px;margin-left:auto" href="${GAME[g].url}">Play</a></h2>${body}</div>`;
+  app.innerHTML = top + who + `
+    <div class="panel"><h2>👑 Family Champion</h2>${podium}${rankHTML(champ, x => `${x.value} pts`)}
+      <p class="note">Points from every game: 5 for 1st place, 3 for 2nd, 2 for 3rd and 1 for 4th.</p></div>
+    ${section('cardbattler', rankHTML(B.card, x => `${x.value} win${x.value === 1 ? '' : 's'}`, x => `${x.played} game${x.played === 1 ? '' : 's'} played · ${Math.round(100 * x.value / x.played)}% won`))}
+    ${section('hoopshot', tabs('hoop', {timed: '60-second challenge', streak: 'Longest streak'}) + rankHTML(B.hoop[S.tab.hoop], x => S.tab.hoop === 'streak' ? `${x.value} in a row` : `${x.value} pts`))}
+    ${section('echowheel', tabs('echo', ECHO_MODES) + rankHTML(B.echo[S.tab.echo], x => `Round ${x.value}`))}
+    ${section('scootcity', B.scootLevels.length ? `<select data-act="level">${B.scootLevels.map(l => `<option${l === S.level ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>${rankHTML(B.scoot(S.level))}
+      <h2 style="margin-top:14px;font-size:16px">All levels (best scores added up)</h2>${rankHTML(B.scootTotal, null, x => `${x.levels} level${x.levels === 1 ? '' : 's'}`)}` : rankHTML([]))}
+    ${section('chess', tabs('chess', {computer: 'Against the computer', online: 'Online'}) + rankHTML(B.chess[S.tab.chess], x => `${x.value} win${x.value === 1 ? '' : 's'}`, x => `${x.played} game${x.played === 1 ? '' : 's'} played`))}
+    <div class="panel"><h2>📰 Latest</h2><div class="feed">${S.rows.slice(-12).reverse().map(r => `<div>${feedLine(r)}<time>${ago(r.t)}</time></div>`).join('') || '<div class="empty">Nothing yet.</div>'}</div></div>`;
+}
+
+function setupHTML() {
+  return `<p class="sub">One-time setup for a grown-up (about 5 minutes)</p>
+  <div class="panel setup"><h2>📋 Connect the leaderboard</h2>
+    <p class="note" style="margin-top:0">The scores are saved in a Google Sheet in your own Google Drive. Until it's connected, every phone keeps its scores safe and sends them as soon as it is.</p>
+    <ol>
+      <li>Open <a href="https://sheets.new" target="_blank" rel="noopener" style="color:#c9b3ff">sheets.new</a> (signed in to your Google account) and name the sheet <b>Family Games Leaderboard</b>.</li>
+      <li>In the sheet, tap <b>Extensions</b>, then <b>Apps Script</b>.</li>
+      <li>Delete the code that's there, then paste the script below (tap <b>Copy script</b>).</li>
+      <li>Tap <b>Deploy</b>, then <b>New deployment</b>. Click the ⚙️ next to "Select type" and choose <b>Web app</b>.</li>
+      <li>Set <b>Execute as: Me</b> and <b>Who has access: Anyone</b>, then tap <b>Deploy</b>.</li>
+      <li>Google asks you to authorise it. Choose your account. If it says "Google hasn't verified this app", tap <b>Advanced</b>, then <b>Go to … (unsafe)</b>. It's safe: it's your own script, and it can only use this one spreadsheet.</li>
+      <li>Copy the <b>Web app URL</b> it gives you (it ends in <code>/exec</code>) and send it to Claude. Claude will connect all the games to it.</li>
+    </ol>
+    <button class="btn" data-act="copy">📋 Copy script</button>
+    <textarea id="script" readonly>Loading script…</textarea>
+  </div>`;
+}
+
+async function load() {
+  if (!FamilyScores.ready) return;
+  S.loading = true; S.err = null; render();
+  try { S.rows = (await FamilyScores.list()).filter(r => GAME[r.g]).sort((a, b) => a.t - b.t); }
+  catch (e) { S.err = e.message === 'not-set-up' ? 'The leaderboard isn’t connected yet' : 'No connection'; }
+  S.loading = false; render();
+}
+
+document.addEventListener('click', async e => {
+  const t = e.target.closest('[data-tab],[data-act]');
+  if (!t) return;
+  if (t.dataset.tab) { S.tab[t.dataset.tab] = t.dataset.k; render(); return; }
+  if (t.dataset.act === 'refresh') { FamilyScores.flush(); load(); }
+  if (t.dataset.act === 'rename') { e.preventDefault(); const n = prompt('What name should go on the family leaderboard?', FamilyScores.name()); if (n !== null) { FamilyScores.setName(n); render(); } }
+  if (t.dataset.act === 'copy') {
+    const ta = $('#script');
+    try { await navigator.clipboard.writeText(ta.value); t.textContent = '✅ Copied!'; } catch (err) { ta.select(); document.execCommand('copy'); t.textContent = '✅ Copied!'; }
+  }
+});
+document.addEventListener('change', e => { if (e.target.dataset.act === 'level') { S.level = e.target.value; render(); } });
+render();
+if (FamilyScores.ready) load();
+else fetch('apps-script.txt').then(r => r.text()).then(t => { const ta = $('#script'); if (ta) ta.value = t; }).catch(() => {});
+</script>
+<script>if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));</script>
+</body>
+</html>
