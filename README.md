@@ -83,8 +83,8 @@ All five games are published with the tracker and can be installed on a phone's 
 
 Once a game has been opened, it also works with no signal. The exception is anything that needs other phones, such as Card Battler multiplayer.
 
-These copies use the phone's own storage, so a few features only work in the claude.ai versions:
-- Online chess, which uses claude.ai's shared database. Play against the computer or on one device instead.
-- The shared high-score boards in Scoot City and Echo Wheel. Scores are kept on each phone instead.
+Online chess works like Card Battler: one player taps **Online** and then **Start a new game**, and the other types in the 5-character code. If either phone drops out, the game pauses until it reconnects. Whoever started the game can reopen it from **Online** and then **Resume**.
+
+The shared high-score boards in Scoot City and Echo Wheel only work in the claude.ai versions. These copies keep scores on each phone instead.
 
 Each game folder holds the page (`index.html`), the app details (`manifest.webmanifest`), the icons, and `sw.js`, which keeps a copy of the game on the phone for offline play.

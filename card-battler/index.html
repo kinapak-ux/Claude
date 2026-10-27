@@ -142,7 +142,11 @@ select.txt{width:100%;font:inherit;font-size:16px;font-weight:700;padding:12px;b
 @keyframes bolt{0%,88%,92%,100%{opacity:0}89%,93%{opacity:1}}
 
 /* ---------- Reveal ---------- */
-.vs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 auto}
+.vs.c3{grid-template-columns:repeat(3,1fr);gap:8px}
+.vs.tight .t-stat{display:none}
+.vs.tight .t-art{aspect-ratio:2/1}
+.vs.tight .t-notes{min-height:0}
 .vs.n1{grid-template-columns:1fr;max-width:240px;margin:0 auto}
 .tilew{container-type:inline-size;perspective:600px}
 .tile{position:relative;border-radius:6cqw;padding:2.2cqw;background:var(--frame);background-size:300% 300%;transition:transform .5s,opacity .5s,box-shadow .4s;cursor:pointer}
@@ -151,16 +155,16 @@ select.txt{width:100%;font:inherit;font-size:16px;font-weight:700;padding:12px;b
 .tile.r-epic{--frame:linear-gradient(145deg,#4f1696,#e0b0ff 30%,#3a0f78 60%,#bb7cff)}
 .tile.r-legendary{--frame:linear-gradient(135deg,#9a6512,#ffe9a0 25%,#c08414 50%,#fff6d6 70%,#b07a10)}
 .tile-in{border-radius:4.2cqw;overflow:hidden;background:#140c24}
-.t-who{display:flex;align-items:center;gap:2cqw;padding:2.4cqw 3.5cqw;font-weight:900;font-size:7.2cqw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.t-art{position:relative;aspect-ratio:3/2;overflow:hidden}
+.t-who{display:flex;align-items:center;gap:2cqw;padding:2.4cqw 3.5cqw;font-weight:900;font-size:max(11px,7.2cqw);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-art{position:relative;aspect-ratio:16/10;overflow:hidden}
 .t-art svg{position:absolute;inset:0;width:100%;height:100%}
 .t-art .c-crea{font-size:40cqw}
 .t-art .c-acc{font-size:15cqw}
-.t-name{font-family:Cinzel,serif;font-weight:800;font-size:6.6cqw;padding:2.4cqw 3.5cqw 0;line-height:1.15;min-height:9cqw}
-.t-num{font-family:Cinzel,serif;font-weight:800;font-size:17cqw;text-align:center;line-height:1.1;padding:1cqw 0 0}
-.t-notes{font-size:5.6cqw;font-weight:800;text-align:center;color:#ffe08a;padding:0 3cqw 2.4cqw;min-height:8cqw;line-height:1.25}
+.t-name{font-family:Cinzel,serif;font-weight:800;font-size:max(10px,6.6cqw);padding:2.4cqw 3.5cqw 0;line-height:1.15;min-height:9cqw}
+.t-num{font-family:Cinzel,serif;font-weight:800;font-size:max(24px,17cqw);text-align:center;line-height:1.1;padding:1cqw 0 0}
+.t-notes{font-size:max(10px,5.6cqw);font-weight:800;text-align:center;color:#ffe08a;padding:0 3cqw 2.4cqw;min-height:8cqw;line-height:1.25}
 .t-notes .neg{color:#ff9db0}
-.t-out{position:absolute;left:50%;top:-3cqw;transform:translateX(-50%);z-index:3;white-space:nowrap;font-weight:900;font-size:6.4cqw;padding:1.4cqw 4cqw;border-radius:99px;background:#2a1a48;border:.6cqw solid var(--line);transition:opacity .4s}
+.t-out{position:absolute;left:50%;top:-3cqw;transform:translateX(-50%);z-index:3;white-space:nowrap;font-weight:900;font-size:max(10px,6.4cqw);padding:1.4cqw 4cqw;border-radius:99px;background:#2a1a48;border:.6cqw solid var(--line);transition:opacity .4s}
 .tile.win{transform:scale(1.04);box-shadow:0 0 0 1.2cqw #ffcc4d,0 0 14cqw rgba(255,204,77,.75)}
 .tile.win .t-out{background:linear-gradient(180deg,#ffd75e,#e09a12);color:#3a2000;border-color:#fff3c4}
 .tile.lose{filter:saturate(.45) brightness(.7)}
@@ -172,12 +176,12 @@ select.txt{width:100%;font:inherit;font-size:16px;font-weight:700;padding:12px;b
 .rv.anim:not(.s2) .t-out,.rv.anim:not(.s2) .headline,.rv.anim:not(.s1) .plog{opacity:0}
 .rv.anim:not(.s2) .tile.win{transform:none;box-shadow:none}
 .rv.anim:not(.s2) .tile.lose{filter:none}
-.t-pow{margin:1.6cqw 3.5cqw 0;padding:1.2cqw 2.5cqw;border-radius:2.5cqw;font-size:5.2cqw;font-weight:800;line-height:1.2;color:var(--mut);background:rgba(255,255,255,.06);border:.6cqw solid rgba(255,255,255,.14);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-pow{margin:1.6cqw 3.5cqw 0;padding:1.2cqw 2.5cqw;border-radius:2.5cqw;font-size:max(10px,5.2cqw);font-weight:800;line-height:1.2;color:var(--mut);background:rgba(255,255,255,.06);border:.6cqw solid rgba(255,255,255,.14);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rv:not(.anim) .t-pow.fired,.rv.s1 .t-pow.fired{color:#ffe9a0;background:rgba(255,204,77,.2);border-color:#ffcc4d;box-shadow:0 0 4cqw rgba(255,204,77,.6)}
 .rv.anim.s1:not(.s2) .t-pow.fired{animation:powflash .5s ease-in-out 3}
 .rv:not(.anim) .t-pow.muted,.rv.s1 .t-pow.muted{text-decoration:line-through;opacity:.55}
 @keyframes powflash{0%,100%{transform:scale(1);box-shadow:0 0 4cqw rgba(255,204,77,.6)}50%{transform:scale(1.07);background:rgba(255,220,120,.55);color:#fff;box-shadow:0 0 0 1cqw #ffcc4d,0 0 10cqw #ffcc4d}}
-.t-stat{font-size:5.4cqw;font-weight:800;text-align:center;color:var(--mut);margin-top:-1cqw}
+.t-stat{font-size:max(10px,5.4cqw);font-weight:800;text-align:center;color:var(--mut);margin-top:-1cqw}
 .rv:not(.pre) .announce{display:none}
 .rv.pre .vs,.rv.pre .headline,.rv.pre .plog{display:none}
 .announce{text-align:center;animation:pop .35s ease-out}
@@ -193,10 +197,10 @@ select.txt{width:100%;font:inherit;font-size:16px;font-weight:700;padding:12px;b
 .btn.cd{position:relative;overflow:hidden}
 .t-num.zap{animation:zap .6s}
 @keyframes zap{30%{transform:scale(1.4);color:#ffe66d;text-shadow:0 0 14px #ffcc4d}}
-.headline{text-align:center;font-family:Cinzel,serif;font-weight:800;font-size:22px;margin:16px 0 4px;transition:opacity .4s}
+.headline{text-align:center;font-family:Cinzel,serif;font-weight:800;font-size:22px;margin:12px 0 2px;transition:opacity .4s}
 .headline.big{font-size:26px;color:#ffe08a;text-shadow:0 0 20px rgba(255,204,77,.6)}
-.plog{display:grid;gap:6px;margin-top:10px;transition:opacity .4s}
-.plog div{font-size:14px;font-weight:700;padding:8px 12px;border-radius:12px;background:rgba(155,107,255,.15);border:1px solid rgba(155,107,255,.35)}
+.plog{display:grid;gap:5px;margin-top:8px;transition:opacity .4s}
+.plog div{font-size:13px;font-weight:700;padding:6px 10px;border-radius:12px;background:rgba(155,107,255,.15);border:1px solid rgba(155,107,255,.35)}
 .statpill{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:99px;background:rgba(255,204,77,.18);border:1px solid rgba(255,204,77,.5);color:#ffe08a}
 .topsy{display:block;margin:8px auto 0;width:max-content;max-width:100%;padding:6px 14px;border-radius:12px;background:linear-gradient(90deg,#ff4dd2,#9b4dff);color:#fff;font-family:Nunito;font-weight:900;font-size:15px;animation:pulse 1s infinite}
 
@@ -1035,10 +1039,33 @@ function revealHTML(v) {
     head = R.win === ME.pid ? `<div class="headline big">🏆 You win ${R.won} ${s}!</div>` : `<div class="headline">${pname(v, R.win)} wins ${R.won} ${s}!</div>`;
   } else head = `<div class="headline">⚖️ It's a tie! ${R.toPot} card${R.toPot === 1 ? '' : 's'} go into the pot.<div class="mut" style="font-family:Nunito;font-size:14px;font-weight:700;margin-top:4px">The next winner takes the whole pot!</div></div>`;
   return `<div class="banner" id="rvbanner">${pname(v, R.by)} picked <span class="statpill">${SI(R.stat)} ${SN(R.stat)}</span>${R.low ? '<span class="topsy">🔄 TOPSY-TURVY: lowest number wins!</span>' : ''}</div>
-    <div class="rv" id="rv">${announceHTML(v)}<div class="vs${R.plays.length === 1 ? ' n1' : ''}">${tiles}</div>
+    <div class="rv" id="rv">${announceHTML(v)}<div class="vs${R.plays.length === 1 ? ' n1' : revealCols(R.plays.length) === 3 ? ' c3' : ''}">${tiles}</div>
     ${head}
     ${R.log.length ? `<div class="plog">${R.log.map(l => `<div>${esc(l)}</div>`).join('')}</div>` : ''}</div>`;
 }
+const revealCols = n => n === 1 ? 1 : n === 3 || n >= 5 ? 3 : 2;
+// Shrink the battle cards until the whole reveal, result and Next button fit on one screen.
+function fitReveal() {
+  const rv = $('#rv'), vs = rv && rv.querySelector('.vs');
+  if (!vs || rv.classList.contains('pre')) return;
+  vs.style.maxWidth = ''; vs.classList.remove('tight');
+  const n = vs.children.length, cols = revealCols(n), rows = Math.ceil(n / cols), gap = cols === 3 ? 8 : 10;
+  const fit = () => {
+    const tile = vs.querySelector('.tile'); if (!tile || !tile.offsetWidth) return Infinity;
+    const ratio = tile.offsetHeight / tile.offsetWidth;
+    const padBottom = parseFloat(getComputedStyle($('#app')).paddingBottom) || 0;
+    const avail = window.innerHeight - (document.documentElement.scrollHeight - padBottom - vs.offsetHeight) - 4;
+    return ((avail - gap * (rows - 1)) / rows) / ratio * cols + gap * (cols - 1);
+  };
+  // Small screens with lots of players: drop the repeated stat label and use shorter pictures.
+  if (fit() < cols * 110) vs.classList.add('tight');
+  for (let pass = 0; pass < 6; pass++) {
+    const w = Math.max(cols * 84, fit());
+    if (w >= vs.offsetWidth) return;
+    vs.style.maxWidth = Math.floor(w) + 'px';
+  }
+}
+addEventListener('resize', () => { if (UI.view && UI.view.phase === 'reveal') fitReveal(); });
 function announceHTML(v) {
   const R = v.result, mine = R.plays.find(p => p.pid === ME.pid);
   const who = R.by === ME.pid ? 'You picked' : `${pname(v, R.by)} picked`;
@@ -1070,7 +1097,7 @@ function overHTML(v) {
 
 function runReveal(v) {
   const R = v.result, rv = $('#rv');
-  if (!rv || UI.animRound === R.round) return;
+  if (!rv || UI.animRound === R.round) { fitReveal(); return; }
   UI.animRound = R.round;
   rv.classList.add('anim', 'pre');
   const foot = $('#foot'); if (foot) foot.classList.add('hold');
@@ -1079,7 +1106,7 @@ function runReveal(v) {
   const cd = $('#cd321');
   [3, 2, 1].forEach((n, i) => later(() => { if (!cd) return; cd.textContent = n; cd.classList.remove('pop'); void cd.offsetWidth; cd.classList.add('pop'); SFX.tick(n === 1); }, i * 1000));
   const banner = $('#rvbanner'); if (banner) banner.style.display = 'none';
-  later(() => { rv.classList.remove('pre'); if (banner) banner.style.display = ''; }, ANNOUNCE_MS);
+  later(() => { rv.classList.remove('pre'); if (banner) banner.style.display = ''; fitReveal(); window.scrollTo(0, 0); }, ANNOUNCE_MS);
   const tiles = [...rv.querySelectorAll('.tilew')];
   const count = (el, from, to, ms) => { const t0 = performance.now(); const step = t => { const k = Math.min(1, (t - t0) / ms); el.textContent = Math.round(from + (to - from) * k); if (k < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); };
   tiles.forEach(t => { const n = t.querySelector('.t-num'); n.textContent = '0'; });
