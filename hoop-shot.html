@@ -261,7 +261,10 @@
 
   <div class="help" id="picker" hidden>
     <div class="help-inner">
-      <h2>Choose your ball</h2>
+      <h2>Choose your ball &amp; court</h2>
+      <h3>Court</h3>
+      <div class="balls" id="court-list"></div>
+      <h3>Ball</h3>
       <p class="sub">Each ball flies and bounces in its own way. The aim guide always shows the path of the ball you pick.</p>
       <div class="balls" id="ball-list"></div>
       <button class="close-btn" id="picker-close" type="button">Back to the court</button>
@@ -295,7 +298,7 @@
         <button class="close-btn" id="home-timed" type="button">60-second challenge</button>
         <div class="home-row">
           <button class="help-btn" id="home-player" type="button">Change player</button>
-          <button class="help-btn" id="home-ball" type="button">Choose ball</button>
+          <button class="help-btn" id="home-ball" type="button">Ball &amp; court</button>
           <button class="help-btn" id="home-rules" type="button">Rules</button>
         </div>
       </div>
@@ -352,6 +355,7 @@
     netball:    { name: 'Netball',      note: 'Lighter, with a softer bounce. Shot at a netball post, so there is no backboard to bank off.', size: 0.9, grav: 0.95, bounce: 0.85, wind: 1.3, drag: 0.03, speed: 0.99, meters: { bounce: 2, weight: 2, wind: 3 } },
     rugby:      { name: 'Rugby ball',   note: 'Tumbles end over end. Its pointy shape makes every bounce unpredictable.', size: 1.05, grav: 1.05, bounce: 0.9, wind: 1.1, drag: 0.04, speed: 1.04, wobble: 0.9, meters: { bounce: 3, weight: 3, wind: 2 } },
     pingpong:   { name: 'Ping pong ball', note: 'Tiny and feather-light. Air slows it fast and the wind throws it around.', size: 0.4, grav: 0.8, bounce: 1.7, wind: 3.5, drag: 0.7, speed: 1.25, meters: { bounce: 5, weight: 1, wind: 5 } },
+    pumpkin:    { name: "Jack-o'-lantern", note: 'A carved pumpkin with a candle inside. Lands with a squashy thud and leaves a trail of candlelight.', size: 1.1, grav: 1.1, bounce: 0.55, wind: 0.7, drag: 0.03, speed: 1.07, glow: '#ffb347', meters: { bounce: 1, weight: 4, wind: 2 } },
   };
   // wobble: how far (radians) an odd-shaped ball can kick off line when it bounces
   function wobble(b) {
@@ -367,6 +371,15 @@
   const br = () => R * ballDef().size;
   const launchK = () => maxSpeed * ballDef().speed / maxPull;
 
+  // ---- courts (level backgrounds) ----
+  const COURTS = {
+    dusk:      { name: 'Dusk court',      note: 'The original outdoor court at dusk.' },
+    halloween: { name: 'Halloween night', note: 'Full moon, a haunted house, tombstones and fog. Bats fly over instead of birds.' },
+  };
+  let court = 'dusk', bgCache = null;
+  try { const c = localStorage.getItem('hoopshot-court'); if (COURTS[c]) court = c; } catch (e) {}
+  const spooky = () => court === 'halloween';
+
   // ---- sound: synthesized with Web Audio, tuned per ball ----
   // body: the thump [start Hz, end Hz, seconds]; slap: surface contact noise [Hz, Q, seconds];
   // ring: the hollow shell resonance [Hz, seconds]; mass sets how hard it rings metal and wood
@@ -379,6 +392,7 @@
     netball:    { body: [180, 90, 0.13],  slap: [1100, 1.2, 0.045], ring: [380, 0.1],  level: 0.85, mass: 0.8 },
     rugby:      { body: [130, 75, 0.14],  slap: [700, 1, 0.06],    ring: null,         level: 0.95, mass: 0.9, double: true },
     pingpong:   { body: [1300, 1150, 0.045], slap: [4500, 3, 0.015], ring: [2600, 0.05], level: 0.55, mass: 0.08 },
+    pumpkin:    { body: [100, 55, 0.22],  slap: [450, 0.8, 0.09],  ring: [190, 0.18],  level: 1.1,  mass: 1.4 },
   };
 
   const sfx = (() => {
@@ -467,8 +481,12 @@
       bird() {
         if (!ready()) return;
         noise(2500, 1800, 1, 0.05, 0.3, 0, 'highpass');
-        tone(1700, 2600, 0.07, 0.2, 0.02, 'triangle');
-        tone(2100, 3100, 0.08, 0.18, 0.11, 'triangle');
+        if (court === 'halloween') {   // a bat's squeaks instead of a chirp
+          for (let i = 0; i < 3; i++) tone(4200, 3100, 0.035, 0.12, 0.02 + i * 0.06, 'triangle');
+        } else {
+          tone(1700, 2600, 0.07, 0.2, 0.02, 'triangle');
+          tone(2100, 3100, 0.08, 0.18, 0.11, 'triangle');
+        }
         tone(880, 880, 0.25, 0.12, 0.22, 'triangle');
         tone(1320, 1320, 0.3, 0.12, 0.32, 'triangle');
       },
@@ -628,6 +646,7 @@
     maxPull = S * 0.3;
     maxSpeed = Math.hypot(1.9 * H, 1.0 * W);
     stars = Array.from({ length: 40 }, (_, i) => ({ x: (i * 97.3 % 100) / 100 * W, y: (i * 53.7 % 100) / 100 * H * 0.5, r: (i % 3) * 0.4 + 0.5 }));
+    bgCache = null;
     if (hoop) layoutHoop(); else newHoop();
     if (phase === 'aim') resetShot();
   }
@@ -929,7 +948,7 @@
 
   function showHome() {
     const p = me();
-    document.getElementById('home-sub').textContent = `Playing as ${p ? p.name : 'nobody yet'} with the ${BALLS[nextBall].name.toLowerCase()}.`;
+    document.getElementById('home-sub').textContent = `Playing as ${p ? p.name : 'nobody yet'} with the ${BALLS[nextBall].name.toLowerCase()} on the ${COURTS[court].name.toLowerCase()}.`;
     document.getElementById('home-free').textContent = mode === 'free' && st.score > 0 ? `Resume free play (${st.score} pts)` : 'Free play';
     openPanel(home, document.getElementById('home-free'));
   }
@@ -1044,6 +1063,16 @@
   });
 
   function buildPicker() {
+    const courtList = document.getElementById('court-list');
+    courtList.innerHTML = Object.entries(COURTS).map(([k, c]) => `
+      <button class="ball-card court-card" type="button" data-court="${k}" aria-pressed="false">
+        <canvas width="112" height="112" aria-hidden="true"></canvas>
+        <span class="bc-text"><strong>${c.name}</strong><span class="note">${c.note}</span></span>
+      </button>`).join('');
+    courtList.querySelectorAll('.court-card').forEach(card => {
+      drawCourtThumb(card.querySelector('canvas').getContext('2d'), card.dataset.court);
+      card.addEventListener('click', () => chooseCourt(card.dataset.court));
+    });
     const list = document.getElementById('ball-list');
     const pips = n => '●'.repeat(n) + '○'.repeat(5 - n);
     list.innerHTML = Object.entries(BALLS).map(([k, b]) => `
@@ -1066,6 +1095,15 @@
   function markPicker() {
     document.querySelectorAll('.ball-card').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.type === nextBall)));
     document.getElementById('ball-name').textContent = BALLS[nextBall].name;
+    document.querySelectorAll('.court-card').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.court === court)));
+  }
+
+  function chooseCourt(kind) {
+    court = kind; bgCache = null;
+    try { localStorage.setItem('hoopshot-court', kind); } catch (e) {}
+    markPicker();
+    closePanels();
+    showToast(COURTS[kind].name, COURTS[kind].note, kind === 'halloween' ? '#ff9a2e' : COL.gold);
   }
 
   function chooseBall(type) {
@@ -1129,7 +1167,7 @@
       for (const b of shot.balls) {
         if (b.rest) continue;
         for (let i = 0; i < n; i++) step(b, sdt / n);
-        if (shot.fire || has('slow')) { b.trail.push([b.x, b.y]); if (b.trail.length > 9) b.trail.shift(); }
+        if (shot.fire || has('slow') || ballDef().glow) { b.trail.push([b.x, b.y]); if (b.trail.length > 9) b.trail.shift(); }
       }
       if (shot.scoredAt !== null) {
         if (shot.t - shot.scoredAt > 1.2) endShot(true);
@@ -1148,6 +1186,7 @@
 
   // ---- drawing ----
   function drawBackground() {
+    if (spooky()) { drawHalloween(); return; }
     const g = ctx.createLinearGradient(0, 0, 0, floorY);
     g.addColorStop(0, COL.skyTop); g.addColorStop(1, COL.skyLow);
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, floorY);
@@ -1160,6 +1199,124 @@
     ctx.globalAlpha = 0.6;
     ctx.beginPath(); ctx.ellipse(launch.x, floorY + (H - floorY) * 0.45, R * 1.8, R * 0.45, 0, 0, Math.PI * 2); ctx.stroke();
     ctx.globalAlpha = 1;
+  }
+
+  // Halloween night: the still scenery is painted once per size into an offscreen canvas
+  function renderHalloween() {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const c = document.createElement('canvas');
+    c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+    const g = c.getContext('2d');
+    g.scale(dpr, dpr);
+    const TAU = Math.PI * 2, S = Math.min(W, H), ink = '#0e0614';
+    const sky = g.createLinearGradient(0, 0, 0, floorY);
+    sky.addColorStop(0, '#120822'); sky.addColorStop(0.6, '#3a1645'); sky.addColorStop(1, '#a3482a');
+    g.fillStyle = sky; g.fillRect(0, 0, W, floorY);
+    g.fillStyle = '#f4e6bf';
+    for (const sr of stars) { g.globalAlpha = 0.4; g.beginPath(); g.arc(sr.x, sr.y * 0.8, sr.r, 0, TAU); g.fill(); }
+    g.globalAlpha = 1;
+    // full moon with a soft halo
+    const mx = W * 0.7, my = H * 0.2, mr = S * 0.085;
+    const halo = g.createRadialGradient(mx, my, mr * 0.8, mx, my, mr * 3.2);
+    halo.addColorStop(0, 'rgba(255, 236, 190, 0.35)'); halo.addColorStop(1, 'rgba(255, 236, 190, 0)');
+    g.fillStyle = halo; g.beginPath(); g.arc(mx, my, mr * 3.2, 0, TAU); g.fill();
+    g.fillStyle = '#f4e6bf'; g.beginPath(); g.arc(mx, my, mr, 0, TAU); g.fill();
+    g.fillStyle = '#e0cc9b';
+    for (const [cx, cy, cr] of [[-0.3, -0.2, 0.18], [0.25, 0.1, 0.24], [-0.1, 0.4, 0.12], [0.35, -0.38, 0.1]]) { g.beginPath(); g.arc(mx + cx * mr, my + cy * mr, cr * mr, 0, TAU); g.fill(); }
+    // rolling hills on the horizon
+    g.fillStyle = '#25102f';
+    g.beginPath(); g.moveTo(0, floorY);
+    for (let x = 0; x <= W; x += 8) g.lineTo(x, floorY - H * 0.07 - Math.sin(x / W * 5.5 + 1) * H * 0.025);
+    g.lineTo(W, floorY); g.closePath(); g.fill();
+    // haunted house with a tower and lit windows
+    const hw = Math.max(70, Math.min(190, W * 0.13)), hh = hw * 0.75, hx = W * 0.27, hy = floorY;
+    g.fillStyle = ink;
+    g.fillRect(hx, hy - hh, hw, hh);
+    g.beginPath(); g.moveTo(hx - hw * 0.08, hy - hh); g.lineTo(hx + hw * 0.5, hy - hh - hw * 0.45); g.lineTo(hx + hw * 1.08, hy - hh); g.fill();
+    const tx = hx + hw * 0.72, tw = hw * 0.26, th = hh * 1.55;
+    g.fillRect(tx, hy - th, tw, th);
+    g.beginPath(); g.moveTo(tx - tw * 0.2, hy - th); g.lineTo(tx + tw / 2, hy - th - tw * 1.5); g.lineTo(tx + tw * 1.2, hy - th); g.fill();
+    g.fillStyle = '#ffb347'; g.shadowColor = '#ff9a2e'; g.shadowBlur = 12;
+    const win = (x, y, w, h) => g.fillRect(x, y, w, h);
+    win(hx + hw * 0.12, hy - hh * 0.72, hw * 0.13, hh * 0.2);
+    win(hx + hw * 0.4, hy - hh * 0.72, hw * 0.13, hh * 0.2);
+    win(tx + tw * 0.3, hy - th * 0.8, tw * 0.4, th * 0.12);
+    g.fillRect(hx + hw * 0.28, hy - hh * 0.38, hw * 0.16, hh * 0.38);
+    g.shadowBlur = 0;
+    // bare tree at the far left
+    g.strokeStyle = ink; g.lineCap = 'round';
+    const branch = (x, y, len, ang, w, depth) => {
+      const x2 = x + Math.cos(ang) * len, y2 = y + Math.sin(ang) * len;
+      g.lineWidth = w; g.beginPath(); g.moveTo(x, y); g.lineTo(x2, y2); g.stroke();
+      if (depth > 0) {
+        branch(x2, y2, len * 0.72, ang - 0.45 - depth * 0.04, w * 0.65, depth - 1);
+        branch(x2, y2, len * 0.66, ang + 0.38, w * 0.65, depth - 1);
+      }
+    };
+    branch(W * 0.035, floorY, Math.min(H * 0.2, S * 0.28), -Math.PI / 2 + 0.08, Math.max(5, S * 0.016), 5);
+    g.lineCap = 'butt';
+    // graveyard ground, tombstones and pumpkins
+    g.fillStyle = '#1b1222'; g.fillRect(0, floorY, W, H - floorY);
+    g.strokeStyle = '#ff9a2e'; g.globalAlpha = 0.45; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(0, floorY + 1); g.lineTo(W, floorY + 1); g.stroke();
+    g.globalAlpha = 1;
+    const stone = (x, w, h) => {
+      g.fillStyle = '#3b3448';
+      g.beginPath(); g.moveTo(x, floorY); g.lineTo(x, floorY - h + w / 2); g.arc(x + w / 2, floorY - h + w / 2, w / 2, Math.PI, 0); g.lineTo(x + w, floorY); g.fill();
+      g.fillStyle = '#251f30'; g.font = `700 ${Math.max(8, w * 0.32)}px ${C('--font-body')}`;
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText('RIP', x + w / 2, floorY - h * 0.55);
+    };
+    stone(W * 0.47, R * 2.2, R * 3.2);
+    stone(W * 0.53, R * 1.6, R * 2.3);
+    stone(W * 0.9, R * 2, R * 2.8);
+    const pumpkin = (x, r) => {
+      g.fillStyle = '#d9661a'; g.beginPath(); g.ellipse(x, floorY - r * 0.85, r * 1.2, r * 0.9, 0, 0, TAU); g.fill();
+      g.fillStyle = '#4c6b2a'; g.fillRect(x - r * 0.12, floorY - r * 2, r * 0.24, r * 0.4);
+      g.fillStyle = '#ffd36b';
+      g.beginPath(); g.moveTo(x - r * 0.6, floorY - r * 1.1); g.lineTo(x - r * 0.3, floorY - r * 1.4); g.lineTo(x - r * 0.15, floorY - r * 1.05); g.fill();
+      g.beginPath(); g.moveTo(x + r * 0.6, floorY - r * 1.1); g.lineTo(x + r * 0.3, floorY - r * 1.4); g.lineTo(x + r * 0.15, floorY - r * 1.05); g.fill();
+      g.fillRect(x - r * 0.55, floorY - r * 0.7, r * 1.1, r * 0.22);
+    };
+    pumpkin(W * 0.6, R * 0.9);
+    pumpkin(W * 0.43, R * 0.6);
+    g.strokeStyle = '#e9e2d0'; g.globalAlpha = 0.5; g.lineWidth = 2;
+    g.beginPath(); g.ellipse(launch.x, floorY + (H - floorY) * 0.45, R * 1.8, R * 0.45, 0, 0, TAU); g.stroke();
+    g.globalAlpha = 1;
+    return c;
+  }
+
+  function drawHalloween() {
+    if (!bgCache) bgCache = renderHalloween();
+    ctx.drawImage(bgCache, 0, 0, W, H);
+    // low fog drifting across the graveyard
+    ctx.fillStyle = 'rgba(205, 195, 235, 0.07)';
+    for (let i = 0; i < 4; i++) {
+      const span = W * 1.6, x = ((clock * (10 + i * 6) + i * span / 4) % span) - W * 0.3;
+      ctx.beginPath(); ctx.ellipse(x, floorY - H * (0.015 + (i % 2) * 0.03), W * 0.35, H * 0.035, 0, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  function drawCourtThumb(g, kind) {
+    const s = 112, TAU = Math.PI * 2;
+    const sky = g.createLinearGradient(0, 0, 0, s * 0.8);
+    if (kind === 'halloween') { sky.addColorStop(0, '#120822'); sky.addColorStop(0.6, '#3a1645'); sky.addColorStop(1, '#a3482a'); }
+    else { sky.addColorStop(0, COL.skyTop); sky.addColorStop(1, COL.skyLow); }
+    g.fillStyle = sky; g.fillRect(0, 0, s, s);
+    g.fillStyle = kind === 'halloween' ? '#1b1222' : COL.asphalt; g.fillRect(0, s * 0.8, s, s * 0.2);
+    if (kind === 'halloween') {
+      g.fillStyle = '#f4e6bf'; g.beginPath(); g.arc(s * 0.72, s * 0.25, s * 0.13, 0, TAU); g.fill();
+      g.fillStyle = '#0e0614';
+      g.fillRect(s * 0.12, s * 0.56, s * 0.3, s * 0.24);
+      g.beginPath(); g.moveTo(s * 0.09, s * 0.56); g.lineTo(s * 0.27, s * 0.42); g.lineTo(s * 0.45, s * 0.56); g.fill();
+      g.fillStyle = '#ffb347'; g.fillRect(s * 0.18, s * 0.62, s * 0.06, s * 0.06); g.fillRect(s * 0.3, s * 0.62, s * 0.06, s * 0.06);
+      g.fillStyle = '#3b3448'; g.fillRect(s * 0.62, s * 0.68, s * 0.08, s * 0.12); g.fillRect(s * 0.78, s * 0.7, s * 0.07, s * 0.1);
+    } else {
+      g.fillStyle = COL.paint; g.fillRect(s * 0.8, s * 0.2, s * 0.04, s * 0.28);
+      g.fillStyle = '#4a5466'; g.fillRect(s * 0.81, s * 0.48, s * 0.02, s * 0.32);
+      g.strokeStyle = COL.rim; g.lineWidth = 3; g.beginPath(); g.moveTo(s * 0.6, s * 0.38); g.lineTo(s * 0.8, s * 0.38); g.stroke();
+      g.fillStyle = COL.ball; g.beginPath(); g.arc(s * 0.25, s * 0.6, s * 0.06, 0, TAU); g.fill();
+    }
   }
 
   function drawWind() {
@@ -1183,6 +1340,14 @@
     if (hasBoard()) {
       ctx.fillStyle = COL.paint;
       ctx.fillRect(hoop.bx, hoop.bt, hoop.bw, hoop.bb - hoop.bt);
+      if (spooky()) {   // a cobweb strung from the top of the board
+        const wx = hoop.bx, wy = hoop.bt, L = R * 2.4;
+        ctx.strokeStyle = 'rgba(233, 226, 208, 0.55)'; ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (const a of [0.15, 0.5, 0.85]) { ctx.moveTo(wx, wy); ctx.lineTo(wx - Math.cos(a) * L, wy + Math.sin(a) * L); }
+        for (const k of [0.4, 0.7, 1]) { ctx.moveTo(wx - L * k, wy); ctx.quadraticCurveTo(wx - L * k * 0.55, wy + L * k * 0.25, wx, wy + L * k); }
+        ctx.stroke();
+      }
       ctx.fillStyle = COL.rim;
       ctx.fillRect(hoop.bx - 1, hoop.y - R * 2.2, 2, R * 2.2);
     } else {
@@ -1232,7 +1397,36 @@
     ctx.globalAlpha = 1;
   }
 
+  function drawBat(b) {
+    const p = POWERS[b.type], s = b.s;
+    const up = Math.sin(b.flap * 16);
+    ctx.save();
+    ctx.translate(b.x, b.y); ctx.scale(b.dir, 1);
+    ctx.fillStyle = '#140a1c';
+    for (const side of [-1, 1]) {   // scalloped wings flapping up and down
+      ctx.beginPath(); ctx.moveTo(0, 0);
+      ctx.lineTo(side * s * 1.1, -s * 0.5 - up * s * 0.9);
+      ctx.lineTo(side * s * 2.1, -s * 0.2 - up * s * 1.2);
+      ctx.quadraticCurveTo(side * s * 1.7, s * 0.05, side * s * 1.45, s * 0.45 - up * s * 0.3);
+      ctx.quadraticCurveTo(side * s * 1.1, s * 0.1, side * s * 0.85, s * 0.4 - up * s * 0.2);
+      ctx.quadraticCurveTo(side * s * 0.5, s * 0.1, 0, s * 0.3);
+      ctx.fill();
+    }
+    ctx.fillStyle = p.color;
+    ctx.beginPath(); ctx.ellipse(0, s * 0.05, s * 0.45, s * 0.55, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-s * 0.3, -s * 0.35); ctx.lineTo(-s * 0.2, -s * 0.8); ctx.lineTo(-s * 0.05, -s * 0.4); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(s * 0.3, -s * 0.35); ctx.lineTo(s * 0.2, -s * 0.8); ctx.lineTo(s * 0.05, -s * 0.4); ctx.fill();
+    ctx.fillStyle = '#ffe14d';
+    ctx.beginPath(); ctx.arc(-s * 0.16, -s * 0.12, Math.max(1.2, s * 0.09), 0, Math.PI * 2); ctx.arc(s * 0.16, -s * 0.12, Math.max(1.2, s * 0.09), 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = p.color;
+    ctx.font = `${Math.max(10, R * 0.7)}px ${C('--font-display')}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText(p.tag, b.x, b.y - s * 1.6);
+  }
+
   function drawBird(b) {
+    if (spooky()) { drawBat(b); return; }
     const p = POWERS[b.type], s = b.s;
     const wing = Math.sin(b.flap * 14);
     ctx.save();
@@ -1304,6 +1498,19 @@
       g.restore();
       g.strokeStyle = 'rgba(40, 50, 70, 0.3)'; g.lineWidth = Math.max(1, r * 0.05);
       g.beginPath(); g.ellipse(0, 0, r * 1.28, r * 0.83, 0, 0, TAU); g.stroke();
+    } else if (type === 'pumpkin') {
+      g.fillStyle = '#e8761e';
+      g.beginPath(); g.ellipse(0, 0, r * 1.08, r, 0, 0, TAU); g.fill();
+      line('rgba(120, 45, 8, 0.55)', 0.07);
+      for (const w of [0.38, 0.75]) { g.beginPath(); g.ellipse(0, 0, r * w, r * 0.98, 0, 0, TAU); g.stroke(); }
+      g.fillStyle = '#4c6b2a';
+      g.beginPath(); g.moveTo(-r * 0.1, -r * 0.92); g.lineTo(r * 0.06, -r * 1.3); g.lineTo(r * 0.2, -r * 1.22); g.lineTo(r * 0.12, -r * 0.9); g.fill();
+      g.fillStyle = '#ffd36b'; g.shadowColor = '#ffb347'; g.shadowBlur = r * 0.4;
+      for (const sx of [-1, 1]) { g.beginPath(); g.moveTo(sx * r * 0.62, -r * 0.05); g.lineTo(sx * r * 0.36, -r * 0.45); g.lineTo(sx * r * 0.14, -r * 0.05); g.fill(); }
+      g.beginPath(); g.moveTo(-r * 0.62, r * 0.22);
+      [[-0.45, 0.42], [-0.3, 0.3], [-0.15, 0.5], [0, 0.34], [0.15, 0.5], [0.3, 0.3], [0.45, 0.42], [0.62, 0.22], [0.3, 0.62], [-0.3, 0.62]].forEach(([mx, my]) => g.lineTo(r * mx, r * my));
+      g.closePath(); g.fill();
+      g.shadowBlur = 0;
     } else if (type === 'pingpong') {
       disc('#fbf8ef');
       g.strokeStyle = 'rgba(40, 50, 70, 0.25)'; g.lineWidth = Math.max(1, r * 0.05);
@@ -1330,7 +1537,7 @@
   }
 
   function drawTrail(b) {
-    const color = shot.fire ? COL.fire : POWERS.slow.color;
+    const color = shot.fire ? COL.fire : has('slow') ? POWERS.slow.color : ballDef().glow;
     const r = br();
     b.trail.forEach(([x, y], i) => {
       const k = (i + 1) / b.trail.length;
@@ -1461,6 +1668,10 @@
     if (saved && BALLS[saved.ball]) ballType = nextBall = saved.ball;
     resize();
     buildPicker();
+    const today = new Date();
+    if (!spooky() && ((today.getMonth() === 9 && today.getDate() >= 15) || (today.getMonth() === 10 && today.getDate() === 1))) {
+      setTimeout(() => showToast('Halloween court is open', 'Pick it under Ball, along with the jack-o\'-lantern', '#ff9a2e'), 1200);
+    }
     updateHud(false);
     window.addEventListener('resize', resize);
     requestAnimationFrame(frame);
