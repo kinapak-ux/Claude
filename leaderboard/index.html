@@ -176,7 +176,7 @@ function render() {
   const section = (g, body) => `<div class="panel"><h2>${GAME[g].i} ${GAME[g].n}<span class="grow"></span><a class="iconbtn" style="height:32px;margin-left:auto" href="${playUrl(g)}">${g === 'hoopshot' && S.tab.hoop === 'timed' ? 'Play 60s' : 'Play'}</a></h2>${body}</div>`;
   app.innerHTML = top + who + `
     <div class="panel"><h2>👑 Family Champion</h2>${podium}${rankHTML(champ, x => `${x.value} pts`)}
-      <p class="note">Points from every game: 5 for 1st place, 3 for 2nd, 2 for 3rd and 1 for 4th.</p></div>
+      <p class="note">Points from every game: 5 for 1st place, 3 for 2nd, 2 for 3rd and 1 for 4th.</p>${FamilyScores.sheetUpdated() ? '' : '<a class="note" href="update.html" style="display:block;color:#ffcc4d;font-weight:800">⚠️ Your score sheet needs a quick update for the newest games. Show me how →</a>'}</div>
     ${section('cardbattler', rankHTML(B.card, x => `${x.value} win${x.value === 1 ? '' : 's'}`, x => `${x.played} game${x.played === 1 ? '' : 's'} played · ${Math.round(100 * x.value / x.played)}% won`))}
     ${section('hoopshot', tabs('hoop', {timed: '60-second challenge', streak: 'Longest streak'}) + rankHTML(B.hoop[S.tab.hoop], x => S.tab.hoop === 'streak' ? `${x.value} in a row` : `${x.value} pts`))}
     ${section('echowheel', tabs('echo', ECHO_MODES) + rankHTML(B.echo[S.tab.echo], x => `Round ${x.value}`))}
