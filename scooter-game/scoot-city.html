@@ -391,7 +391,12 @@ const LEVELS = [
       b.k(60, 30); b.gap(130, 'water'); b.run(180); b.k(60, 30); b.L(100, 100); b.gap(150, 'water'); b.run(320);
       b.rail(100, 140, 46); b.L(200, 140); b.fb(70, 32, 200, 70); b.run(320);
       b.cp(-120);
-      b.box(26, 16, 'barrel'); b.run(170); b.box(36, 24, 'crate'); b.run(330);
+      b.box(26, 16, 'barrel'); b.run(170); b.box(36, 24, 'crate'); b.run(300);
+      b.sign(-150, 'LOADING BAY');
+      b.up(120, 40); b.run(160); b.stairs(5, 24, 8, true); b.run(260);
+      b.k(60, 30); b.run(40); b.box(260, 40, 'container'); b.rail(40, 180, 54); b.cans(60, 70, 4, 40); b.run(200);
+      b.cp(-120);
+      b.k(70, 34); b.gap(160, 'water'); b.run(360);
       b.sign(-230, 'LAST LEAP. FULL SPEED, JUMP AT THE LIP');
       b.k(90, 44); b.cans(100, 150, 4, 30); b.gap(200, 'water'); b.run(620);
       b.finish(-300); b.run(500);
@@ -419,6 +424,12 @@ const LEVELS = [
       b.cp(-150);
       b.k(70, 34); b.L(92, 100); b.gap(150, 'void'); b.drop(20); b.run(280);
       b.box(30, 14, 'ac'); b.run(220);
+      b.sign(-150, 'FIRE ESCAPE');
+      b.stairs(6, 22, 8, true); b.run(240);
+      b.k(60, 30); b.gap(60, 'void'); b.rise(44); b.run(200);
+      b.cp(-120);
+      b.k(50, 22); b.rail(26, 220, 24, 24, 'neon'); b.run(380);
+      b.box(36, 16, 'ac'); b.run(240);
       b.sign(-190, 'THE BIG DROP');
       b.k(90, 46); b.gap(170, 'void'); b.drop(60); b.cans(-20, 120, 5, 30); b.run(640);
       b.finish(-300); b.run(500);
