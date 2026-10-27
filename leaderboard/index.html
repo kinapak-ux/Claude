@@ -165,7 +165,7 @@ function render() {
   if (!FamilyScores.ready) { app.innerHTML = top + setupHTML(); return; }
   const meName = FamilyScores.name();
   const who = `<p class="sub">${meName ? `Playing as <b>${esc(meName)}</b> · <a href="#" data-act="rename" style="color:#c9b3ff">change</a>` : `<a href="#" data-act="rename" style="color:#c9b3ff">Set your name</a>`}${FamilyScores.waiting() ? ` · ${FamilyScores.waiting()} score${FamilyScores.waiting() === 1 ? '' : 's'} waiting to send` : ''}</p>`;
-  if (S.err) { app.innerHTML = top + who + `<div class="panel"><b>Couldn't load the scores.</b><p class="note">${esc(S.err)}. Check your internet, then tap Refresh.</p></div>`; return; }
+  if (S.err) { app.innerHTML = top + who + `<div class="panel"><b>Couldn't load the scores.</b><p class="note">${esc(S.err)}. Then tap Refresh. Your own scores are saved on this device until they can be sent.</p></div>`; return; }
   if (!S.rows) { app.innerHTML = top + who + `<div class="panel empty"><span class="spin">↻</span> Loading scores…</div>`; return; }
   const B = boards(S.rows), champ = champion(B);
   if (!S.level || !B.scootLevels.includes(S.level)) S.level = B.scootLevels[0] || null;
@@ -211,7 +211,7 @@ async function load() {
   if (!FamilyScores.ready) return;
   S.loading = true; S.err = null; render();
   try { S.rows = (await FamilyScores.list()).filter(r => GAME[r.g]).sort((a, b) => a.t - b.t); }
-  catch (e) { S.err = e.message === 'not-set-up' ? 'The leaderboard isn’t connected yet' : 'No connection'; }
+  catch (e) { S.err = e.message === 'not-set-up' ? 'The leaderboard isn’t connected yet' : 'Couldn’t reach the Google sheet. Work and school networks often block it, so try on a phone or home Wi-Fi'; }
   S.loading = false; render();
 }
 
