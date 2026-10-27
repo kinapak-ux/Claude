@@ -181,9 +181,13 @@ select.txt{width:100%;font:inherit;font-size:16px;font-weight:700;padding:12px;b
 .rv:not(.pre) .announce{display:none}
 .rv.pre .vs,.rv.pre .headline,.rv.pre .plog{display:none}
 .announce{text-align:center;animation:pop .35s ease-out}
-.announce .big{font-family:Cinzel,serif;font-weight:800;font-size:24px;margin:4px 0 12px}
-.announce .big .statpill{font-size:24px;padding:6px 16px;margin-top:8px}
-.announce .mycard{max-width:300px}
+.announce .top{display:flex;align-items:center;justify-content:center;gap:14px;margin:0 0 12px}
+.announce .big{font-family:Cinzel,serif;font-weight:800;font-size:20px;line-height:1.2;text-align:left}
+.announce .big .statpill{font-size:20px;padding:4px 14px;margin-top:6px}
+.announce .mycard{max-width:min(300px,calc((100vh - 260px) / 1.8));max-width:min(300px,calc((100dvh - 260px) / 1.8))}
+.cd321{flex:none;width:72px;height:72px;border-radius:50%;display:grid;place-items:center;font-family:Cinzel,serif;font-weight:800;font-size:46px;line-height:1;color:#3a2000;background:radial-gradient(circle at 50% 35%,#fff3c4,#ffcc4d 55%,#e09a12);box-shadow:0 0 0 4px rgba(255,204,77,.35),0 0 30px rgba(255,204,77,.7)}
+.cd321.pop{animation:cdpop .9s ease-out}
+@keyframes cdpop{0%{transform:scale(1.9);opacity:0}25%{transform:scale(1);opacity:1}100%{transform:scale(.92)}}
 .foot.hold{visibility:hidden}
 .btn .cdbar{position:absolute;left:0;bottom:0;height:5px;background:rgba(58,32,0,.45);border-radius:0 0 16px 16px}
 .btn.cd{position:relative;overflow:hidden}
@@ -639,7 +643,7 @@ function resolveRound(g, stat) {
 }
 
 // Reveal pacing, shared by the host (to time the next round) and every phone (to animate).
-const ANNOUNCE_MS = 2000, COUNTDOWN_MS = 2000;
+const ANNOUNCE_MS = 3000, COUNTDOWN_MS = 2000;
 function revealTiming(R) {
   let shown = ANNOUNCE_MS + 250 + R.plays.length * 420 + 450;
   if (R.log.length) shown += 1700;
@@ -899,6 +903,7 @@ const SFX = {
   win() { [523, 659, 784, 1047].forEach((f, i) => this.tone(f, i * .12, .35, 'triangle', .2)); this.tone(1047, .5, .7, 'triangle', .16); },
   lose() { [392, 330, 262].forEach((f, i) => this.tone(f, i * .16, .35, 'sawtooth', .07)); },
   tie() { this.tone(440, 0, .25, 'triangle', .15); this.tone(440, .3, .25, 'triangle', .15); },
+  tick(last) { this.tone(last ? 990 : 740, 0, .12, 'square', .07); },
   turn() { this.tone(660, 0, .15, 'triangle', .15); this.tone(990, .12, .3, 'triangle', .15); },
   fanfare() { [523, 523, 523, 659, 784, 659, 784, 1047].forEach((f, i) => this.tone(f, i * .14, .3, 'triangle', .2)); },
 };
@@ -1037,7 +1042,8 @@ function revealHTML(v) {
 function announceHTML(v) {
   const R = v.result, mine = R.plays.find(p => p.pid === ME.pid);
   const who = R.by === ME.pid ? 'You picked' : `${pname(v, R.by)} picked`;
-  return `<div class="announce"><div class="big">${who}<br><span class="statpill">${SI(R.stat)} ${SN(R.stat)}</span></div>
+  return `<div class="announce"><div class="top"><div class="big">${who}<br><span class="statpill">${SI(R.stat)} ${SN(R.stat)}</span></div>
+    <div class="cd321" id="cd321" aria-live="polite">3</div></div>
     ${mine ? `<div class="mycard">${cardHTML(mine.id, {sel: R.stat})}</div>` : ''}</div>`;
 }
 function footHTML(v) {
@@ -1070,6 +1076,8 @@ function runReveal(v) {
   const foot = $('#foot'); if (foot) foot.classList.add('hold');
   const T = revealTiming(R);
   if (R.by !== ME.pid) SFX.turn();
+  const cd = $('#cd321');
+  [3, 2, 1].forEach((n, i) => later(() => { if (!cd) return; cd.textContent = n; cd.classList.remove('pop'); void cd.offsetWidth; cd.classList.add('pop'); SFX.tick(n === 1); }, i * 1000));
   const banner = $('#rvbanner'); if (banner) banner.style.display = 'none';
   later(() => { rv.classList.remove('pre'); if (banner) banner.style.display = ''; }, ANNOUNCE_MS);
   const tiles = [...rv.querySelectorAll('.tilew')];
