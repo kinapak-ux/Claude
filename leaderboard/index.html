@@ -144,7 +144,7 @@ function feedLine(r) {
 
 function render() {
   const app = $('#app');
-  const top = `<div class="top"><a class="iconbtn" href="../" aria-label="Back">←</a><div class="grow"></div>${FamilyScores.ready ? `<button class="iconbtn" data-act="refresh">${S.loading ? '<span class="spin">↻</span>' : '↻'} Refresh</button>` : ''}</div>
+  const top = `<div class="top"><a class="iconbtn" href="/" aria-label="Back to Family Games">← Family Games</a><div class="grow"></div>${FamilyScores.ready ? `<button class="iconbtn" data-act="refresh">${S.loading ? '<span class="spin">↻</span>' : '↻'} Refresh</button>` : ''}</div>
     <h1>🏆 Family Leaderboard</h1>`;
   if (!FamilyScores.ready) { app.innerHTML = top + setupHTML(); return; }
   const meName = FamilyScores.name();
@@ -155,7 +155,8 @@ function render() {
   if (!S.level || !B.scootLevels.includes(S.level)) S.level = B.scootLevels[0] || null;
   const pod = champ.slice(0, 3);
   const podium = pod.length ? `<div class="podium">${[1, 0, 2].map(i => pod[i] ? `<div class="pod p${i + 1}"><div class="m">${['👑', '🥈', '🥉'][i]}</div><div class="n">${esc(pod[i].name)}</div><div class="pts">${pod[i].value} pts</div></div>` : '<div></div>').join('')}</div>` : '';
-  const playUrl = g => g === 'hoopshot' && S.tab.hoop === 'timed' ? GAME[g].url + '?mode=timed' : g === 'echowheel' ? GAME[g].url + '?mode=' + S.tab.echo : GAME[g].url;
+  const playUrl = g => g === 'hoopshot' && S.tab.hoop === 'timed' ? GAME[g].url + '?mode=timed' : g === 'echowheel' ? GAME[g].url + '?mode=' + S.tab.echo
+    : g === 'scootcity' && S.level ? GAME[g].url + '?level=' + encodeURIComponent(S.level) : GAME[g].url;
   const section = (g, body) => `<div class="panel"><h2>${GAME[g].i} ${GAME[g].n}<span class="grow"></span><a class="iconbtn" style="height:32px;margin-left:auto" href="${playUrl(g)}">${g === 'hoopshot' && S.tab.hoop === 'timed' ? 'Play 60s' : 'Play'}</a></h2>${body}</div>`;
   app.innerHTML = top + who + `
     <div class="panel"><h2>👑 Family Champion</h2>${podium}${rankHTML(champ, x => `${x.value} pts`)}
