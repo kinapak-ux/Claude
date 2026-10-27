@@ -47,6 +47,9 @@ jobs:
           GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS || vars.GMAIL_ADDRESS }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
         run: python build.py --email ${{ inputs.send_email && 'force' || (github.event.schedule == '17 6,18 * * *' && 'auto' || 'off') }}
+      - name: Add Mythic Trumps game
+        if: steps.check.outcome == 'skipped' || steps.check.outputs.live == 'true'
+        run: cp -r top-trumps site/top-trumps
       - if: steps.check.outcome == 'skipped' || steps.check.outputs.live == 'true'
         uses: actions/configure-pages@v5
       - if: steps.check.outcome == 'skipped' || steps.check.outputs.live == 'true'
