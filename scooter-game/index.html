@@ -124,6 +124,23 @@ tr.me td{color:var(--hivis)}
 .tc[data-act=t1]{right:calc(var(--u)*78);bottom:calc(var(--u)*12);width:calc(var(--u)*48);height:calc(var(--u)*48);font-size:calc(var(--u)*7)}
 .tc[data-act=t2]{right:calc(var(--u)*12);bottom:calc(var(--u)*78);width:calc(var(--u)*48);height:calc(var(--u)*48);font-size:calc(var(--u)*7)}
 .confirm{color:var(--bad)}
+.menu2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:calc(var(--u)*4)}
+.menu2 .btn{min-width:calc(var(--u)*100)}
+.riders{grid-template-columns:repeat(6,minmax(0,1fr))}
+.scoot.locked{opacity:.6}
+.swatch{display:inline-block;width:calc(var(--u)*5);height:calc(var(--u)*5);margin-right:calc(var(--u)*2);vertical-align:middle;box-shadow:inset 0 0 0 calc(var(--u)*.5) #ffffff60}
+.screen.editor{background:none;pointer-events:none;justify-content:space-between;padding:calc(var(--u)*4) calc(var(--u)*5)}
+.screen.editor>*{pointer-events:auto}
+.edtop{align-self:flex-start;background:#0c0a18d0;padding:calc(var(--u)*2) calc(var(--u)*4);font-size:calc(var(--u)*9);color:var(--muted);line-height:1;max-width:100%}
+.edtop span{color:var(--hivis)}
+.edpanel{width:100%;box-sizing:border-box;background:#0c0a18eb;box-shadow:inset 0 0 0 calc(var(--u)*1) #3a3266;padding:calc(var(--u)*3);display:flex;flex-direction:column;gap:calc(var(--u)*2)}
+.edrow{display:flex;flex-wrap:wrap;gap:calc(var(--u)*2);align-items:center}
+.edsel{font-family:var(--f-display);font-size:calc(var(--u)*5);color:var(--hivis);min-width:calc(var(--u)*110)}
+.edpanel select,.edpanel input{font-family:var(--f-body);font-size:calc(var(--u)*9);background:#0c0a18;color:var(--ink);border:0;box-shadow:inset 0 0 0 calc(var(--u)*1) var(--muted);padding:calc(var(--u)*1.5) calc(var(--u)*3);user-select:text;-webkit-user-select:text}
+#edName{width:calc(var(--u)*80)}
+#edCode{flex:1;min-width:0}
+.edpanel .chip{padding:calc(var(--u)*2.5) calc(var(--u)*3)}
+.edpanel .btn.small{padding:calc(var(--u)*3) calc(var(--u)*4);font-size:calc(var(--u)*5)}
 body.fill #app{padding-left:env(safe-area-inset-left, 0px);padding-right:env(safe-area-inset-right, 0px);padding-block:0}
 body.fill #stage{box-shadow:none}
 #toast{position:absolute;left:50%;top:calc(var(--u)*30);transform:translateX(-50%);max-width:80%;background:#0c0a18e6;color:var(--ink);font-size:calc(var(--u)*10);line-height:1;padding:calc(var(--u)*4) calc(var(--u)*7);box-shadow:inset 0 0 0 calc(var(--u)*1) var(--hivis);text-align:center;pointer-events:none}
@@ -148,10 +165,14 @@ body.fill #stage{box-shadow:none}
         <div class="tape"></div>
         <nav class="menu">
           <button class="btn" id="continueBtn">Continue</button>
-          <button class="btn ghost" data-go="levels">Level select</button>
-          <button class="btn ghost" data-go="scooters">Scooters</button>
-          <button class="btn ghost" data-go="scores">High scores</button>
-          <button class="btn ghost" data-go="help">How to play</button>
+          <div class="menu2">
+            <button class="btn ghost" data-go="levels">Level select</button>
+            <button class="btn ghost" id="titleEdBtn">Level editor</button>
+            <button class="btn ghost" data-go="riders">Riders</button>
+            <button class="btn ghost" data-go="scooters">Scooters</button>
+            <button class="btn ghost" data-go="scores">High scores</button>
+            <button class="btn ghost" data-go="help">How to play</button>
+          </div>
           <button class="btn ghost" data-go="options">Options</button>
         </nav>
         <p class="foot" id="titleFoot">Arrow keys and Enter to choose</p>
@@ -168,6 +189,8 @@ body.fill #stage{box-shadow:none}
         <div class="row">
           <button class="btn ghost small" data-go="scooters" id="scootLine">Scooter</button>
           <button class="btn" id="rideBtn">Ride</button>
+          <button class="btn ghost small" id="editLvBtn" hidden>Edit</button>
+          <button class="btn ghost small" id="delLvBtn" hidden>Delete</button>
           <button class="btn ghost small" data-back-btn>Back</button>
         </div>
       </section>
@@ -213,11 +236,46 @@ body.fill #stage{box-shadow:none}
               <dt>Rails</dt><dd>Land on one to grind</dd>
               <dt>Quarter pipes</dt><dd>Ride up and jump at the top</dd>
               <dt>Awnings</dt><dd>Land on them to bounce</dd>
+              <dt>Power-ups</dt><dd>Rocket, Spring, Shield, x2 points, Magnet</dd>
             </dl>
             <p style="margin-top:calc(var(--u)*4)">Finish every trick before you touch down or you bail. Jump again within half a second of landing to link a combo: the multiplier grows with every trick. Bad weather and night rides pay a score bonus. Watch for wrecking balls, shoppers and security torches. The daily run is the same level for everyone today.</p>
           </div>
         </div>
         <button class="btn" data-back-btn>Back</button>
+      </section>
+
+      <section class="screen" id="scr-riders" data-back="title" hidden>
+        <h2>Riders</h2>
+        <p class="lede" id="starLine"></p>
+        <div class="scoots riders" id="riderCards"></div>
+        <span class="label">Outfit colour</span>
+        <div class="picker" id="outfitPick"></div>
+        <button class="btn" data-back-btn>Done</button>
+      </section>
+
+      <section class="screen editor" id="scr-editor" hidden>
+        <p class="edtop">Level editor. Arrows pick and resize pieces, T tests, Esc exits. <span id="edInfo"></span></p>
+        <div class="edpanel">
+          <div class="edrow">
+            <button class="chip" id="edPrev" aria-label="Previous piece">&lt;</button>
+            <span class="edsel" id="edSel"></span>
+            <button class="chip" id="edNext" aria-label="Next piece">&gt;</button>
+            <button class="chip" id="edWm" aria-label="Narrower">W-</button><button class="chip" id="edWp" aria-label="Wider">W+</button>
+            <button class="chip" id="edHm" aria-label="Lower">H-</button><button class="chip" id="edHp" aria-label="Higher">H+</button>
+            <button class="chip" id="edKind">Kind</button>
+            <button class="chip" id="edDel">Delete</button>
+          </div>
+          <div class="edrow">
+            <select id="edAddType" aria-label="Piece to add"></select><button class="chip" id="edAdd">Add after</button>
+            <button class="chip" id="edLetter">Letter</button><button class="chip" id="edCans">Cans</button><button class="chip" id="edRail">Rail</button><button class="chip" id="edCp">Checkpoint</button>
+            <select id="edPower" aria-label="Power-up on this piece"></select><select id="edHazard" aria-label="Hazard on this piece"></select>
+          </div>
+          <div class="edrow">
+            <input id="edName" maxlength="20" aria-label="Level name"><select id="edTheme" aria-label="Setting"></select>
+            <button class="btn small" id="edTest">Test</button><button class="btn small ghost" id="edSave">Save</button><button class="btn small ghost" id="edNew">New</button><button class="btn small ghost" id="edShare">Share code</button><button class="btn small ghost" id="edImport">Import</button><button class="btn small ghost" id="edExit">Exit</button>
+          </div>
+          <div class="edrow" id="edCodeRow" hidden><input id="edCode" aria-label="Level code" placeholder="Paste a level code here"><button class="btn small" id="edLoadCode">Load code</button></div>
+        </div>
       </section>
 
       <section class="screen center" id="scr-options" hidden>
@@ -234,6 +292,7 @@ body.fill #stage{box-shadow:none}
           <button class="btn ghost" id="restartBtn">Restart level</button>
           <button class="btn ghost" data-go="options">Options</button>
           <button class="btn ghost" data-go="help">How to play</button>
+          <button class="btn ghost" id="pauseEditBtn" hidden>Back to editor</button>
           <button class="btn ghost" id="pauseLevelsBtn">Level select</button>
           <button class="btn ghost" id="quitBtn">Main menu</button>
         </nav>
@@ -248,6 +307,7 @@ body.fill #stage{box-shadow:none}
           <button class="btn" id="nextBtn">Next level</button>
           <button class="btn ghost small" id="retryBtn">Retry</button>
           <button class="btn ghost small" id="resScoresBtn">High scores</button>
+          <button class="btn ghost small" id="resEditBtn" hidden>Edit level</button>
           <button class="btn ghost small" id="resLevelsBtn">Levels</button>
           <button class="btn ghost small" id="resMenuBtn">Menu</button>
         </div>
@@ -272,7 +332,7 @@ function mk(w, h) { const c = document.createElement('canvas'); c.width = w; c.h
 
 // ================================================================ save data
 const SAVE_KEY = 'scootcity.save.v1';
-const defaults = () => ({ v: 2, scooter: 0, weather: 'clear', night: false, level: 0, unlocked: 1, scores: {}, chal: {}, lastName: 'RIDER', opts: { music: true, sfx: true, shake: true, touch: 'auto', ghost: true } });
+const defaults = () => ({ v: 2, scooter: 0, rider: 0, outfit: 0, custom: [], edit: null, allRiders: false, weather: 'clear', night: false, level: 0, unlocked: 1, scores: {}, chal: {}, lastName: 'RIDER', opts: { music: true, sfx: true, shake: true, touch: 'auto', ghost: true } });
 let save = defaults();
 try {
   const s = JSON.parse(localStorage.getItem(SAVE_KEY));
@@ -313,6 +373,34 @@ const TRICKS = {
   flip: { name: 'BACKFLIP', pts: 900, dur: 0.66 },
   superman: { name: 'SUPERMAN', pts: 650, dur: 0.62 },
 };
+// riders and outfits unlock with challenge stars (4 per level)
+const CHARS = [
+  { name: 'Street Kid', need: 0 },
+  { name: 'Robot', need: 3 },
+  { name: 'Gorilla', need: 7 },
+  { name: 'Alien', need: 12 },
+  { name: 'Skeleton', need: 18 },
+  { name: 'Astronaut', need: 26 },
+];
+const OUTFITS = [
+  { name: 'Hi-vis pink', col: '#ff4f7b', need: 0 },
+  { name: 'Sky blue', col: '#4fd1ff', need: 0 },
+  { name: 'Lime', col: '#7be36b', need: 2 },
+  { name: 'Sunset', col: '#ff9a4d', need: 5 },
+  { name: 'Violet', col: '#a46bff', need: 9 },
+  { name: 'Midnight', col: '#3a3a52', need: 14 },
+  { name: 'Gold', col: '#ffcc00', need: 22 },
+];
+const POWERS = {
+  rocket: { name: 'ROCKET', dur: 5, col: '#ff5a4f' },
+  spring: { name: 'SUPER SPRING', dur: 8, col: '#5be37d' },
+  shield: { name: 'SHIELD', dur: 30, col: '#4fd1ff' },
+  double: { name: 'DOUBLE POINTS', dur: 10, col: '#ffcc00' },
+  magnet: { name: 'MAGNET', dur: 10, col: '#a46bff' },
+};
+const POWER_KEYS = Object.keys(POWERS);
+function starsTotal() { let n = 0; for (const lv of LEVELS) { const c = save.chal[lv.id] || {}; for (const k in c) if (c[k]) n++; } return n; }
+const riderOpen = (list, i) => save.allRiders || starsTotal() >= list[i].need;
 const DAY_SKY = ['#4aa8f0', '#8fd2ff', '#d8f2ff'];
 const THEMES = {
   day: { sky: DAY_SKY, far: '#93b5d8', farWin: '#b4cde6', mids: ['#b5654a', '#c98a5e', '#8d6e8f', '#c9a06b', '#6f8fa8', '#a0524a'], win: '#d9f1ff', winLit: '#d9f1ff', ground: '#4a4658', speck: '#58536a', edge: '#cdc8d9', curb: '#8e899c', ramp: '#d0904c', rampDark: '#8c5a2c', sun: '#fff3b0', cel: 'sun', stars: false, clouds: '#ffffff', glow: 0, pit: 'trench', mat: 'street', decor: ['lamp', 'bench', 'bin', 'tree', 'hydrant', 'tree', 'bollard', 'busstop'] },
@@ -345,7 +433,7 @@ function themeFor(def, night) {
 // ---------------------------------------------------------------- level builder
 function buildLevel(def, night) {
   const T = themeFor(def, night);
-  const L = { def, theme: def.theme, tkey: def.theme + (T !== THEMES[def.theme] ? '-n' : ''), T, segs: [], rails: [], items: [], props: [], signs: [], pits: [], cps: [], hazards: [], finish: 0, lowY: 0, highY: 0, spawn: 60, hats: 0, timed: def.mode === 'timed' };
+  const L = { def, theme: def.theme, tkey: def.theme + (T !== THEMES[def.theme] ? '-n' : ''), T, segs: [], rails: [], items: [], props: [], signs: [], pits: [], cps: [], hazards: [], finish: 0, lowY: 0, highY: 0, spawn: 60, hats: 0, spans: [], timed: def.mode === 'timed' };
   let x = 0, y = 0, letterIdx = 0;
   const COLS = ['#c0392b', '#2e86c1', '#27ae60', '#e67e22', '#8e44ad'];
   const seg = (x1, y1, x2, y2, mat, base) => { const s = { id: L.segs.length, x1, y1, x2, y2, mat, base: base ?? Math.max(y1, y2), under: T.mat, ang: Math.atan2(y2 - y1, x2 - x1) }; L.segs.push(s); L.lowY = Math.max(L.lowY, s.base); L.highY = Math.min(L.highY, y1, y2); return s; };
@@ -382,6 +470,9 @@ function buildLevel(def, night) {
     prop(type, dx) { L.props.push({ type, x: x + dx, fixed: true }); },
     spawn(dx = 0) { L.spawn = x + dx; },
     finish(dx = 0) { L.finish = x + dx; },
+    pos() { return { x, y }; },
+    mark(i, x1, y1) { L.spans.push({ i, x1, x2: x, y: y1 }); },
+    power(dx, h, kind) { L.items.push({ type: 'power', kind, x: x + dx, y: y - h, got: false }); },
     ball(dx, len, amp, period) { L.hazards.push({ type: 'ball', px: x + dx, py: y - len - 24, len, amp, period, bx: x + dx, by: y - 24, gy: y }); },
     ped(dx, range) { L.hazards.push({ type: 'ped', x: x + dx, x1: x + dx - range, x2: x + dx + range, dir: 1, v: 16 + (x % 13), y, fall: 0, col: COLS[(x / 3 | 0) % 5] }); },
     torch(dx, range) { L.hazards.push({ type: 'torch', x: x + dx, range, y, ph: x % 7, cx: x + dx, saw: false }); },
@@ -404,6 +495,15 @@ function buildLevel(def, night) {
   for (const g of L.signs) { const s = surfAt(L, g.x); g.y = s ? s.y : 0; }
   for (const h of L.hazards) if (h.type !== 'ball') { const g = surfAt(L, h.x); if (g) h.y = g.y; }
   for (const pit of L.pits) for (const ex of [pit.x1 - 8, pit.x2 + 6]) if (pit.type === 'trench' || pit.type === 'pit') { const s = surfAt(L, ex); if (s && s.seg.mat === T.mat) L.props.push({ type: 'cone', x: ex, y: s.y, v: 0 }); }
+  if (!def.noAutoPower) { // a few power-ups on long flat runs
+    const runs = L.segs.filter(s => s.mat === T.mat && s.y1 === s.y2 && s.x2 - s.x1 >= 260 && s.x1 > 300 && Math.abs((s.x1 + s.x2) / 2 - L.finish) > 200);
+    const n = Math.min(3, runs.length);
+    for (let i = 0; i < n; i++) {
+      const s = runs[Math.floor((i + .5) * runs.length / n)], px = (s.x1 + s.x2) / 2;
+      if (L.items.some(it => Math.abs(it.x - px) < 60)) continue;
+      L.items.push({ type: 'power', kind: POWER_KEYS[(r() * POWER_KEYS.length) | 0], x: px, y: s.y1 - 34, got: false });
+    }
+  }
   L.endX = L.segs[L.segs.length - 1].x2;
   L.killY = L.lowY + 220;
   if (L.timed) { L.finish = 1e9; L.par = def.limit; }
@@ -517,12 +617,12 @@ const LEVELS = [
     id: 'plaza', name: 'Skate Plaza', sub: '90 second score attack', theme: 'plaza', seed: 61, target: 15000, target2: 30000, bpm: 140, mode: 'timed', limit: 90,
     extra: { text: 'Backflip out of a quarter pipe', test: r => r.qpFlip },
     build(b) {
-      b.wall(60, 320); b.qpL(64); b.L(-80, 140); b.spawn(150); b.sign(220, '90 SECONDS. SCORE ALL YOU CAN');
+      b.wall(60, 320); b.qpL(64); b.L(-80, 140); b.spawn(150); b.sign(220, '90 SECONDS. SCORE ALL YOU CAN'); b.power(320, 34, 'spring');
       b.run(220); b.k(50, 24); b.L(110, 100); b.run(150);
       b.rail(20, 200, 22); b.cans(40, 40, 4, 44); b.run(280);
       b.rail(80, 120, 46); b.L(140, 110); b.fb(60, 30, 160, 60); b.run(170);
       b.L(50, 80); b.rail(0, 100, 18, 18, 'ledge'); b.box(100, 16, 'ledge'); b.run(170);
-      b.l(50, 24); b.run(230); b.sign(-115, 'JUMP AT THE TOP OF THE PIPE');
+      b.power(100, 34, 'double'); b.l(50, 24); b.run(230); b.sign(-115, 'JUMP AT THE TOP OF THE PIPE');
       b.qpR(64); b.L(-6, 140); b.wall(60, 320);
     },
   },
@@ -753,7 +853,89 @@ function dailyDef() {
     },
   });
 }
-const getDef = i => i === 'daily' ? dailyDef() : LEVELS[i];
+// ---------------------------------------------------------------- custom levels from the editor
+// a custom level is a list of pieces; a: width (or step count), b: height, m: obstacle kind
+const ED_TYPES = {
+  run: { name: 'Flat', a: [300, 80, 900, 20] },
+  k: { name: 'Kicker', a: [60, 40, 100, 10], b: [28, 14, 50, 2] },
+  l: { name: 'Landing ramp', a: [60, 40, 100, 10], b: [28, 14, 50, 2] },
+  fb: { name: 'Funbox', a: [140, 60, 260, 20], b: [30, 16, 44, 2] },
+  box: { name: 'Obstacle', a: [40, 12, 260, 4], b: [16, 8, 60, 2] },
+  gap: { name: 'Gap', a: [140, 40, 240, 10] },
+  stairs: { name: 'Stairs', a: [5, 2, 10, 1], b: [8, 6, 12, 1] },
+  up: { name: 'Slope up', a: [120, 60, 300, 10], b: [36, 10, 80, 2] },
+  down: { name: 'Slope down', a: [240, 60, 600, 20], b: [50, 10, 160, 5] },
+  drop: { name: 'Drop', b: [40, 10, 100, 5] },
+  rise: { name: 'Ledge up', b: [30, 10, 60, 2] },
+};
+const ED_MATS = ['barrier', 'crate', 'container', 'car', 'van', 'skip', 'stall', 'awning', 'ledge', 'barrel'];
+const ED_MAT_NAMES = { barrier: 'Barrier', crate: 'Crate', container: 'Container', car: 'Car', van: 'Van', skip: 'Skip', stall: 'Stall', awning: 'Awning (bouncy)', ledge: 'Ledge', barrel: 'Barrel' };
+const ED_HAZARDS = ['', 'ball', 'ped', 'torch'];
+const ED_HAZARD_NAMES = { '': 'No hazard', ball: 'Wrecking ball', ped: 'Shopper', torch: 'Security torch' };
+const ED_THEMES = ['day', 'dusk', 'night', 'plaza', 'site', 'market', 'canal', 'hill', 'tube', 'carpark', 'mall', 'boss'];
+const ED_THEME_NAMES = { day: 'Downtown day', dusk: 'Harbour sunset', night: 'Rooftops night', plaza: 'Skate plaza', site: 'Building site', market: 'Market', canal: 'Canal', hill: 'Hill streets', tube: 'Tube station', carpark: 'Car park', mall: 'Shopping centre', boss: 'Red night' };
+function newPiece(t) { const T = ED_TYPES[t]; return { t, a: T.a ? T.a[0] : 0, b: T.b ? T.b[0] : 0, m: 0, rail: 0, letter: false, cans: false, cp: false, power: '', hazard: '' }; }
+function newDraft() {
+  const ps = ['run', 'k', 'run', 'box', 'run', 'fb', 'run'].map(newPiece);
+  ps[1].letter = true; ps[2].cans = true; ps[4].power = 'spring';
+  return { id: 'c-' + Date.now().toString(36), name: 'My level', theme: 'day', pieces: ps };
+}
+const pieceWidth = p => p.t === 'stairs' ? p.a * 24 : p.t === 'fb' ? p.a + 120 : p.t === 'drop' || p.t === 'rise' ? 0 : p.a;
+const pieceTop = p => p.t === 'box' || p.t === 'fb' ? p.b : p.t === 'k' || p.t === 'l' ? p.b * .6 : 0;
+function buildPieces(b, pieces) {
+  b.sign(220, 'CUSTOM LEVEL'); b.run(500);
+  let letters = 0;
+  pieces.forEach((p, i) => {
+    const { x, y } = b.pos(), w = pieceWidth(p), top = pieceTop(p), mid = Math.max(w, 10) / 2;
+    if (p.letter && letters < 5) { letters++; b.L(mid, (p.t === 'gap' ? 100 : 80) + top); }
+    if (p.cans && w >= 60) b.cans(w * .15, 40 + top, 4, w * .22);
+    if (p.power && POWERS[p.power]) b.power(mid, 34 + top, p.power);
+    if (p.rail && (p.t === 'run' || p.t === 'box') && w >= 80) b.rail(20, w - 40, p.rail + (p.t === 'box' ? p.b : 0));
+    if (p.hazard === 'ball') b.ball(mid, 90, .9, 2.4);
+    else if (p.hazard === 'ped' && w >= 60) b.ped(mid, w / 3);
+    else if (p.hazard === 'torch' && w >= 60) b.torch(mid, w / 3);
+    if (p.cp) b.cp(6);
+    switch (p.t) {
+      case 'run': b.run(p.a); break;
+      case 'k': b.k(p.a, p.b); break;
+      case 'l': b.l(p.a, p.b); break;
+      case 'fb': b.fb(60, p.b, p.a, 60); break;
+      case 'box': b.box(p.a, p.b, ED_MATS[p.m] || 'barrier'); break;
+      case 'gap': b.gap(p.a); break;
+      case 'stairs': b.stairs(p.a, 24, p.b, true); break;
+      case 'up': b.up(p.a, p.b); break;
+      case 'down': b.down(p.a, p.b); break;
+      case 'drop': b.drop(p.b); break;
+      case 'rise': b.rise(p.b); break;
+    }
+    b.mark(i, x, y);
+  });
+  b.run(560); b.finish(-260); b.run(500);
+}
+function customDef(c, editing) {
+  return { id: c.id, custom: true, editing: !!editing, name: c.name || 'My level', sub: 'Your level, ' + (ED_THEME_NAMES[c.theme] || 'Downtown day').toLowerCase(), theme: THEMES[c.theme] ? c.theme : 'day', seed: strHash(c.id) % 100000, target: 10000, bpm: 136, noAutoPower: true,
+    extra: { text: 'Land a 3-trick combo', test: r => r.maxCombo >= 3 },
+    build(b) { buildPieces(b, c.pieces); } };
+}
+const findCustom = id => (save.custom || []).find(c => c.id === id);
+// share codes: a compact JSON array, base64 encoded
+function encodeLevel(c) {
+  const p = c.pieces.map(q => [q.t, q.a, q.b, q.m, q.rail, (q.letter ? 1 : 0) | (q.cans ? 2 : 0) | (q.cp ? 4 : 0), q.power, q.hazard]);
+  return 'SCOOT1:' + btoa(unescape(encodeURIComponent(JSON.stringify([c.name, c.theme, p]))));
+}
+function decodeLevel(code) {
+  const m = String(code).trim().match(/^SCOOT1:([A-Za-z0-9+/=]+)$/); if (!m) return null;
+  let d; try { d = JSON.parse(decodeURIComponent(escape(atob(m[1])))); } catch (e) { return null; }
+  if (!Array.isArray(d) || !Array.isArray(d[2])) return null;
+  const lim = (v, r) => r ? clamp(Math.round(+v || r[0]), r[1], r[2]) : 0;
+  const pieces = d[2].slice(0, 80).filter(q => Array.isArray(q) && ED_TYPES[q[0]]).map(q => {
+    const T = ED_TYPES[q[0]], f = +q[5] || 0;
+    return { t: q[0], a: lim(q[1], T.a), b: lim(q[2], T.b), m: clamp(+q[3] || 0, 0, ED_MATS.length - 1), rail: clamp(+q[4] || 0, 0, 60), letter: !!(f & 1), cans: !!(f & 2), cp: !!(f & 4), power: POWERS[q[6]] ? q[6] : '', hazard: ED_HAZARDS.includes(q[7]) ? q[7] : '' };
+  });
+  if (!pieces.length) return null;
+  return { id: 'c-' + Date.now().toString(36), name: String(d[0] || 'Shared level').replace(/[<>]/g, '').slice(0, 20), theme: ED_THEMES.includes(d[1]) ? d[1] : 'day', pieces };
+}
+const getDef = i => i === 'daily' ? dailyDef() : i === 'edit' ? customDef(edDraft(), true) : typeof i === 'string' ? (findCustom(i) ? customDef(findCustom(i)) : LEVELS[0]) : LEVELS[i];
 const parOf = def => def._par ?? (def._par = buildLevel(def).par);
 function challenges(def) {
   const base = [
@@ -833,6 +1015,7 @@ const SFX = {
   finish() { [0, 4, 7, 12, 7, 12, 16, 19].forEach((s, i) => tone(392 * Math.pow(2, s / 12), .16, 'square', .07, 0, i * .09)); },
   menu() { tone(660, .04, 'square', .04); },
   select() { tone(880, .06, 'square', .06); tone(1320, .08, 'square', .05, 0, .05); },
+  power() { [0, 7, 12, 19].forEach((s, i) => tone(523 * Math.pow(2, s / 12), .1, 'square', .07, 0, i * .05)); },
   thunder() { noise(1.6, .5, 160, 'lowpass', .25); },
   wall() { noise(.12, .3, 500); tone(110, .1, 'square', .08, 60); },
   boing() { tone(220, .25, 'triangle', .12, 660); tone(330, .2, 'square', .04, 990, .02); },
@@ -876,6 +1059,7 @@ window.addEventListener('keydown', e => {
     if (a) { e.preventDefault(); if (!e.repeat) press(a); }
     return;
   }
+  if (state === 'editor' && !overlay.hidden && editorKey(e)) return;
   const ae = document.activeElement;
   if (ae && ae.tagName === 'INPUT') { if (e.code === 'Enter') { e.preventDefault(); submitName(); } return; }
   if (e.code === 'Escape') { e.preventDefault(); if (curScreen === 'pause') resumeGame(); else goBack(); return; }
@@ -963,7 +1147,7 @@ function startLevel(i) {
   L = buildLevel(def, night);
   layers = getLayers(L.tkey, L.T);
   const weather = def.daily ? def.weather : L.T.indoor ? 'clear' : save.weather;
-  run = { lvl: i, def, night, scooter: save.scooter, weather, score: 0, trickScore: 0, pickScore: 0, time: 0, t: 0, cd: 3.4, combo: null, letters: new Set(), cans: 0, hats: 0, did720: false, maxGrind: 0, maxCombo: 0, maxSpeed: 0, lastCp: null, wind: 0, windT: Math.random() * 100, msg: null, finishT: 0, flash: 0, nextBolt: 5 + Math.random() * 5, bails: 0, knocks: 0, spotted: 0, caught: 0, barges: new Set(), escGrinds: new Set(), touchedDown: false, qpFlip: false, rec: [], recN: 0 };
+  run = { lvl: i, def, night, scooter: save.scooter, weather, score: 0, trickScore: 0, pickScore: 0, time: 0, t: 0, cd: 3.4, combo: null, letters: new Set(), cans: 0, hats: 0, did720: false, maxGrind: 0, maxCombo: 0, maxSpeed: 0, lastCp: null, wind: 0, windT: Math.random() * 100, msg: null, finishT: 0, flash: 0, nextBolt: 5 + Math.random() * 5, bails: 0, knocks: 0, spotted: 0, caught: 0, barges: new Set(), escGrinds: new Set(), touchedDown: false, qpFlip: false, rec: [], recN: 0, pw: {}, char: riderOpen(CHARS, save.rider) ? save.rider : 0, outfit: OUTFITS[riderOpen(OUTFITS, save.outfit) ? save.outfit : 0].col };
   run.mult = WEATHER[weather].mult * (night ? NIGHT_MULT : 1);
   run.S = stats();
   run.ghost = save.opts.ghost && !L.timed ? loadGhost(def.id) : null;
@@ -998,7 +1182,7 @@ const comboMult = c => clamp(c.count, 1, 10);
 function bankCombo() {
   const c = run.combo; if (!c) return;
   run.combo = null;
-  const total = Math.round(comboSum(c) * comboMult(c) * run.mult);
+  const total = Math.round(comboSum(c) * comboMult(c) * run.mult * (run.pw.double > 0 ? 2 : 1));
   run.score += total; run.trickScore += total;
   run.maxCombo = Math.max(run.maxCombo, c.count);
   if (c.count >= 2) { message(c.count + 'x COMBO  +' + fmt(total), '#ffcc00'); SFX.bank(c.count); }
@@ -1040,13 +1224,14 @@ function updateTrick(dt) {
 function toAir(vx, vy) { P.ground = false; P.vx = vx; P.vy = vy; P.air = 0; P.coyote = .1; P.jumped = false; P.canBoost = true; if (run.combo) run.combo.fresh = false; }
 function qpLaunch() { P.vx *= .12; P.vy -= 180; P.qp = true; P.qpTurned = false; }
 function doJump(vx, vy) {
-  P.ground = false; P.vx = vx; P.vy = Math.min(vy, 0) - run.S.jump;
+  P.ground = false; P.vx = vx; P.vy = Math.min(vy, 0) - run.S.jump * (run.pw.spring > 0 ? 1.35 : 1);
   P.air = 0; P.coyote = 0; P.jumped = true; P.canBoost = true; P.crouch = 1;
   if (Math.abs(P.ang) > .9) qpLaunch();
   if (run.combo) { if (run.combo.linkT > 0) { run.combo.linkT = 0; popup('LINK', P.x, P.y - 20, '#7af0ff'); } run.combo.fresh = false; }
   SFX.jump(); puff(P.x, P.y, 6, '#ffffffaa', 50, 20, 100, .35);
 }
 function bail(why) {
+  if (run.pw.shield > 0) { run.pw.shield = 0; P.trick = null; P.queue.length = 0; P.blink = 1.2; if (P.state === 'grind') endGrind(); message('SHIELD SAVED YOU', '#4fd1ff', 1); SFX.boost(); puff(P.x, P.y - 14, 12, '#4fd1ff', 120, 60, 0, .4); return; }
   P.state = 'bail'; P.bailT = 0; P.bailRot = 0; P.bailSpin = (P.ground ? 7 : 10) * (Math.random() < .5 ? -1 : 1);
   P.trick = null; P.queue.length = 0; P.rail = null; P.qp = false;
   if (P.ground) { P.vx = P.speed; P.vy = -120; P.ground = false; }
@@ -1078,7 +1263,8 @@ function stepGround(dt) {
   const sv = P.speed * P.face; // speed in the direction the rider faces
   let a = G * Math.sin(ang) * (g0.seg.mat === 'qp' ? .55 : .92);
   if (fwd && a * P.face < 0) a *= .55; // pushing uphill: never get stuck at the foot of a ramp
-  if (fwd) a += P.face * S.accel * clamp((S.top - sv) / (S.top * .35), 0, 1);
+  const rk = run.pw.rocket > 0, top = S.top * (rk ? 1.45 : 1);
+  if (fwd || rk) a += P.face * S.accel * (rk ? 1.8 : 1) * clamp((top - sv) / (top * .35), 0, 1);
   if (back && sv > 0) a -= P.face * S.brake * (slick ? .45 : 1);
   a -= Math.sign(P.speed) * S.roll * (slick ? .25 : 1);
   a -= .00055 * P.speed * Math.abs(P.speed);
@@ -1117,7 +1303,7 @@ function stepAir(dt) {
   if (buf.jump > 0 && state === 'play') {
     if (P.coyote > 0 && !P.jumped) { buf.jump = 0; doJump(P.vx, Math.min(P.vy, 0)); }
     else if (P.canBoost) {
-      buf.jump = 0; P.canBoost = false; P.vy = Math.min(P.vy * .3, 0) - S.boost; P.boostFx = 1;
+      buf.jump = 0; P.canBoost = false; P.vy = Math.min(P.vy * .3, 0) - S.boost * (run.pw.spring > 0 ? 1.3 : 1); P.boostFx = 1;
       SFX.boost(); for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; particles.push({ x: P.x, y: P.y - 4, vx: Math.cos(a) * 70, vy: Math.sin(a) * 30 + 20, g: 0, life: .3, max: .3, col: '#7af0ff', s: 1 }); }
     }
   }
@@ -1293,6 +1479,8 @@ function step(dt) {
   }
   if (state === 'play') run.time += dt;
   P.blink = Math.max(0, P.blink - dt); P.crouch = Math.max(0, P.crouch - dt * 4); P.boostFx = Math.max(0, P.boostFx - dt * 3);
+  for (const k in run.pw) run.pw[k] = Math.max(0, run.pw[k] - dt);
+  if (run.pw.rocket > 0 && Math.random() < .8) particles.push({ x: P.x - 10 * P.face, y: P.y - 6, vx: -P.face * (80 + Math.random() * 60), vy: (Math.random() - .5) * 30, g: 0, life: .25, max: .25, col: Math.random() < .5 ? '#ff9a4d' : '#ffcc00', s: 2 });
   if (P.state === 'bail') stepBail(dt);
   else if (P.state === 'grind') stepGrind(dt);
   else if (P.ground) stepGround(dt);
@@ -1303,11 +1491,14 @@ function step(dt) {
   if (P.state !== 'bail') {
     const cx = P.x, cy = P.y - 14;
     for (const it of L.items) {
-      if (it.got || Math.abs(it.x - cx) > 16 || Math.abs(it.y - cy) > 20) continue;
+      if (it.got) continue;
+      if (run.pw.magnet > 0 && it.type !== 'power' && Math.hypot(it.x - cx, it.y - cy) < 150) { it.x += (cx - it.x) * Math.min(1, dt * 7); it.y += (cy - it.y) * Math.min(1, dt * 7); }
+      if (Math.abs(it.x - cx) > 16 || Math.abs(it.y - cy) > 20) continue;
       it.got = true;
       if (it.type === 'letter') { run.letters.add(it.idx); run.score += 250; run.pickScore += 250; SFX.letter(); popup(it.ch + '  +250', it.x, it.y - 10, '#ffcc00'); if (run.letters.size === 5) message('S-C-O-O-T COMPLETE!', '#ffcc00', 1.6); }
       else if (it.type === 'hat') { run.hats++; run.score += 300; run.pickScore += 300; SFX.letter(); popup('HARD HAT ' + run.hats + '/' + L.hats, it.x, it.y - 10, '#ffcc00'); }
-      else { run.cans++; run.score += 50; run.pickScore += 50; SFX.can(); }
+      else if (it.type === 'power') { run.pw[it.kind] = POWERS[it.kind].dur; message(POWERS[it.kind].name + '!', POWERS[it.kind].col, 1.2); SFX.power(); }
+      else { const v = run.pw.double > 0 ? 100 : 50; run.cans++; run.score += v; run.pickScore += v; SFX.can(); }
       puff(it.x, it.y, 8, it.type === 'can' ? '#7af0ff' : '#ffcc00', 90, 60, 100, .4);
     }
   }
@@ -1628,6 +1819,7 @@ function drawItem(it, t) {
     ctx.globalAlpha = .3 + .15 * Math.sin(t * 6); ctx.fillStyle = '#ffcc00'; ctx.fillRect(x - 10, y - 10, 20, 20); ctx.globalAlpha = 1;
     ctx.fillStyle = '#14111f'; ctx.fillRect(x - 8, y - 8, 16, 16); ctx.fillStyle = '#ffcc00'; ctx.fillRect(x - 7, y - 7, 14, 14); ctx.fillStyle = '#14111f'; ctx.fillRect(x - 6, y - 6, 12, 12);
     ctx.font = "8px 'Press Start 2P', monospace"; ctx.textBaseline = 'top'; ctx.textAlign = 'center'; ctx.fillStyle = '#ffcc00'; ctx.fillText(it.ch, x + 1, y - 3); ctx.textAlign = 'left';
+  } else if (it.type === 'power') { drawPower(it.kind, x, y, t);
   } else if (it.type === 'hat') {
     ctx.globalAlpha = .3 + .15 * Math.sin(t * 6); disc(x, y, 11, '#ffcc00'); ctx.globalAlpha = 1;
     for (let dy = -6; dy <= 0; dy++) { const w = Math.round(Math.sqrt(36 - dy * dy)); ctx.fillStyle = '#ffcc00'; ctx.fillRect(x - w, y + dy, w * 2, 1); }
@@ -1636,6 +1828,22 @@ function drawItem(it, t) {
     const sq = Math.abs(Math.cos(t * 3 + it.x)) * 3 + 1 | 0;
     ctx.fillStyle = '#7af0ff'; ctx.fillRect(x - sq, y - 5, sq * 2, 10); ctx.fillStyle = '#ffffff'; ctx.fillRect(x - sq, y - 5, sq * 2, 2); ctx.fillStyle = '#ff4f7b'; ctx.fillRect(x - sq, y - 1, sq * 2, 2);
   }
+}
+function drawPower(kind, x, y, t) {
+  const col = POWERS[kind].col, R = (a, b, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x + a, y + b, w, h); };
+  ctx.globalAlpha = .35 + .15 * Math.sin(t * 6); disc(x, y, 11, col); ctx.globalAlpha = 1; disc(x, y, 8, '#14111f');
+  if (kind === 'rocket') { R(-4, -2, 7, 4, '#ffffff'); R(3, -1, 2, 2, col); R(-6, -1, 2, 2, '#ffcc00'); R(-3, -4, 2, 2, col); R(-3, 2, 2, 2, col); }
+  else if (kind === 'spring') { for (let i = 0; i < 4; i++) R(i % 2 ? -1 : -4, -5 + i * 3, 5, 1, col); R(-4, 5, 8, 1, '#ffffff'); }
+  else if (kind === 'shield') { R(-4, -5, 8, 6, col); R(-3, 1, 6, 2, col); R(-1, 3, 2, 2, col); R(-1, -3, 2, 4, '#ffffff'); }
+  else if (kind === 'double') { ctx.font = "8px 'Press Start 2P', monospace"; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillStyle = col; ctx.fillText('x2', x + 1, y - 3); ctx.textAlign = 'left'; }
+  else { R(-5, -4, 3, 7, col); R(2, -4, 3, 7, col); R(-5, 2, 10, 3, col); R(-5, -5, 3, 2, '#ffffff'); R(2, -5, 3, 2, '#ffffff'); }
+}
+function drawEdSel(t) {
+  const sp2 = L.spans[ed.sel]; if (!sp2) return;
+  const x = Math.round(sp2.x1), y = Math.round(sp2.y), w = Math.max(10, Math.round(sp2.x2 - sp2.x1));
+  ctx.globalAlpha = .16 + .06 * Math.sin(t * 5); ctx.fillStyle = '#7af0ff'; ctx.fillRect(x, y - 160, w, 170); ctx.globalAlpha = 1;
+  ctx.fillRect(x, y - 160, 1, 170); ctx.fillRect(x + w, y - 160, 1, 170);
+  txt(String(ed.sel + 1), x + w / 2, y - 174, '#7af0ff', 8, 'center');
 }
 function drawFlag(c, T, t) {
   const g = surfAt(L, c.x); if (!g) return; const x = Math.round(c.x), y = Math.round(g.y);
@@ -1708,9 +1916,21 @@ const POSE = {
   sup: { fF: [-19, -29], fR: [-21, -24], kF: [-14, -28], kR: [-14, -25], hip: [-8, -27], sh: [1, -27], el: [4, -26], hd: [6, -24], head: [5, -30] },
 };
 function blendPose(a, b, t) { const o = {}; for (const k in a) o[k] = [lerp(a[k][0], b[k][0], t), lerp(a[k][1], b[k][1], t)]; return o; }
+function riderPal(ch, oc) {
+  const shirtD = mix(oc, '#000000', .3);
+  switch (ch) {
+    case 1: return { skin: '#c9ccd2', shirt: '#9aa0aa', shirtD: '#6a7080', pants: '#8a8f99', pantsD: '#5a5f69', shoe: '#3a3f49', band: oc };
+    case 2: return { skin: '#3a2f2a', shirt: '#3a2f2a', shirtD: '#241c18', pants: '#3a2f2a', pantsD: '#241c18', shoe: '#241c18', band: oc, thick: 1 };
+    case 3: return { skin: '#7be36b', shirt: oc, shirtD, pants: '#2a2a3a', pantsD: '#1b1b28', shoe: '#f4f0ff' };
+    case 4: return { skin: '#e8e4d0', shirt: '#e8e4d0', shirtD: '#b8b4a0', pants: '#e8e4d0', pantsD: '#b8b4a0', shoe: '#e8e4d0', band: oc, thin: 1 };
+    case 5: return { skin: '#e8eef8', shirt: '#e8eef8', shirtD: '#b8c0d0', pants: '#e8eef8', pantsD: '#b8c0d0', shoe: '#9aa0aa', band: oc };
+    default: return { skin: '#f2c58f', shirt: oc, shirtD, pants: '#3b5bdb', pantsD: '#2a3f9e', shoe: '#f4f0ff' };
+  }
+}
 function drawRiderSprite(o) {
   sx.clearRect(0, 0, 64, 64);
-  const sc = SCOOTERS[o.scooter];
+  const sc = SCOOTERS[o.scooter], ch = o.char || 0, C = riderPal(ch, o.outfit || OUTFITS[0].col);
+  const limb = C.thin ? 1 : C.thick ? 3 : 2, body = C.thin ? 2 : C.thick ? 4 : 3;
   let pose = POSE.ride;
   if (o.crouch > 0) pose = blendPose(pose, POSE.crouch, o.crouch);
   if (o.tuck > 0) pose = blendPose(pose, POSE.tuck, o.tuck);
@@ -1724,24 +1944,42 @@ function drawRiderSprite(o) {
   sl([tx(-11), -7], [tx(-6), -7], '#2a2a33');
   sl([tx(-10), -6], [tx(5), -6], dcol); sl([tx(-9), -5], [tx(5), -5], sc.dark);
   // back leg
-  sl(pose.hip, pose.kR, PAL.pantsD, 2); sl(pose.kR, pose.fR, PAL.pantsD, 2); sp(pose.fR[0] - 1, pose.fR[1] - 1, PAL.shoe, 3, 2);
+  sl(pose.hip, pose.kR, C.pantsD, limb); sl(pose.kR, pose.fR, C.pantsD, limb); sp(pose.fR[0] - 1, pose.fR[1] - 1, C.shoe, 3, 2);
   // front wheel + stem
   swheel(8, -3, o.wheel + 1);
   sl([8, -4], [6, -24], PAL.stem); sl([4, -24], [8, -24], PAL.bar); sp(6, -25, sc.color, 2, 1);
   // torso
-  sl(pose.hip, pose.sh, PAL.shirt, 3); sl([pose.hip[0] - 1, pose.hip[1]], [pose.sh[0] - 1, pose.sh[1]], PAL.shirtD, 1);
+  sl(pose.hip, pose.sh, C.shirt, body); sl([pose.hip[0] - 1, pose.hip[1]], [pose.sh[0] - 1, pose.sh[1]], C.shirtD, 1);
+  if (C.band) { const mx = (pose.hip[0] + pose.sh[0]) / 2, my = (pose.hip[1] + pose.sh[1]) / 2; sp(mx - 1, my - 1, C.band, 3, 2); }
+  if (C.thin) { for (let k = 1; k < 4; k++) { const yy = lerp(pose.hip[1], pose.sh[1], k / 4), xx = lerp(pose.hip[0], pose.sh[0], k / 4); sp(xx - 2, yy, C.shirt, 4, 1); } }
   // front leg
-  sl(pose.hip, pose.kF, PAL.pants, 2); sl(pose.kF, pose.fF, PAL.pants, 2); sp(pose.fF[0] - 1, pose.fF[1] - 1, PAL.shoe, 3, 2);
+  sl(pose.hip, pose.kF, C.pants, limb); sl(pose.kF, pose.fF, C.pants, limb); sp(pose.fF[0] - 1, pose.fF[1] - 1, C.shoe, 3, 2);
   // arm
-  sl(pose.sh, pose.el, PAL.shirt, 2); sl(pose.el, pose.hd, PAL.skin, 1); sp(pose.hd[0], pose.hd[1], PAL.skin, 2, 2);
-  // head + helmet
+  sl(pose.sh, pose.el, C.shirt, limb); sl(pose.el, pose.hd, C.skin, C.thick ? 2 : 1); sp(pose.hd[0], pose.hd[1], C.skin, 2, 2);
+  // head
   const [hx, hy] = pose.head;
-  for (let dy = -4; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) { if (dx * dx + dy * dy > 12) continue; sp(hx + dx, hy + dy, dy <= -1 ? sc.color : PAL.skin); }
-  sp(hx - 3, hy - 1, sc.dark, 6, 1); sp(hx + 2, hy, '#14111f'); sp(hx + 3, hy - 2, sc.dark, 2, 1);
+  const blob = (r2, fn) => { for (let dy = -5; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) if (dx * dx + dy * dy <= r2) sp(hx + dx, hy + dy, fn(dx, dy)); };
+  switch (ch) {
+    case 1: // robot: square head, visor, antenna
+      for (let dy = -4; dy <= 2; dy++) for (let dx = -3; dx <= 3; dx++) sp(hx + dx, hy + dy, '#c9ccd2');
+      sp(hx - 3, hy + 2, '#9aa0aa', 7, 1); sp(hx, hy - 1, '#7af0ff', 4, 2); sp(hx, hy - 7, '#9aa0aa', 1, 3); sp(hx, hy - 8, C.band, 1, 1); break;
+    case 2: // gorilla: big dark head with a pale face and a helmet
+      blob(14, (dx, dy) => dy <= -3 ? sc.color : dx >= 0 && dy >= -1 ? '#8a6e5a' : '#3a2f2a');
+      sp(hx + 2, hy - 1, '#14111f'); sp(hx + 1, hy - 2, '#241c18', 3, 1); sp(hx + 2, hy + 2, '#5a4636', 2, 1); break;
+    case 3: // alien: large green head, big black eyes
+      blob(16, () => '#7be36b'); sp(hx + 1, hy - 2, '#14111f', 2, 2); sp(hx + 3, hy - 2, '#14111f', 1, 2); sp(hx - 1, hy - 5, '#5bc34b', 1, 1); break;
+    case 4: // skeleton: skull under a helmet
+      blob(11, (dx, dy) => dy <= -2 ? sc.color : '#e8e4d0'); sp(hx + 1, hy - 1, '#14111f', 2, 2); sp(hx, hy + 2, '#14111f', 4, 1); sp(hx + 1, hy + 2, '#e8e4d0', 1, 1); break;
+    case 5: // astronaut: bubble helmet with a gold visor
+      blob(15, (dx, dy) => dx >= 0 && dy >= -2 && dy <= 1 ? '#e8b830' : '#e8eef8'); sp(hx - 4, hy, '#b8c0d0', 1, 2); sp(hx + 1, hy - 2, '#fff3c4', 1, 1); break;
+    default:
+      for (let dy = -4; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) { if (dx * dx + dy * dy > 12) continue; sp(hx + dx, hy + dy, dy <= -1 ? sc.color : C.skin); }
+      sp(hx - 3, hy - 1, sc.dark, 6, 1); sp(hx + 2, hy, '#14111f'); sp(hx + 3, hy - 2, sc.dark, 2, 1);
+  }
 }
 function poseOf(t) {
   const tr = P.trick;
-  const o = { scooter: run.scooter, crouch: 0, tuck: 0, sup: 0, push: 0, whip: null, wheel: P.wheel };
+  const o = { scooter: run.scooter, char: run.char, outfit: run.outfit, crouch: 0, tuck: 0, sup: 0, push: 0, whip: null, wheel: P.wheel };
   let rot = 0, scx = 1;
   if (P.state === 'bail') { o.crouch = 1; rot = P.bailRot; }
   else if (P.state === 'grind') { o.crouch = .6 + Math.sin(t * 30) * .1; }
@@ -1782,7 +2020,7 @@ function drawGhost(t) {
   const k = run.time * 30 - 1; if (k > n + 30) return;
   const kk = clamp(k, 0, n - 1), i0 = Math.floor(kk), i1 = Math.min(n - 1, i0 + 1), a = kk - i0;
   const q = j => lerp(f[i0 * 6 + j], f[i1 * 6 + j], a);
-  drawRiderSprite({ scooter: g.sc || 0, crouch: .2, tuck: 0, sup: 0, push: 0, whip: null, wheel: t * 20 });
+  drawRiderSprite({ scooter: g.sc || 0, char: g.ch || 0, outfit: g.oc, crouch: .2, tuck: 0, sup: 0, push: 0, whip: null, wheel: t * 20 });
   ctx.globalAlpha = .35;
   blitRider(q(0), q(1), q(2) / 100, f[i0 * 6 + 5] || 1, q(3) / 100, (q(4) / 100) || .15);
   ctx.globalAlpha = 1;
@@ -1886,6 +2124,7 @@ function drawHUD() {
   }
   const spd = P.ground || P.state === 'grind' ? Math.abs(P.speed) : Math.hypot(P.vx, P.vy);
   txt(Math.round(spd / 10) + ' KM/H', rx, ry, spd >= 450 ? '#ff9a4d' : '#a39bc9', 8, 'right');
+  for (const k of POWER_KEYS) { const v = run.pw[k]; if (!(v > 0)) continue; ry += 10; txt(POWERS[k].name.split(' ').pop() + (k === 'shield' ? '' : ' ' + Math.ceil(v)), rx, ry, POWERS[k].col, 8, 'right'); }
   if (state === 'countdown') { const n = Math.ceil(run.cd - .4); if (n > 0) txt(String(n), VW / 2, VH / 2 - 24, '#ffcc00', 24, 'center'); txt(run.def.name.toUpperCase(), VW / 2, VH / 2 + 10, '#fff', 8, 'center'); }
   if (run.msg) { const m = run.msg, a = clamp(m.t / .25, 0, 1), big = m.text.length < 12; ctx.globalAlpha = a; txt(m.text, VW / 2, VH * .32, m.color, big ? 16 : 8, 'center'); ctx.globalAlpha = 1; }
 }
@@ -1895,7 +2134,10 @@ function render(alpha, fdt, t) {
   const T = L.T, W = WEATHER[curWeather()];
   const px = P ? lerp(P.px, P.x, alpha) : 0, py = P ? lerp(P.py, P.y, alpha) : 0;
   // camera
-  if (state === 'menu' || !P) {
+  if (state === 'editor') {
+    const sp2 = L.spans[clamp(ed.sel, 0, L.spans.length - 1)];
+    if (sp2) { const tx = (sp2.x1 + sp2.x2) / 2 - VW / 2, ty = sp2.y - VH * .55; if (cam.snap) { cam.x = tx; cam.y = ty; cam.snap = false; } cam.x += (tx - cam.x) * (1 - Math.exp(-6 * fdt)); cam.y += (ty - cam.y) * (1 - Math.exp(-6 * fdt)); }
+  } else if (state === 'menu' || !P) {
     attract.x += fdt * 45; if (attract.x > Math.min(L.finish, L.endX) - VW) attract.x = L.timed ? 0 : -100;
     const g = surfAt(L, attract.x + VW * .4); cam.x = attract.x; cam.ty = (g ? g.y : 0) - VH * .7; cam.y = lerp(cam.y, cam.ty, 1 - Math.exp(-2 * fdt)); if (cam.snap) { cam.y = cam.ty; cam.snap = false; }
   } else {
@@ -1945,6 +2187,7 @@ function render(alpha, fdt, t) {
   if (T.ceil) drawCeiling(T, x0, x1, cy - 10);
   for (const it of L.items) if (it.x > x0 && it.x < x1) drawItem(it, t);
   drawHazards(t);
+  if (state === 'editor') drawEdSel(t);
   if (col > cx - 400) {
     const g = ctx.createLinearGradient(col - 300, 0, col + 30, 0); g.addColorStop(0, '#060205'); g.addColorStop(.85, '#060205e0'); g.addColorStop(1, '#06020500');
     ctx.fillStyle = g; ctx.fillRect(col - 300, cy - 10, 330, VH + 20);
@@ -1954,6 +2197,7 @@ function render(alpha, fdt, t) {
     if (run.ghost) drawGhost(t);
     if (!P.ground && P.state !== 'grind') { const g = surfAt(L, px); if (g && g.y - py < 160) { const w = Math.max(3, 12 - (g.y - py) / 14) | 0; ctx.fillStyle = '#00000050'; ctx.fillRect(Math.round(px - w), Math.round(g.y) - 1, w * 2, 2); } }
     drawPlayer(px, py, t);
+    if (run.pw.shield > 0) { ctx.globalAlpha = .4 + .15 * Math.sin(t * 8); ctx.strokeStyle = '#4fd1ff'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(Math.round(px), Math.round(py) - 15, 20, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1; }
     if (L.def.heli) drawHeli(t);
   }
   for (const p of particles) { ctx.globalAlpha = clamp(p.life / p.max * 1.5, 0, 1); ctx.fillStyle = p.col; ctx.fillRect(Math.round(p.x), Math.round(p.y), p.s, p.s); }
@@ -2005,6 +2249,8 @@ function show(id) {
   if (id === 'scooters') renderScooters();
   if (id === 'scores') renderScores();
   if (id === 'options') renderOptions();
+  if (id === 'riders') renderRiders();
+  if (id === 'editor') renderEditor();
   const first = document.querySelector('#scr-' + id + ' .sel, #scr-' + id + ' button:not([disabled])');
   if (first && !isTouch) first.focus({ preventScroll: true });
 }
@@ -2033,7 +2279,7 @@ function moveFocus(d) {
 document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => { audioInit(); goTo(b.dataset.go); }));
 document.querySelectorAll('[data-back-btn]').forEach(b => b.addEventListener('click', goBack));
 
-const validLevel = i => i === 'daily' || (Number.isInteger(i) && i >= 0 && i < Math.min(save.unlocked, LEVELS.length));
+const validLevel = i => i === 'daily' || i === 'edit' || (typeof i === 'string' && !!findCustom(i)) || (Number.isInteger(i) && i >= 0 && i < Math.min(save.unlocked, LEVELS.length));
 function setAttract(i) {
   const def = getDef(validLevel(i) ? i : 0);
   run = null; P = null;
@@ -2046,13 +2292,13 @@ function levelStars(def) { const c = save.chal[def.id] || {}; return ['time', 's
 function renderLevels() {
   const wrap = $('#levelCards'); wrap.innerHTML = '';
   if (!validLevel(save.level)) save.level = 0;
-  const entries = [['daily', dailyDef()], ...LEVELS.map((d, i) => [i, d])];
+  const entries = [['daily', dailyDef()], ...LEVELS.map((d, i) => [i, d]), ...(save.custom || []).map(c => [c.id, customDef(c)])];
   entries.forEach(([i, lv], n) => {
     const T = THEMES[lv.theme], locked = i !== 'daily' && i >= save.unlocked;
     const b = document.createElement('button'); b.className = 'card' + (i === save.level ? ' sel' : '') + (locked ? ' locked' : '') + (lv.daily ? ' daily' : '');
     b.setAttribute('aria-label', lv.name + (locked ? ', locked' : ''));
-    b.innerHTML = `<div class="sky" style="background:linear-gradient(${T.sky.join(',')})"></div><div class="info"><span class="nm">${esc(lv.name)}</span><span class="stars">${locked ? 'LOCKED' : lv.daily ? 'TODAY' : levelStars(lv)}</span></div>`;
-    b.addEventListener('click', () => { if (locked) { SFX.wall(); toast('Finish ' + LEVELS[i - 1].name + ' to unlock ' + lv.name + ', or turn on Unlock all levels in Options.'); return; } save.level = i; persist(); SFX.menu(); setAttract(i); renderLevels(); wrap.children[n].focus(); });
+    b.innerHTML = `<div class="sky" style="background:linear-gradient(${T.sky.join(',')})"></div><div class="info"><span class="nm">${esc(lv.name)}</span><span class="stars">${locked ? 'LOCKED' : lv.daily ? 'TODAY' : lv.custom ? 'MINE' : levelStars(lv)}</span></div>`;
+    b.addEventListener('click', () => { if (locked) { SFX.wall(); toast('Finish ' + LEVELS[i - 1].name + ' to unlock ' + lv.name + ', or turn on Unlock all levels in Options.'); return; } save.level = i; delArmed = false; persist(); SFX.menu(); setAttract(i); renderLevels(); wrap.children[n].focus(); });
     b.addEventListener('dblclick', () => { if (!locked) startLevel(i); });
     wrap.appendChild(b);
   });
@@ -2078,14 +2324,22 @@ function renderLevels() {
   wp.appendChild(nb);
   $('#weatherNote').textContent = def.daily ? 'The daily run sets its own weather.' : T.indoor ? 'Indoors: no weather here.' : '';
   $('#scootLine').textContent = 'Scooter: ' + SCOOTERS[save.scooter].name;
+  const isC = typeof save.level === 'string' && !!findCustom(save.level);
+  $('#editLvBtn').hidden = $('#delLvBtn').hidden = !isC; $('#delLvBtn').textContent = delArmed ? 'Press again to delete' : 'Delete';
 }
+let delArmed = false;
+$('#editLvBtn').addEventListener('click', () => { const c = findCustom(save.level); if (!c) return; save.edit = JSON.parse(JSON.stringify(c)); ed.sel = 0; openEditor(); });
+$('#delLvBtn').addEventListener('click', () => {
+  if (!delArmed) { delArmed = true; renderLevels(); return; }
+  delArmed = false; save.custom = (save.custom || []).filter(c => c.id !== save.level); save.level = 0; persist(); setAttract(0); renderLevels(); toast('Level deleted.');
+});
 $('#rideBtn').addEventListener('click', () => { if (validLevel(save.level)) startLevel(save.level); });
 function renderScooters() {
   const wrap = $('#scootCards'); wrap.innerHTML = '';
   SCOOTERS.forEach((s, i) => {
     const b = document.createElement('button'); b.className = 'scoot' + (i === save.scooter ? ' sel' : '');
     const c = document.createElement('canvas'); c.width = 40; c.height = 40;
-    drawRiderSprite({ scooter: i, crouch: 0, tuck: 0, sup: 0, push: 0, whip: null, wheel: 0 });
+    drawRiderSprite({ scooter: i, char: save.rider, outfit: OUTFITS[save.outfit].col, crouch: 0, tuck: 0, sup: 0, push: 0, whip: null, wheel: 0 });
     const x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(spr, OX - 20, OY - 34, 40, 40, 0, 0, 40, 40);
     b.appendChild(c);
     b.insertAdjacentHTML('beforeend', `<span class="nm">${s.name}</span><span class="ds">${s.desc}</span>` + STATS.map(([n, f]) => `<span class="stat"><span>${n}</span><span class="bar"><i style="width:${Math.round(clamp(f(s), .05, 1) * 100)}%"></i></span></span>`).join(''));
@@ -2093,7 +2347,7 @@ function renderScooters() {
     wrap.appendChild(b);
   });
 }
-const scoreDefs = () => [...LEVELS, dailyDef()];
+const scoreDefs = () => [...LEVELS, dailyDef(), ...(save.custom || []).map(c => customDef(c))];
 const scoreTable = (list, hl) => `<table><thead><tr><th>#</th><th>Name</th><th class="num">Score</th><th class="num">Time</th><th>Scooter</th><th>Conditions</th></tr></thead><tbody>${list.map((e, i) => `<tr class="${hl === i || e.me ? 'me' : ''}"><td>${i + 1}</td><td>${esc(String(e.name || '').slice(0, 10))}</td><td class="num">${fmt(+e.score || 0)}</td><td class="num">${fmtTime(+e.time || 0)}</td><td>${esc(String(e.sc || ''))}</td><td>${esc(String(e.w || ''))}</td></tr>`).join('')}</tbody></table>`;
 function renderScores(hl) {
   const defs = scoreDefs(); scoreTab = clamp(scoreTab, 0, defs.length - 1);
@@ -2125,6 +2379,7 @@ function renderOptions() {
     ['Full screen: ' + (isFS() || isFill() ? 'On' : 'Off'), () => { toggleFS().then(() => { if (curScreen === 'options') renderOptions(); }); }],
     ['Touch buttons: ' + ({ auto: 'Auto', on: 'On', off: 'Off' })[o.touch], () => { o.touch = { auto: 'on', on: 'off', off: 'auto' }[o.touch]; }],
     [save.unlocked >= LEVELS.length ? 'All levels unlocked' : 'Unlock all levels', () => { save.unlocked = LEVELS.length; }],
+    [save.allRiders ? 'All riders unlocked' : 'Unlock all riders and colours', () => { save.allRiders = true; }],
     [resetArmed ? 'Press again to erase all progress' : 'Reset progress', () => {
       if (!resetArmed) { resetArmed = true; return; }
       resetArmed = false; const keep = save.opts; save = defaults(); save.opts = keep; clearGhosts(); setAttract(0);
@@ -2142,6 +2397,7 @@ function pauseGame() {
   run.pausedFrom = state; state = 'paused'; clearInput(); Music.on = false;
   $('#pauseInfo').textContent = run.def.name + '. ' + fmtTime(run.time) + ' elapsed, ' + fmt(run.score) + ' points.';
   $('#pauseBtn').hidden = true; $('#touch').hidden = true;
+  $('#pauseEditBtn').hidden = !run.def.editing;
   show('pause');
 }
 function resumeGame() {
@@ -2155,6 +2411,9 @@ $('#restartBtn').addEventListener('click', () => startLevel(run.lvl));
 $('#quitBtn').addEventListener('click', toMenu);
 function toLevels() { toMenu(); show('levels'); }
 $('#pauseLevelsBtn').addEventListener('click', toLevels);
+$('#pauseEditBtn').addEventListener('click', openEditor);
+$('#resEditBtn').addEventListener('click', () => { if (pendingHS) submitName(); if (!run.def.editing) { const c = findCustom(run.def.id); if (c) save.edit = JSON.parse(JSON.stringify(c)); } openEditor(); });
+$('#titleEdBtn').addEventListener('click', () => { audioInit(); openEditor(); });
 $('#continueBtn').addEventListener('click', () => startLevel(validLevel(save.level) ? save.level : 0));
 
 // ---- shared daily leaderboard: each signed-in player keeps one row with their best score of the day
@@ -2198,6 +2457,7 @@ function showResults() {
   const chs = challenges(def), done = {};
   for (const c of chs) done[c.k] = !!c.test(run, total);
   const ch = save.chal[def.id] = save.chal[def.id] || {};
+  const starsBefore = starsTotal();
   const fresh = [];
   for (const k in done) if (done[k] && !ch[k]) { ch[k] = true; fresh.push(k); }
   const num = typeof run.lvl === 'number';
@@ -2206,7 +2466,7 @@ function showResults() {
   let ghostNote = '';
   if (!L.timed && run.rec.length) {
     const prev = loadGhost(def.id);
-    if (!prev || time < prev.t) { storeGhost(def.id, { t: time, sc: run.scooter, f: run.rec }); ghostNote = prev ? 'New fastest ghost saved' : 'Ghost saved. Race it next time'; }
+    if (!prev || time < prev.t) { storeGhost(def.id, { t: time, sc: run.scooter, ch: run.char, oc: run.outfit, f: run.rec }); ghostNote = prev ? 'New fastest ghost saved' : 'Ghost saved. Race it next time'; }
   }
   persist();
   const cond = W.name + (run.night ? ', night' : '');
@@ -2228,6 +2488,9 @@ function showResults() {
     hs.innerHTML = `<span class="newhs">${def.daily ? 'Post your daily score' : 'New high score! Rank ' + (pos + 1)}</span><label class="label" for="nameInput">Name</label><input id="nameInput" maxlength="10" autocomplete="off" spellcheck="false" value="${esc(save.lastName)}"><button class="btn small" id="saveHS">Save</button>`;
     $('#saveHS').addEventListener('click', submitName);
   } else if (unlockedNew) hs.innerHTML = `<span class="newhs">${esc(LEVELS[run.lvl + 1].name)} unlocked</span>`;
+  const starsNow = starsTotal(), newly = [...CHARS, ...OUTFITS].filter(u => u.need > starsBefore && u.need <= starsNow).map(u => u.name);
+  if (newly.length && !save.allRiders) hs.insertAdjacentHTML('beforeend', `<span class="newhs">Unlocked: ${esc(newly.join(', '))}</span>`);
+  $('#resEditBtn').hidden = !run.def.custom;
   if (ghostNote) hs.insertAdjacentHTML('beforeend', `<span class="label">${ghostNote}</span>`);
   $('#nextBtn').hidden = !num || run.lvl + 1 >= LEVELS.length;
   show('results');
@@ -2282,7 +2545,140 @@ fsBtn.hidden = false;
 fsBtn.addEventListener('click', () => { audioInit(); toggleFS().then(() => { if (curScreen === 'options' && !overlay.hidden) renderOptions(); }); fsBtn.blur(); });
 new MutationObserver(() => stage.classList.toggle('ingame', !pauseBtnEl.hidden)).observe(pauseBtnEl, { attributes: true, attributeFilter: ['hidden'] });
 
+// ---- riders screen
+function renderRiders() {
+  const stars = starsTotal();
+  $('#starLine').textContent = 'You have ' + stars + ' of ' + LEVELS.length * 4 + ' challenge stars. Finish challenges to unlock more riders and colours.';
+  const wrap = $('#riderCards'); wrap.innerHTML = '';
+  CHARS.forEach((c, i) => {
+    const open = riderOpen(CHARS, i);
+    const b = document.createElement('button'); b.className = 'scoot' + (i === save.rider ? ' sel' : '') + (open ? '' : ' locked');
+    const cv2 = document.createElement('canvas'); cv2.width = 40; cv2.height = 40;
+    drawRiderSprite({ scooter: save.scooter, char: i, outfit: OUTFITS[save.outfit].col, crouch: 0, tuck: 0, sup: 0, push: 0, whip: null, wheel: 0 });
+    const x = cv2.getContext('2d'); x.imageSmoothingEnabled = false; x.globalAlpha = open ? 1 : .25; x.drawImage(spr, OX - 20, OY - 34, 40, 40, 0, 0, 40, 40);
+    b.appendChild(cv2);
+    b.insertAdjacentHTML('beforeend', `<span class="nm">${c.name}</span><span class="ds">${open ? (i === save.rider ? 'Riding' : 'Unlocked') : 'Needs ' + c.need + ' stars'}</span>`);
+    b.addEventListener('click', () => { if (!open) { SFX.wall(); toast(c.name + ' unlocks at ' + c.need + ' challenge stars. You have ' + stars + '.'); return; } save.rider = i; persist(); SFX.select(); renderRiders(); wrap.children[i].focus(); });
+    wrap.appendChild(b);
+  });
+  const op = $('#outfitPick'); op.innerHTML = '';
+  OUTFITS.forEach((o, i) => {
+    const open = riderOpen(OUTFITS, i), b = document.createElement('button');
+    b.className = 'chip' + (i === save.outfit ? ' sel' : ''); b.disabled = !open;
+    b.innerHTML = `<i class="swatch" style="background:${o.col}"></i>${o.name}<small>${open ? 'Unlocked' : o.need + ' stars'}</small>`;
+    b.addEventListener('click', () => { save.outfit = i; persist(); SFX.menu(); renderRiders(); op.children[i].focus(); });
+    op.appendChild(b);
+  });
+}
+
+// ---- level editor
+const ed = { sel: 0 };
+function edDraft() { if (!save.edit || !Array.isArray(save.edit.pieces) || !save.edit.pieces.length) save.edit = newDraft(); return save.edit; }
+function openEditor() {
+  state = 'editor'; Music.on = false; run = null; P = null;
+  $('#pauseBtn').hidden = true; $('#touch').hidden = true; clearInput();
+  const d = edDraft(); ed.sel = clamp(ed.sel, 0, d.pieces.length - 1);
+  rebuildEditor(true); show('editor');
+}
+function rebuildEditor(snap) {
+  const d = edDraft();
+  L = buildLevel(customDef(d, true)); layers = getLayers(L.tkey, L.T);
+  if (snap) cam.snap = true;
+  persist(); renderEditor();
+}
+function renderEditor() {
+  const d = edDraft(), p = d.pieces[ed.sel], T = ED_TYPES[p.t];
+  let label = (ed.sel + 1) + '/' + d.pieces.length + ' ' + T.name;
+  if (p.t === 'stairs') label += ' ' + p.a + ' steps';
+  else if (T.a) label += ' ' + p.a + (T.b ? 'x' + p.b : '');
+  else if (T.b) label += ' ' + p.b;
+  if (p.t === 'box') label += ' ' + ED_MAT_NAMES[ED_MATS[p.m]];
+  $('#edSel').textContent = label;
+  $('#edWm').disabled = $('#edWp').disabled = !T.a;
+  $('#edHm').disabled = $('#edHp').disabled = !T.b;
+  $('#edKind').disabled = p.t !== 'box';
+  $('#edRail').disabled = !(p.t === 'run' || p.t === 'box');
+  $('#edDel').disabled = d.pieces.length <= 1;
+  for (const [id, on] of [['#edLetter', p.letter], ['#edCans', p.cans], ['#edRail', p.rail > 0], ['#edCp', p.cp]]) $(id).classList.toggle('sel', !!on);
+  $('#edPower').value = p.power || ''; $('#edHazard').value = p.hazard || '';
+  if (document.activeElement !== $('#edName')) $('#edName').value = d.name;
+  $('#edTheme').value = d.theme;
+  const letters = d.pieces.filter(q => q.letter).length;
+  $('#edInfo').textContent = 'Letters ' + Math.min(letters, 5) + '/5' + (letters > 5 ? ' (only 5 count)' : '') + '. ' + (findCustom(d.id) ? 'Saved' : 'Not saved yet') + '.';
+}
+function edEdit(fn) { const d = edDraft(); fn(d.pieces[ed.sel], d); rebuildEditor(); }
+const edStep = (p, key, dir) => { const r = ED_TYPES[p.t][key]; if (r) p[key] = clamp(p[key] + dir * r[3], r[1], r[2]); };
+function edSelect(d) { const n = edDraft().pieces.length; ed.sel = (ed.sel + d + n) % n; SFX.menu(); renderEditor(); }
+function initEditorUI() {
+  const add = $('#edAddType');
+  for (const k in ED_TYPES) add.insertAdjacentHTML('beforeend', `<option value="${k}">${ED_TYPES[k].name}</option>`);
+  add.insertAdjacentHTML('beforeend', '<option value="box:7">Awning (bouncy)</option><option value="box:3">Parked car</option>');
+  $('#edPower').innerHTML = '<option value="">No power-up</option>' + POWER_KEYS.map(k => `<option value="${k}">${POWERS[k].name[0] + POWERS[k].name.slice(1).toLowerCase()}</option>`).join('');
+  $('#edHazard').innerHTML = ED_HAZARDS.map(k => `<option value="${k}">${ED_HAZARD_NAMES[k]}</option>`).join('');
+  $('#edTheme').innerHTML = ED_THEMES.map(k => `<option value="${k}">${ED_THEME_NAMES[k]}</option>`).join('');
+  $('#edPrev').addEventListener('click', () => edSelect(-1));
+  $('#edNext').addEventListener('click', () => edSelect(1));
+  $('#edWm').addEventListener('click', () => edEdit(p => edStep(p, 'a', -1)));
+  $('#edWp').addEventListener('click', () => edEdit(p => edStep(p, 'a', 1)));
+  $('#edHm').addEventListener('click', () => edEdit(p => edStep(p, 'b', -1)));
+  $('#edHp').addEventListener('click', () => edEdit(p => edStep(p, 'b', 1)));
+  $('#edKind').addEventListener('click', () => edEdit(p => { p.m = (p.m + 1) % ED_MATS.length; }));
+  $('#edDel').addEventListener('click', () => edEdit((p, d) => { if (d.pieces.length > 1) { d.pieces.splice(ed.sel, 1); ed.sel = Math.min(ed.sel, d.pieces.length - 1); } }));
+  $('#edAdd').addEventListener('click', () => {
+    const [t, m] = add.value.split(':');
+    edEdit((p, d) => { if (d.pieces.length >= 80) { toast('A level can have up to 80 pieces.'); return; } const q = newPiece(t); if (m) q.m = +m; d.pieces.splice(ed.sel + 1, 0, q); ed.sel++; });
+    SFX.select();
+  });
+  $('#edLetter').addEventListener('click', () => edEdit(p => { p.letter = !p.letter; }));
+  $('#edCans').addEventListener('click', () => edEdit(p => { p.cans = !p.cans; }));
+  $('#edCp').addEventListener('click', () => edEdit(p => { p.cp = !p.cp; }));
+  $('#edRail').addEventListener('click', () => edEdit(p => { p.rail = p.rail ? 0 : 20; }));
+  $('#edPower').addEventListener('change', e => edEdit(p => { p.power = e.target.value; }));
+  $('#edHazard').addEventListener('change', e => edEdit(p => { p.hazard = e.target.value; }));
+  $('#edTheme').addEventListener('change', e => { edDraft().theme = e.target.value; rebuildEditor(); });
+  $('#edName').addEventListener('input', e => { edDraft().name = e.target.value.replace(/[<>]/g, '').slice(0, 20) || 'My level'; persist(); });
+  $('#edTest').addEventListener('click', () => startLevel('edit'));
+  $('#edSave').addEventListener('click', () => {
+    const d = edDraft(), copy = JSON.parse(JSON.stringify(d));
+    save.custom = save.custom || [];
+    const i = save.custom.findIndex(c => c.id === d.id);
+    if (i >= 0) save.custom[i] = copy; else { if (save.custom.length >= 20) { toast('You can keep 20 levels. Delete one in Level select first.'); return; } save.custom.push(copy); }
+    persist(); SFX.select(); renderEditor(); toast('Saved. Find "' + d.name + '" in Level select.');
+  });
+  $('#edNew').addEventListener('click', () => { save.edit = newDraft(); ed.sel = 0; rebuildEditor(true); toast('New level started. Your saved levels are still in Level select.'); });
+  $('#edShare').addEventListener('click', () => {
+    const code = encodeLevel(edDraft()), box = $('#edCode');
+    $('#edCodeRow').hidden = false; box.value = code;
+    const fallback = () => { box.focus(); box.select(); toast('Copy the code from the box and send it to a friend.'); };
+    try { navigator.clipboard.writeText(code).then(() => toast('Level code copied. Friends paste it into Import.'), fallback); } catch (e) { fallback(); }
+  });
+  $('#edImport').addEventListener('click', () => { $('#edCodeRow').hidden = false; $('#edCode').value = ''; $('#edCode').focus(); });
+  $('#edLoadCode').addEventListener('click', () => {
+    const c = decodeLevel($('#edCode').value);
+    if (!c) { toast('That code didn\'t work. Check it starts with SCOOT1: and was copied in full.'); return; }
+    save.edit = c; ed.sel = 0; $('#edCodeRow').hidden = true; rebuildEditor(true); toast('Loaded "' + c.name + '". Press Save to keep it.');
+  });
+  $('#edExit').addEventListener('click', () => { state = 'menu'; setAttract(save.level); show('title'); });
+}
+function editorKey(e) {
+  const tag = document.activeElement && document.activeElement.tagName;
+  if (tag === 'INPUT' || tag === 'SELECT') return false;
+  const k = e.code;
+  if (k === 'ArrowLeft') edSelect(-1);
+  else if (k === 'ArrowRight') edSelect(1);
+  else if (k === 'ArrowUp') edEdit(p => edStep(p, 'b', 1));
+  else if (k === 'ArrowDown') edEdit(p => edStep(p, 'b', -1));
+  else if (k === 'Equal' || k === 'NumpadAdd') edEdit(p => edStep(p, 'a', 1));
+  else if (k === 'Minus' || k === 'NumpadSubtract') edEdit(p => edStep(p, 'a', -1));
+  else if (k === 'Delete' || k === 'Backspace') $('#edDel').click();
+  else if (k === 'KeyT') startLevel('edit');
+  else if (k === 'Escape') $('#edExit').click();
+  else return false;
+  e.preventDefault(); return true;
+}
+
 // ================================================================ boot
+initEditorUI();
 if (isTouch) $('#titleFoot').textContent = 'Tap to choose. Turn your phone sideways for the best view.';
 fit();
 setAttract(save.level);

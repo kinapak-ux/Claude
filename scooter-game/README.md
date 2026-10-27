@@ -38,6 +38,17 @@ Each level has four challenges: a par time (or two score targets on the timed pl
 - **Combos:** jump again within half a second of landing to link a combo. The multiplier counts the tricks in the chain (up to x10). Landing mid-trick is a bail and loses the combo.
 - **Turning round:** brake to a stop and keep holding back to turn. Quarter pipes turn you round in the air.
 
+## Riders, power-ups and the level editor
+
+- **Riders:** Street Kid, Robot, Gorilla, Alien, Skeleton and Astronaut, plus seven outfit colours. They unlock with challenge stars (4 per level, 48 in all). Options has "Unlock all riders and colours".
+- **Power-ups** appear on long flat stretches:
+  - Rocket: faster and pushes for you, 5 s.
+  - Super Spring: higher jumps, 8 s.
+  - Shield: absorbs one crash.
+  - Double Points: 10 s.
+  - Magnet: pulls in cans and letters, 10 s.
+- **Level editor:** build a level piece by piece. Pieces are flat, kicker, landing ramp, funbox, obstacle (barrier, crate, container, car, van, skip, stall, bouncy awning, ledge, barrel), gap, stairs, slope up and down, drop, and ledge up. Each piece can carry a letter, cans, a rail, a checkpoint, a power-up or a hazard. Choose the setting, test it, save it to Level select, and share it as a `SCOOT1:` code that friends load with Import.
+
 ## Options and extras
 
 - **Weather:** Clear, Rain, Snow, Fog, Gale or Storm. Each changes grip, speed, visibility or air control and pays a score multiplier. Indoor levels have no weather.
