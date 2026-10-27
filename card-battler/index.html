@@ -224,6 +224,15 @@ select.txt{width:100%;font:inherit;font-size:16px;font-weight:700;padding:12px;b
 .netbar{background:rgba(255,92,122,.18);border:1px solid rgba(255,92,122,.5);color:#ffc2cf;border-radius:12px;padding:8px 12px;font-weight:800;font-size:14px;text-align:center;margin-bottom:10px}
 @media (prefers-reduced-motion:reduce){.fx,.c-crea,.aur,.bolt,.card,.card::after,.card::before,.fan .cardw,.banner.go{animation:none!important}}
 </style>
+
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#0d0718">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Card Battler">
 </head>
 <body>
 <div id="app"></div>
@@ -1174,5 +1183,6 @@ document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id
 
 render();
 </script>
+<script>if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));</script>
 </body>
 </html>

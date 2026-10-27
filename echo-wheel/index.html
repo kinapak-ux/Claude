@@ -1,0 +1,406 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#14121c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Echo Wheel">
+</head><body>
+<title>Echo Wheel</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Outfit:wght@400;600&display=swap">
+<style>
+/* Layout: mode chips on top, toy disc centre, score board beside (desktop) or below (phone). Single committed dark-lacquer look. */
+:root{
+  --ground:#14121c; --shell:#221f2e; --rim:#36314a; --ink:#f2eefb; --muted:#9b94b3;
+  --red:#e2453c; --red-lit:#ff8a7d; --blue:#2f7fe0; --blue-lit:#8cc4ff;
+  --yellow:#e8b520; --yellow-lit:#ffe47a; --green:#2fae5e; --green-lit:#8cf0ad;
+  --display:"Bungee", "Arial Black", system-ui, sans-serif;
+  --body:"Outfit", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme:dark;
+}
+body{background:radial-gradient(120% 80% at 50% 0%, #241f35 0%, var(--ground) 60%);background-color:var(--ground);color:var(--ink);font-family:var(--body);
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:20px 32px;box-sizing:border-box;overflow-x:hidden;min-height:100%}
+.wrap{max-width:900px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:18px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(1.6rem,6vw,2.4rem);margin:0;letter-spacing:.04em}
+.modes{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.mode{font-family:var(--body);font-weight:600;font-size:.9rem;padding:8px 14px;border-radius:999px;border:2px solid var(--rim);background:transparent;color:var(--muted);cursor:pointer}
+.mode[aria-checked="true"]{background:var(--ink);color:var(--ground);border-color:var(--ink)}
+.mode:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+.mode:disabled{opacity:.45;cursor:not-allowed}
+.modeinfo{margin:0;color:var(--muted);font-size:.9rem;text-align:center;min-height:1.4em;max-width:46ch}
+.stage{display:grid;grid-template-columns:minmax(0,420px) minmax(0,260px);gap:28px;align-items:start;justify-content:center;width:100%}
+@media (max-width:720px){.stage{grid-template-columns:minmax(0,420px)}}
+.play{display:flex;flex-direction:column;align-items:center;gap:14px;min-width:0}
+.wrap{padding-bottom:110px}
+@media (max-width:520px){.wrap{gap:12px}.modes{gap:6px}.mode{font-size:.82rem;padding:6px 11px}.modeinfo{font-size:.82rem}.stat b{font-size:1.5rem}button.ctl{padding:10px 20px}}
+.stats{display:flex;gap:28px;font-variant-numeric:tabular-nums}
+.stat{display:flex;flex-direction:column;align-items:center}
+.stat b{font-family:var(--display);font-weight:400;font-size:1.9rem;line-height:1}
+.stat span,.label{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.disc{position:relative;width:min(88vw,420px);aspect-ratio:1;max-width:100%;border-radius:50%;background:var(--shell);
+  box-shadow:inset 0 0 0 10px var(--rim), 0 24px 60px rgba(0,0,0,.55);display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:22px;box-sizing:border-box}
+.pad{border:0;cursor:pointer;transition:filter .08s, background-color .08s;-webkit-tap-highlight-color:transparent;touch-action:manipulation;filter:brightness(.72) saturate(.9)}
+.pad:focus-visible{outline:3px solid var(--ink);outline-offset:-6px}
+.pad[data-i="0"]{background:var(--green);border-top-left-radius:100%}
+.pad[data-i="1"]{background:var(--red);border-top-right-radius:100%}
+.pad[data-i="2"]{background:var(--yellow);border-bottom-left-radius:100%}
+.pad[data-i="3"]{background:var(--blue);border-bottom-right-radius:100%}
+.pad.lit{filter:brightness(1.15) saturate(1.1)}
+.pad[data-i="0"].lit{background:var(--green-lit);box-shadow:0 0 40px var(--green)}
+.pad[data-i="1"].lit{background:var(--red-lit);box-shadow:0 0 40px var(--red)}
+.pad[data-i="2"].lit{background:var(--yellow-lit);box-shadow:0 0 40px var(--yellow)}
+.pad[data-i="3"].lit{background:var(--blue-lit);box-shadow:0 0 40px var(--blue)}
+.disc.locked .pad{cursor:default}
+.hub{position:absolute;inset:50% auto auto 50%;transform:translate(-50%,-50%);width:40%;aspect-ratio:1;border-radius:50%;background:var(--shell);
+  box-shadow:0 0 0 10px var(--rim);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center}
+.hub .round{font-family:var(--display);font-size:clamp(1.8rem,9vw,2.8rem);line-height:1;font-variant-numeric:tabular-nums}
+.hub.idle{cursor:pointer}
+.hub.idle .msg{color:var(--yellow-lit);font-weight:600}
+.hub:focus-visible{outline:3px solid var(--yellow);outline-offset:4px}
+.hub .msg{font-size:.78rem;color:var(--muted);letter-spacing:.04em;max-width:88%}
+.hub .timer{width:60%;height:4px;border-radius:2px;background:var(--rim);overflow:hidden}
+.hub .timer i{display:block;height:100%;width:100%;background:var(--yellow);transform-origin:left}
+.controls{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+button.ctl{font-family:var(--body);font-weight:600;font-size:1rem;padding:12px 22px;border-radius:999px;border:2px solid var(--rim);background:var(--shell);color:var(--ink);cursor:pointer}
+button.ctl.primary{background:var(--ink);color:var(--ground);border-color:var(--ink)}
+button.ctl:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+.board{background:var(--shell);border:2px solid var(--rim);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0;width:100%;box-sizing:border-box}
+.board h2{font-family:var(--display);font-weight:400;font-size:1.15rem;margin:0;letter-spacing:.04em}
+.board select{font-family:var(--body);font-size:.95rem;background:var(--ground);color:var(--ink);border:1px solid var(--rim);border-radius:8px;padding:6px 8px}
+.board ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-variant-numeric:tabular-nums}
+.board li{display:grid;grid-template-columns:1.8em 1fr auto;gap:8px;align-items:baseline;padding:6px 8px;border-radius:8px}
+.board li:nth-child(1) .rk{color:var(--yellow-lit)}
+.board li.new{background:var(--rim)}
+.board .rk{color:var(--muted);font-weight:600}
+.board .nm{font-weight:600;letter-spacing:.08em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.board .sc{font-family:var(--display)}
+.board .dt{grid-column:2 / 4;font-size:.75rem;color:var(--muted);margin-top:-4px}
+.boardnote{margin:0;font-size:.8rem;color:var(--muted);line-height:1.4}
+.board .you{font-size:.65rem;letter-spacing:.1em;color:var(--yellow-lit);margin-left:6px;vertical-align:middle}
+.board .empty{color:var(--muted);font-size:.9rem;margin:0}
+form.entry{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:12px;background:var(--ground);border:2px solid var(--yellow)}
+form.entry p{margin:0;font-size:.9rem}
+form.entry .row{display:flex;gap:8px}
+form.entry input{flex:1;min-width:0;font-family:var(--display);font-size:1.1rem;letter-spacing:.2em;text-transform:uppercase;background:var(--shell);color:var(--ink);border:1px solid var(--rim);border-radius:8px;padding:6px 10px}
+form.entry button{font-family:var(--body);font-weight:600;border:0;border-radius:8px;padding:6px 14px;background:var(--yellow);color:#1b1608;cursor:pointer}
+.clear{align-self:flex-start;background:none;border:0;color:var(--muted);font-family:var(--body);font-size:.8rem;cursor:pointer;padding:0;text-decoration:underline}
+.help{font-size:.85rem;color:var(--muted);max-width:52ch;text-align:center;line-height:1.5;margin:0}
+kbd{font-family:var(--body);background:var(--shell);border:1px solid var(--rim);border-radius:4px;padding:0 5px}
+.overlay{position:fixed;inset:0;z-index:20;background:rgba(10,8,16,.72);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));box-sizing:border-box}
+.panel{background:var(--shell);border:2px solid var(--rim);border-radius:22px;padding:22px;width:100%;max-width:340px;display:flex;flex-direction:column;gap:10px;box-shadow:0 24px 60px rgba(0,0,0,.6)}
+.panel h2{font-family:var(--display);font-weight:400;font-size:1.4rem;margin:0;letter-spacing:.04em;text-align:center}
+.menustate{margin:0 0 4px;text-align:center;color:var(--muted);font-size:.9rem}
+.mi{font-family:var(--body);font-weight:600;font-size:1rem;padding:13px 16px;border-radius:14px;border:2px solid var(--rim);background:var(--ground);color:var(--ink);cursor:pointer;text-align:left}
+.mi.primary{background:var(--ink);color:var(--ground);border-color:var(--ink);text-align:center}
+.mi:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+.mi[hidden]{display:none}
+.menuhint{margin:4px 0 0;font-size:.78rem;color:var(--muted);text-align:center}
+.board.flashme{animation:glow 1.2s}
+@keyframes glow{0%,60%{border-color:var(--yellow)}}
+@media (prefers-reduced-motion:reduce){.board.flashme{animation:none}}
+.disc.fail{animation:shake .4s}
+@keyframes shake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+@media (prefers-reduced-motion:reduce){.disc.fail{animation:none}.pad{transition:none}}
+</style>
+
+<div class="wrap">
+  <h1>Echo Wheel</h1>
+  <div class="modes" role="radiogroup" aria-label="Game mode" id="modes"></div>
+  <p class="modeinfo" id="modeinfo"></p>
+
+  <div class="stage">
+    <div class="play">
+      <div class="stats">
+        <div class="stat"><b id="score">0</b><span>Score</span></div>
+        <div class="stat"><b id="best">0</b><span>Mode best</span></div>
+      </div>
+      <div class="controls">
+        <button class="ctl primary" id="start">Start</button>
+        <button class="ctl" id="optbtn" aria-haspopup="dialog" aria-controls="menu">Options</button>
+      </div>
+      <div class="disc locked" id="disc" role="group" aria-label="Colour pads">
+        <button class="pad" data-i="0" aria-label="Green pad (key 1)"></button>
+        <button class="pad" data-i="1" aria-label="Red pad (key 2)"></button>
+        <button class="pad" data-i="2" aria-label="Yellow pad (key 3)"></button>
+        <button class="pad" data-i="3" aria-label="Blue pad (key 4)"></button>
+        <div class="hub" aria-live="polite">
+          <div class="round" id="round">--</div>
+          <div class="msg" id="msg">Tap here to start</div>
+          <div class="timer" id="timer" hidden><i id="timerbar"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="board" aria-labelledby="boardtitle">
+      <h2 id="boardtitle">High scores</h2>
+      <p class="boardnote" id="boardnote">Connecting to the shared board…</p>
+      <label class="label" for="boardmode">Mode</label>
+      <select id="boardmode"></select>
+      <form class="entry" id="entry" hidden>
+        <p id="entrytext">New high score!</p>
+        <div class="row">
+          <input id="initials" maxlength="3" autocomplete="off" aria-label="Your initials" placeholder="AAA">
+          <button type="submit">Save</button>
+        </div>
+      </form>
+      <ol id="list"></ol>
+      <p class="empty" id="empty">No scores yet for this mode.</p>
+      <button class="clear" id="clear" type="button">Clear this board</button>
+      <button class="clear" id="clearyes" type="button" hidden>Tap again to confirm</button>
+    </aside>
+  </div>
+
+  <div class="overlay" id="menu" role="dialog" aria-modal="true" aria-labelledby="menutitle" hidden>
+    <div class="panel">
+      <h2 id="menutitle">Options</h2>
+      <p class="menustate" id="menustate">No game in progress.</p>
+      <button class="mi primary" id="m-resume">Resume</button>
+      <button class="mi" id="m-restart">Restart this mode</button>
+      <button class="mi" id="m-modes">Quit to mode select</button>
+      <button class="mi" id="m-scores">View high scores</button>
+      <button class="mi" id="m-sound" aria-pressed="true">Sound: on</button>
+      <p class="menuhint">Press <kbd>Esc</kbd> or <kbd>P</kbd> to open or close.</p>
+    </div>
+  </div>
+
+  <p class="help">Watch the wheel, then repeat the colours. Each round adds one more. Tap the pads or use keys <kbd>1</kbd> to <kbd>4</kbd>. The top 10 for each mode go on the board.</p>
+</div>
+
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const pads=[...document.querySelectorAll('.pad')], disc=$('disc');
+const FREQ=[329.63,261.63,220.00,164.81];
+
+const MODES={
+  classic:{name:'Classic',info:'The standard game. One free replay per round if you slip.',retry:true},
+  strict:{name:'Strict',info:'No second chances. One wrong pad ends the game.',retry:false},
+  turbo:{name:'Turbo',info:'Starts fast and keeps getting faster. One free replay per round.',retry:true,fast:true},
+  reverse:{name:'Reverse',info:'Repeat the sequence backwards, last colour first. One free replay per round.',retry:true,reverse:true},
+  scramble:{name:'Scramble',info:'A brand new sequence every round, one colour longer. One free replay per round.',retry:true,scramble:true},
+  blitz:{name:'Blitz',info:'Strict, plus a shrinking clock for each press. Hesitate and you lose.',retry:false,timed:true},
+};
+let mode='classic',seq=[],target=[],pos=0,accepting=false,soundOn=true,retried=false,ctx=null,token=0,timerId=null,pendingScore=0;
+
+/* storage: shared db board when available, device-only fallback otherwise */
+let boards={},shared=false,db=null,myId=null,canWrite=true,isOwner=false;
+try{boards=JSON.parse(localStorage.getItem('echoBoards')||'{}')||{}}catch(e){boards={}}
+const saveBoards=()=>{if(shared)return;try{localStorage.setItem('echoBoards',JSON.stringify(boards))}catch(e){}};
+const boardOf=m=>(boards[m]||[]);
+const note=t=>{$('boardnote').textContent=t};
+note('Scores saved on this device only.');
+function groupRows(docs){
+  const out={};
+  docs.forEach(d=>{const r=d.data();if(!r||!MODES[r.mode])return;
+    (out[r.mode]=out[r.mode]||[]).push({id:d.id,name:String(r.name||'???').slice(0,3),score:+r.score||0,at:+r.at||0,by:r.by||null});});
+  Object.values(out).forEach(a=>{a.sort((x,y)=>y.score-x.score||x.at-y.at);a.splice(10)});
+  return out;
+}
+(async()=>{
+  if(!window.claude||!claude.use)return;
+  try{
+    const [d,u]=await Promise.all([claude.use('db'),claude.use('user')]);
+    if(!d){note('Sign in to see the shared board. Scores are saved on this device only for now.');return}
+    db=d;
+    if(u){try{myId=await u.id()}catch(e){} try{isOwner=!!(await u.isOwner())}catch(e){} try{const c=await u.can('data.write');if(c===false)canWrite=false}catch(e){}}
+    db.collection('scores').orderBy('score','desc').limit(1000).onSnapshot(snap=>{
+      shared=true;boards=groupRows(snap.docs);
+      note(canWrite?'Shared board: everyone with access to this page sees these scores live.':'Shared board (view only). Ask the owner for Contributor access to post your scores.');
+      renderBoard();updateBest();
+    },()=>{note('The shared board is unavailable right now. Reload to try again.')});
+  }catch(e){}
+})();
+const qualifies=(m,s)=>s>0&&!(shared&&!canWrite)&&(boardOf(m).length<10||s>boardOf(m)[9].score);
+let lastInitials='YOU';try{lastInitials=localStorage.getItem('echoInit')||'YOU'}catch(e){}
+
+/* mode chips + board select */
+const modesEl=$('modes'),sel=$('boardmode');
+Object.entries(MODES).forEach(([k,m])=>{
+  const b=document.createElement('button');b.className='mode';b.type='button';b.setAttribute('role','radio');b.dataset.m=k;b.textContent=m.name;
+  b.addEventListener('click',()=>setMode(k));modesEl.appendChild(b);
+  const o=document.createElement('option');o.value=k;o.textContent=m.name;sel.appendChild(o);
+});
+function setMode(k){
+  if(accepting||token&&playing) return;
+  mode=k;
+  modesEl.querySelectorAll('.mode').forEach(b=>b.setAttribute('aria-checked',b.dataset.m===k));
+  $('modeinfo').textContent=MODES[k].info;
+  sel.value=k;renderBoard();updateBest();
+}
+let playing=false;
+function lockModes(on){modesEl.querySelectorAll('.mode').forEach(b=>b.disabled=on)}
+function updateBest(){const b=boardOf(mode);$('best').textContent=b.length?b[0].score:0}
+
+function renderBoard(highlight){
+  const m=sel.value,list=$('list');list.innerHTML='';
+  const rows=boardOf(m);
+  $('empty').hidden=rows.length>0;$('clear').hidden=!rows.length||(shared&&!isOwner);$('clearyes').hidden=true;
+  if(typeof highlight==='string')highlight=rows.findIndex(r=>r.id===highlight);
+  rows.forEach((r,i)=>{
+    const li=document.createElement('li');if(highlight===i)li.className='new';
+    li.innerHTML=`<span class="rk">${i+1}</span><span class="nm"></span><span class="sc">${r.score}</span><span class="dt">${new Date(r.at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</span>`;
+    const nm=li.querySelector('.nm');nm.textContent=r.name;
+    if(shared&&myId&&r.by===myId){const y=document.createElement('span');y.className='you';y.textContent='YOU';nm.appendChild(y)}
+    list.appendChild(li);
+  });
+}
+let lastSaved=null;
+sel.addEventListener('change',()=>renderBoard());
+$('clear').addEventListener('click',()=>{$('clear').hidden=true;$('clearyes').hidden=false;$('clearyes').focus()});
+$('clearyes').addEventListener('click',async()=>{
+  const m=sel.value;
+  if(shared&&db){
+    $('clearyes').hidden=true;
+    try{const snap=await db.collection('scores').where('mode','==',m).limit(1000).get();
+      for(const d of snap.docs){await db.collection('scores').doc(d.id).delete()}}
+    catch(e){note('Could not clear the board. Reload and try again.')}
+    return;
+  }
+  boards[m]=[];saveBoards();renderBoard();updateBest();
+});
+
+$('entry').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const name=($('initials').value.trim()||'???').toUpperCase().replace(/[^A-Z0-9?]/g,'').slice(0,3)||'???';
+  lastInitials=name;try{localStorage.setItem('echoInit',name)}catch(e){}
+  const entry={name,score:pendingScore,at:Date.now(),mode};
+  $('entry').hidden=true;sel.value=mode;
+  if(shared&&db){
+    try{const ref=db.collection('scores').doc();if(myId)entry.by=myId;lastSaved=ref.id;await ref.set(entry);renderBoard(ref.id)}
+    catch(err){canWrite=false;note('Your score could not be posted: this page is view only for you. Ask the owner for Contributor access.')}
+    return;
+  }
+  const b=boardOf(mode).slice();b.push(entry);b.sort((a,c)=>c.score-a.score||a.at-c.at);boards[mode]=b.slice(0,10);saveBoards();
+  renderBoard(boards[mode].indexOf(entry));updateBest();
+});
+
+/* audio */
+function audio(){if(!ctx){try{ctx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(ctx&&ctx.state==='suspended')ctx.resume()}
+function tone(f,ms,type='triangle'){
+  if(!soundOn||!ctx)return;
+  const o=ctx.createOscillator(),g=ctx.createGain(),t=ctx.currentTime;
+  o.type=type;o.frequency.value=f;o.connect(g);g.connect(ctx.destination);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.3,t+.015);g.gain.setValueAtTime(.3,t+Math.max(.03,ms/1000-.04));g.gain.linearRampToValueAtTime(0,t+ms/1000);
+  o.start(t);o.stop(t+ms/1000+.02);
+}
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+async function flash(i,ms){pads[i].classList.add('lit');tone(FREQ[i],ms);await wait(ms);pads[i].classList.remove('lit')}
+function speed(){const n=seq.length+(MODES[mode].fast?8:0);return n<5?520:n<9?420:n<13?330:n<17?260:210}
+
+/* press timer for Blitz */
+function stopTimer(){clearTimeout(timerId);$('timer').hidden=true}
+function startTimer(){
+  if(!MODES[mode].timed)return;
+  stopTimer();const ms=Math.max(900,2600-seq.length*120);
+  const bar=$('timerbar');$('timer').hidden=false;
+  bar.style.transition='none';bar.style.transform='scaleX(1)';void bar.offsetWidth;
+  bar.style.transition=`transform ${ms}ms linear`;bar.style.transform='scaleX(0)';
+  timerId=setTimeout(()=>{if(accepting)fail('Too slow!')},ms);
+}
+
+async function playback(){
+  const my=++token;accepting=false;disc.classList.add('locked');stopTimer();
+  $('msg').textContent=MODES[mode].reverse?'Watch, then reverse it':'Watch';
+  await wait(600);
+  for(const i of seq){if(my!==token)return;await flash(i,speed());await wait(speed()*.35)}
+  if(my!==token)return;
+  target=MODES[mode].reverse?[...seq].reverse():seq;
+  pos=0;accepting=true;disc.classList.remove('locked');$('msg').textContent='Your turn';startTimer();
+}
+function nextRound(){
+  const len=seq.length+1;
+  if(MODES[mode].scramble)seq=Array.from({length:len},()=>Math.floor(Math.random()*4));
+  else seq.push(Math.floor(Math.random()*4));
+  retried=false;$('round').textContent=seq.length;playback();
+}
+function start(){
+  audio();token++;stopTimer();seq=[];playing=true;lockModes(true);$('entry').hidden=true;
+  $('score').textContent=0;$('start').textContent='Restart';nextRound();
+}
+function gameOver(text){
+  playing=false;lockModes(false);
+  const score=seq.length-1;
+  $('round').textContent='✕';$('msg').textContent=text||`Game over: ${score} round${score===1?'':'s'}`;
+  $('start').textContent='Play again';
+  if(qualifies(mode,score)){
+    pendingScore=score;sel.value=mode;renderBoard();
+    $('entrytext').textContent=`${score} in ${MODES[mode].name}. Add your initials:`;
+    $('initials').value=lastInitials;$('entry').hidden=false;$('initials').focus();$('initials').select();
+  }
+}
+async function fail(reason){
+  accepting=false;stopTimer();disc.classList.add('locked','fail');tone(98,500,'sawtooth');
+  setTimeout(()=>disc.classList.remove('fail'),420);
+  if(MODES[mode].retry&&!retried){retried=true;$('msg').textContent='Oops, watch again';const my=token;await wait(700);if(my!==token)return;playback();return}
+  gameOver(reason?`${reason} ${seq.length-1} rounds`:null);
+}
+async function press(i){
+  if(!accepting)return;
+  audio();
+  if(target[pos]!==i){fail();return}
+  flash(i,200);pos++;
+  if(pos===target.length){
+    accepting=false;stopTimer();disc.classList.add('locked');
+    $('score').textContent=seq.length;
+    const best=boardOf(mode).length?boardOf(mode)[0].score:0;
+    if(seq.length>best)$('best').textContent=seq.length;
+    $('msg').textContent='Nice!';const my=token;await wait(700);if(my!==token)return;nextRound();
+  }else startTimer();
+}
+pads.forEach(p=>p.addEventListener('pointerdown',e=>{e.preventDefault();press(+p.dataset.i)}));
+pads.forEach(p=>p.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();press(+p.dataset.i)}}));
+document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;const k='1234'.indexOf(e.key);if(k>=0)press(k)});
+$('start').addEventListener('click',start);
+const hub=document.querySelector('.hub');
+function syncHub(){const idle=!playing;hub.classList.toggle('idle',idle);if(idle){hub.setAttribute('role','button');hub.tabIndex=0;hub.setAttribute('aria-label','Start game')}else{hub.removeAttribute('role');hub.removeAttribute('tabindex');hub.removeAttribute('aria-label')}}
+hub.addEventListener('click',()=>{if(!playing)start()});
+hub.addEventListener('keydown',e=>{if(!playing&&(e.key==='Enter'||e.key===' ')){e.preventDefault();start()}});
+new MutationObserver(syncHub).observe($('start'),{childList:true,subtree:true,characterData:true});
+setInterval(syncHub,400);syncHub();
+/* options menu: pause, restart, quit, scores, sound */
+const menu=$('menu');let paused=false,lastFocus=null;
+function openMenu(){
+  if(!menu.hidden)return;
+  lastFocus=document.activeElement;
+  if(playing){paused=true;token++;accepting=false;stopTimer();disc.classList.add('locked');pads.forEach(p=>p.classList.remove('lit'));
+    $('msg').textContent='Paused';$('menustate').textContent=`Paused: ${MODES[mode].name}, round ${seq.length}`;}
+  else $('menustate').textContent='No game in progress.';
+  $('m-resume').hidden=!playing;$('m-restart').hidden=!playing;$('m-modes').textContent=playing?'Quit to mode select':'Choose a mode';
+  menu.hidden=false;(playing?$('m-resume'):$('m-modes')).focus();
+}
+function closeMenu(resume=true){
+  if(menu.hidden)return;
+  menu.hidden=true;
+  if(paused&&resume){paused=false;$('msg').textContent='Replaying sequence';playback();}
+  if(lastFocus&&lastFocus.focus)lastFocus.focus();
+}
+function quit(){
+  token++;stopTimer();paused=false;playing=false;accepting=false;seq=[];lockModes(false);
+  disc.classList.add('locked');$('round').textContent='--';$('msg').textContent='Tap here to start';
+  $('score').textContent=0;$('start').textContent='Start';
+}
+$('optbtn').addEventListener('click',openMenu);
+$('m-resume').addEventListener('click',()=>closeMenu(true));
+$('m-restart').addEventListener('click',()=>{paused=false;closeMenu(false);start()});
+$('m-modes').addEventListener('click',()=>{quit();closeMenu(false);window.scrollTo({top:0,behavior:'smooth'});const c=modesEl.querySelector('[aria-checked="true"]');c&&c.focus()});
+$('m-scores').addEventListener('click',()=>{quit();closeMenu(false);sel.value=mode;renderBoard();const b=document.querySelector('.board');
+  b.scrollIntoView({behavior:'smooth',block:'start'});b.classList.remove('flashme');void b.offsetWidth;b.classList.add('flashme');sel.focus()});
+$('m-sound').addEventListener('click',e=>{soundOn=!soundOn;e.currentTarget.setAttribute('aria-pressed',soundOn);e.currentTarget.textContent=soundOn?'Sound: on':'Sound: off'});
+menu.addEventListener('click',e=>{if(e.target===menu)closeMenu(true)});
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT')return;
+  if(e.key==='Escape'||e.key==='p'||e.key==='P'){e.preventDefault();menu.hidden?openMenu():closeMenu(true)}
+});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&playing&&menu.hidden)openMenu()});
+
+setMode('classic');
+})();
+</script>
+
+<script>if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));</script>
+</body></html>
