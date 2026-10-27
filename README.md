@@ -63,7 +63,12 @@ A fantasy Top Trumps game that 2 to 6 players play on their own phones. It lives
 
 - One player taps **Host a game** and gets a 4-letter code. The other players open the same page, tap **Join a game** and type the code. The host's phone runs the game, so the host needs to keep the page open.
 - You can add computer players to make up the numbers, or tap **Practise against the computer** to play alone.
-- 40 cards: 16 Common, 12 Rare, 8 Epic and 4 Legendary. Each card has six stats: Strength, Magic, Intelligence, Wit, Courage and Fear Factor. 28 cards have special powers, such as stealing cards, halving an opponent's number or making the lowest number win.
+- 57 cards: 22 Common, 17 Rare, 11 Epic, 6 Legendary and 1 secret Mythic (Aurelion, which turns up in about 1 game in 3). Each card has six stats: Strength, Magic, Intelligence, Wit, Courage and Fear Factor. 37 cards have special powers, such as stealing cards, halving an opponent's number, making the lowest number win, switching the stat, passing everyone's card along, or a Dragon Egg that grows and hatches.
+- The deck is balanced by simulation: on average Commons win about 15% of battles, Rares 27%, Epics 39%, Legendaries 50% and the Mythic 70%.
+- **Hero cards:** each player can design their own card (creature, home and 280 stat points, no power). If the host switches Hero cards on, they join the deck.
+- **Packs:** every game starts with each player opening their pack.
+- **Album:** cards from your packs and the battles you win are collected in **Cards & album**.
+- **Card style:** Classic, Halloween or Christmas. It defaults to Halloween in October and Christmas in December.
 - Game length: Quick (15 rounds), Standard (30 rounds) or Epic Quest (play until one player owns every card).
 - Phones connect directly to each other using PeerJS's free connection service, so nobody needs an account. It works best when everyone is on the same Wi-Fi.
 

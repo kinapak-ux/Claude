@@ -123,6 +123,51 @@ select.txt{width:100%;font:inherit;font-size:16px;font-weight:700;padding:12px;b
 .card.r-rare::after,.card.r-epic::after,.card.r-legendary::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.38) 47%,rgba(255,255,255,.05) 53%,transparent 62%);background-size:300% 100%;animation:shine 5s ease-in-out infinite;mix-blend-mode:overlay}
 .card.r-legendary::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;opacity:.28;background:linear-gradient(125deg,#ff4d4d,#ffd24d,#4dff88,#4dd2ff,#9b4dff,#ff4dd2,#ff4d4d);background-size:400% 400%;mix-blend-mode:color-dodge;animation:goldflow 8s linear infinite}
 @keyframes shine{0%{background-position:150% 0}60%,100%{background-position:-60% 0}}
+.card.r-mythic,.tile.r-mythic{--frame:linear-gradient(120deg,#ff4d4d,#ffb84d,#fff04d,#4dff88,#4dd2ff,#9b4dff,#ff4dd2,#ff4d4d);animation:goldflow 4s linear infinite;background-size:400% 400%}
+.card.r-mythic{box-shadow:0 2.5cqw 7cqw rgba(0,0,0,.65),0 0 12cqw rgba(255,138,226,.6)}
+.card.r-mythic::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.5) 47%,transparent 64%);background-size:300% 100%;animation:shine 3s ease-in-out infinite;mix-blend-mode:overlay}
+.card.r-mythic::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;opacity:.35;background:conic-gradient(from 0deg,#ff4d4d,#ffd24d,#4dff88,#4dd2ff,#9b4dff,#ff4dd2,#ff4d4d);mix-blend-mode:color-dodge;animation:spin 6s linear infinite}
+@keyframes spin{to{filter:hue-rotate(360deg)}}
+.card.r-hero,.tile.r-hero{--frame:linear-gradient(145deg,#0f8a5f,#8dffd0 28%,#0b6b4a 55%,#4dffb0 80%,#0f8a5f)}
+.c-season{position:absolute;left:4%;bottom:5%;font-size:10cqw;line-height:1;filter:drop-shadow(0 0 2cqw rgba(0,0,0,.7))}
+.c-grow{position:absolute;right:3%;top:5%;font-family:Cinzel,serif;font-weight:800;font-size:3.2cqw;padding:.8cqw 2.2cqw;border-radius:99px;background:rgba(255,140,40,.85);color:#2a1000}
+.c-art.mys{display:grid;place-items:center;background:radial-gradient(circle,#4a1d6b,#12061f 70%)}
+.c-art.mys span{font-family:'Cinzel Decorative',serif;font-size:34cqw;color:#ffb3ef;text-shadow:0 0 6cqw #ff4dd2;animation:pulse 1.6s infinite}
+
+/* ---------- Pack opening ---------- */
+.pack{display:grid;place-items:center;align-content:center;gap:10px;position:relative;overflow:hidden;width:min(64vw,240px);aspect-ratio:5/7;margin:10px auto 0;border:0;border-radius:20px;cursor:pointer;color:#fff;
+  background:linear-gradient(135deg,#5b2fd6,#c04dff 30%,#ff6ad5 50%,#7a3cff 70%,#3a1a96);background-size:300% 300%;animation:goldflow 5s linear infinite,wiggle 2.4s ease-in-out infinite;box-shadow:0 0 0 4px #ffcc4d,0 18px 50px rgba(160,80,255,.55)}
+body[data-theme=halloween] .pack{background:linear-gradient(135deg,#ff7a00,#4a1260 40%,#ffb347 60%,#2a0a33);background-size:300% 300%}
+body[data-theme=christmas] .pack{background:linear-gradient(135deg,#c41e3a,#0f7a3c 40%,#e8f6ff 52%,#c41e3a 64%,#0f5a2e);background-size:300% 300%}
+.pk-logo{font-family:'Cinzel Decorative',serif;font-weight:900;font-size:clamp(28px,9vw,38px);line-height:1;text-align:center;text-shadow:0 3px 0 #2a0a55,0 0 18px rgba(255,220,120,.8)}
+.pk-sub{font-family:Cinzel,serif;font-weight:800;letter-spacing:2px;font-size:13px;text-transform:uppercase;background:rgba(0,0,0,.35);padding:4px 12px;border-radius:99px}
+.pk-count{font-weight:900;font-size:14px;opacity:.9}
+.pk-shine{position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.55) 48%,transparent 60%);background-size:300% 100%;animation:shine 2.6s ease-in-out infinite}
+@keyframes wiggle{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg) scale(1.02)}}
+.pack.burst{animation:burst .45s ease-in forwards}
+@keyframes burst{to{transform:scale(1.5) rotate(8deg);opacity:0;filter:brightness(3)}}
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding-bottom:6px}
+.pgrid .t-name{padding-bottom:2.4cqw}
+.pk-in{animation:dealin .5s ease-out both}
+@keyframes dealin{from{transform:translateY(-40px) rotate(-12deg) scale(.6);opacity:0}}
+.packbar{position:sticky;bottom:0;z-index:5;margin:10px -16px 0;padding:14px 16px calc(6px + env(safe-area-inset-bottom));background:linear-gradient(rgba(13,7,24,0),#0d0718 26%)}
+
+/* ---------- Album, hero designer, seasons ---------- */
+.albumbar{display:grid;gap:8px;margin-bottom:10px;font-size:14px}
+.abar{height:10px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}
+.abar i{display:block;height:100%;background:linear-gradient(90deg,#39d98a,#ffcc4d)}
+.gcell{position:relative}
+.gcell:not(.got){filter:grayscale(.85) brightness(.6)}
+.gcell.got::after{content:"✅";position:absolute;right:-4px;top:-6px;font-size:20px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.6))}
+.btn.hero{background:linear-gradient(180deg,#2ee6a0,#0f8a5f);box-shadow:0 4px 0 #075a3d,0 8px 22px rgba(40,220,160,.3)}
+.hero-prev{max-width:260px}
+.hero-pts{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;font-size:15px}
+.hero-st{display:grid;grid-template-columns:132px 1fr 34px;align-items:center;gap:8px;margin:6px 0;font-weight:800;font-size:14px}
+.hero-st input{width:100%;accent-color:#ffcc4d}
+.hero-st b{text-align:right;font-family:Cinzel,serif}
+.topsy.swap{background:linear-gradient(90deg,#ffb347,#ff5c7a)}
+body[data-theme=halloween]{background:radial-gradient(ellipse at 50% -10%,#7a3200 0%,#2e0f33 45%,#12060f 75%) fixed;background-color:#12060f}
+body[data-theme=christmas]{background:radial-gradient(ellipse at 50% -10%,#0f5a3c 0%,#0e2340 45%,#070d1a 75%) fixed;background-color:#070d1a}
 
 /* ---------- Scene fx ---------- */
 .fx{transform-box:fill-box;animation-iteration-count:infinite;animation-timing-function:linear}
@@ -225,7 +270,7 @@ select.txt{width:100%;font:inherit;font-size:16px;font-weight:700;padding:12px;b
 @keyframes pop{from{transform:scale(.6) rotate(-6deg);opacity:0}}
 #modal .close{margin-top:12px;text-align:center;color:var(--mut);font-weight:800}
 .mbox{width:min(92vw,400px)}
-#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:60;background:#2a1a48;border:1px solid var(--acc);padding:12px 18px;border-radius:14px;font-weight:800;box-shadow:0 10px 30px rgba(0,0,0,.5);display:none;max-width:90vw;text-align:center}
+#toast{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top));transform:translateX(-50%);z-index:60;pointer-events:none;background:#2a1a48;border:1px solid var(--acc);padding:12px 18px;border-radius:14px;font-weight:800;box-shadow:0 10px 30px rgba(0,0,0,.5);display:none;max-width:90vw;text-align:center}
 #toast.on{display:block;animation:pop .25s}
 .rules h3{margin:16px 0 6px;color:#ffe08a;font-size:17px}
 .rules p,.rules li{line-height:1.5;font-size:15px}
@@ -271,9 +316,12 @@ const RAR = {
   rare:      {n:'Rare',      c:'#62b8ff', gem:'◆'},
   epic:      {n:'Epic',      c:'#c98bff', gem:'✦'},
   legendary: {n:'Legendary', c:'#ffcc4d', gem:'★'},
+  mythic:    {n:'Mythic',    c:'#ff8ae2', gem:'✺'},
+  hero:      {n:'Hero',      c:'#5cffb0', gem:'♦'},
 };
+const RANK = {common: 0, rare: 1, epic: 2, legendary: 3, mythic: 4, hero: 1.5};
 
-const PICON = {boost:'💥', allboost:'🌈', curse:'☠️', shatter:'🪨', reverse:'🔄', silence:'🔇', shapeshift:'🌀', pack:'🐾', lucky:'🍀', phoenix:'🕊️', steal:'🖐️'};
+const PICON = {boost:'💥', allboost:'🌈', curse:'☠️', shatter:'🪨', reverse:'🔄', silence:'🔇', shapeshift:'🌀', pack:'🐾', lucky:'🍀', phoenix:'🕊️', steal:'🖐️', reflect:'🪞', egg:'🥚', decree:'👑', wild:'🎲', plunder:'🏴‍☠️', storm:'🌪️', twin:'💞', eternal:'♾️'};
 function powerText(p) {
   switch (p.type) {
     case 'boost':      return `+${p.amt} when ${p.stats.map(SN).join(' or ')} is picked.`;
@@ -287,6 +335,14 @@ function powerText(p) {
     case 'lucky':      return `Wins any tie.`;
     case 'phoenix':    return `If it doesn't win, it flies back to your deck.`;
     case 'steal':      return `If it wins, it also steals a card from the player with the most cards.`;
+    case 'reflect':    return `Copies the strongest enemy card's number before any powers, and wins ties.`;
+    case 'egg':        return `If it doesn't win, it flies home and every stat grows by ${p.amt}. Keep it safe and it hatches!`;
+    case 'decree':     return `When played, the round switches to this card's best stat, whatever was picked.`;
+    case 'wild':       return `When the cards flip, the picked stat changes to a random one.`;
+    case 'plunder':    return `Even if it loses, it grabs every card in the pot.`;
+    case 'storm':      return `Before the flip, everyone's card passes one seat along.`;
+    case 'twin':       return `+${p.amt} if ${(CARD[p.partner] || {}).name || 'its twin'} is anywhere in your deck.`;
+    case 'eternal':    return `+${p.amt} to whichever stat is picked, and if it doesn't win it flies back to your deck.`;
   }
 }
 
@@ -299,52 +355,104 @@ const pw = (type, name, extra) => Object.assign({type, name}, extra || {});
 
 const CARDS = [
   // ---------- LEGENDARY ----------
-  mk('ignarax','Ignarax the Ember King','🐉','👑','volcano','#ff6a00','legendary',[96,74,62,35,82,95], pw('curse','Inferno Breath',{amt:15}), 'When he roars, mountains melt and the sky turns orange.', 'hue-rotate(-105deg) saturate(1.8)'),
+  mk('ignarax','Ignarax the Ember King','🐉','👑','volcano','#ff6a00','legendary',[90,68,56,29,76,89], pw('curse','Inferno Breath',{amt:15}), 'When he roars, mountains melt and the sky turns orange.', 'hue-rotate(-105deg) saturate(1.8)'),
   mk('seraphine','Seraphine, Queen of Starlight','🧚','🌟','cosmos','#c9a6ff','legendary',[28,99,90,84,72,22], pw('phoenix','Reborn in Starlight'), 'She was born from the first star ever to shine.'),
-  mk('kraken','The Kraken of the Abyss','🐙','🌊','ocean','#00e5ff','legendary',[95,52,40,28,84,98], pw('steal','Tentacle Grab'), 'Sailors whisper its name, then row very, very fast.', 'hue-rotate(250deg) saturate(1.4)'),
+  mk('kraken','The Kraken of the Abyss','🐙','🌊','ocean','#00e5ff','legendary',[99,62,50,38,94,99], pw('steal','Tentacle Grab'), 'Sailors whisper its name, then row very, very fast.', 'hue-rotate(250deg) saturate(1.4)'),
   mk('mordrake','Mordrake the Shadow Lich','💀','⚰️','graveyard','#7dff9b','legendary',[42,97,88,60,58,96], pw('shatter','Soul Drain'), 'He has been plotting for a thousand years. He is very patient.', 'sepia(1) hue-rotate(70deg) saturate(3) brightness(1.1)'),
   // ---------- EPIC ----------
   mk('oberon','Oberon the Storm Archmage','🧙','⚡','storm','#7fb8ff','epic',[28,90,92,72,55,50], pw('silence','Spellbreaker'), 'He once sneezed and accidentally invented thunder.'),
-  mk('frostfang','Frostfang, Alpha of the North','🐺','❄️','ice','#9be7ff','epic',[82,35,50,58,86,80], pw('pack','Call of the Pack',{}), 'Where one howl is heard, a hundred answer.', 'sepia(.6) hue-rotate(170deg) saturate(2.4) brightness(1.15)'),
+  mk('frostfang','Frostfang, Alpha of the North','🐺','❄️','ice','#9be7ff','epic',[69,22,37,45,73,67], pw('pack','Call of the Pack',{}), 'Where one howl is heard, a hundred answer.', 'sepia(.6) hue-rotate(170deg) saturate(2.4) brightness(1.15)'),
   mk('vesper','Count Vesper','🧛','🦇','castle','#ff3b6b','epic',[52,66,70,80,42,86], pw('curse','Life Drain',{amt:10}), 'Never invite him in. Never, ever lend him your scarf.'),
   mk('puckle','Puckle the Trickster','🧝','🃏','meadow','#ffd166','epic',[38,46,58,94,40,34], pw('reverse','Topsy-Turvy'), 'He swapped the king’s crown for a pie. Nobody noticed for a week.'),
   mk('aquilon','Aquilon the Sky Griffin','🦅','🦁','storm','#ffd27f','epic',[80,40,58,55,92,68], pw('boost','Thunder Dive',{stats:['str','cou'],amt:15}), 'Half eagle, half lion, completely fearless.'),
-  mk('zephyra','Zephyra, Djinn of the Lamp','🧞','🪔','desert','#ffb347','epic',[55,86,64,76,40,52], pw('shapeshift','Wish Granted'), 'Three wishes? Read the small print first.'),
+  mk('zephyra','Zephyra, Djinn of the Lamp','🧞','🪔','desert','#ffb347','epic',[58,89,67,79,43,55], pw('shapeshift','Wish Granted'), 'Three wishes? Read the small print first.'),
   mk('bonecrusher','Bonecrusher the Mountain Troll','🧌','🪨','cavern','#b0c4de','epic',[98,12,10,18,84,90], pw('lucky','Thick Skull'), 'Can lift a castle. Cannot spell “castle”.'),
-  mk('arachne','Arachne the Spider Queen','🕷️','🕸️','forest','#b46bff','epic',[50,64,72,58,44,96], pw('steal','Web Snare'), 'Her webs can catch a dragon. Or your lunch.'),
+  mk('arachne','Arachne the Spider Queen','🕷️','🕸️','forest','#b46bff','epic',[66,80,88,74,60,99], pw('steal','Web Snare'), 'Her webs can catch a dragon. Or your lunch.'),
   // ---------- RARE ----------
   mk('glimmerhorn','Glimmerhorn the Unicorn','🦄','🌈','meadow','#ff9ee8','rare',[52,86,62,48,72,18], pw('allboost','Rainbow Blessing',{amt:8}), 'One touch of her horn and flowers bloom in winter.'),
   mk('coralia','Captain Coralia','🧜','🔱','ocean','#4dd8ff','rare',[55,60,60,70,70,32], pw('boost','Siren Song',{stats:['wit','mag'],amt:15}), 'Captain of the Coral Guard and champion of the tides.'),
   mk('hollowhaunt','Hollowhaunt the Phantom','👻','🕯️','castle','#d6f0ff','rare',[4,76,58,80,38,90], pw('phoenix','Ghostly Return'), 'You can’t beat what was never really there.'),
-  mk('sythra','Sythra the Gorgon','🐍','👁️','cavern','#7dff6b','rare',[40,66,58,54,48,90], pw('shatter','Stone Stare'), 'Don’t look. Seriously. DON’T LOOK.'),
-  mk('thornback','Thornback the Ancient Treant','🌳','🍃','forest','#a6ff7a','rare',[86,52,66,24,78,46], pw('lucky','Deep Roots'), 'Older than the hills, and twice as stubborn.'),
+  mk('sythra','Sythra the Gorgon','🐍','👁️','cavern','#7dff6b','rare',[28,54,46,42,36,78], pw('shatter','Stone Stare'), 'Don’t look. Seriously. DON’T LOOK.'),
+  mk('thornback','Thornback the Ancient Treant','🌳','🍃','forest','#a6ff7a','rare',[92,58,72,30,84,52], pw('lucky','Deep Roots'), 'Older than the hills, and twice as stubborn.'),
   mk('flicker','Flicker the Fire Sprite','🔥','✨','volcano','#ffcf3f','rare',[24,78,44,84,60,52], pw('boost','Wildfire',{stats:['mag'],amt:20}), 'Small, fast, and extremely bad at hide-and-seek.'),
-  mk('owlbert','Professor Owlbert','🦉','📜','forest','#ffe28a','rare',[18,66,97,86,40,22], pw('boost','Ancient Wisdom',{stats:['int','wit'],amt:12}), 'Has read every book in the world. Twice.'),
-  mk('lyra','Lyra the Storm Archer','🧝‍♀️','🏹','storm','#a0e9ff','rare',[50,54,64,70,78,36], pw('boost','Eye of the Storm',{stats:['cou'],amt:15}), 'Her arrows ride the lightning and never miss.'),
-  mk('cinderclaw','Cinderclaw the Salamander','🦎','🔥','volcano','#ff7b00','rare',[66,58,38,52,70,74], pw('curse','Scorching Heat',{amt:8}), 'Bathes in lava. Thinks hot baths are cold.', 'hue-rotate(-95deg) saturate(2.2)'),
-  mk('grizelda','Grizelda the Bog Witch','🧙‍♀️','🧪','swamp','#9dff5c','rare',[22,88,82,72,36,78], pw('reverse','Upside-Down Hex'), 'Her soup is 90% frogspawn and 10% mischief.'),
-  mk('ironhide','Ironhide the Golem','🗿','⚙️','cavern','#ffb070','rare',[94,24,18,8,99,66], pw('silence','Iron Will'), 'Built to guard the Deep Gate. Has not blinked in 400 years.'),
-  mk('kiyo','Kiyo the Nine-Tailed Fox','🦊','🏮','cosmos','#ff9a3c','rare',[30,74,72,86,48,38], pw('pack','Nine Tails',{}), 'Each of her tails holds a different secret.'),
+  mk('owlbert','Professor Owlbert','🦉','📜','forest','#ffe28a','rare',[4,52,83,72,26,8], pw('boost','Ancient Wisdom',{stats:['int','wit'],amt:12}), 'Has read every book in the world. Twice.'),
+  mk('lyra','Lyra the Storm Archer','🧝‍♀️','🏹','storm','#a0e9ff','rare',[53,57,67,73,81,39], pw('boost','Eye of the Storm',{stats:['cou'],amt:15}), 'Her arrows ride the lightning and never miss.'),
+  mk('cinderclaw','Cinderclaw the Salamander','🦎','🔥','volcano','#ff7b00','rare',[74,66,46,60,78,82], pw('curse','Scorching Heat',{amt:8}), 'Bathes in lava. Thinks hot baths are cold.', 'hue-rotate(-95deg) saturate(2.2)'),
+  mk('grizelda','Grizelda the Bog Witch','🧙‍♀️','🧪','swamp','#9dff5c','rare',[46,80,74,66,52,70], pw('reverse','Upside-Down Hex'), 'Her soup is 90% frogspawn and 10% mischief.'),
+  mk('ironhide','Ironhide the Golem','🗿','⚙️','cavern','#ffb070','rare',[86,16,10,3,91,58], pw('silence','Iron Will'), 'Built to guard the Deep Gate. Has not blinked in 400 years.'),
+  mk('kiyo','Kiyo the Nine-Tailed Fox','🦊','🏮','cosmos','#ff9a3c','rare',[15,59,57,71,33,23], pw('pack','Nine Tails',{}), 'Each of her tails holds a different secret.'),
   // ---------- COMMON ----------
   mk('snatch','Snatch the Goblin Thief','👺','🗡️','swamp','#ff8a5c','common',[34,18,40,72,28,46], pw('steal','Sticky Fingers'), 'Whatever you’re holding, he’s already got it.'),
-  mk('bertha','Big Bertha the Bog Toad','🐸','💧','swamp','#9dff5c','common',[44,32,22,36,48,38], null, 'Her croak can be heard three valleys away.'),
-  mk('pip','Sir Pip the Brave Squire','🤺','🛡️','meadow','#ffd166','common',[46,8,44,56,93,14], null, 'Small sword. Enormous heart.'),
-  mk('shriek','The Shriek Swarm','🦇','🌙','castle','#c08bff','common',[26,30,22,48,52,76], null, 'A thousand wings, a thousand squeaks, zero manners.'),
+  mk('bertha','Big Bertha the Bog Toad','🐸','💧','swamp','#9dff5c','common',[79,67,57,71,83,73], null, 'Her croak can be heard three valleys away.'),
+  mk('pip','Sir Pip the Brave Squire','🤺','🛡️','meadow','#ffd166','common',[43,5,41,53,90,11], null, 'Small sword. Enormous heart.'),
+  mk('shriek','The Shriek Swarm','🦇','🌙','castle','#c08bff','common',[38,42,34,60,64,88], null, 'A thousand wings, a thousand squeaks, zero manners.'),
   mk('gus','Groaning Gus the Zombie','🧟','🦴','graveyard','#7dff9b','common',[62,4,3,10,72,80], pw('phoenix','Won’t Stay Down'), 'Brains? No thanks, he’s vegetarian now.'),
-  mk('rattlebones','Rattlebones the Skeleton','☠️','🦴','graveyard','#e0e8ff','common',[44,24,16,34,62,70], null, 'Plays his own ribs like a xylophone.'),
-  mk('snapjaw','Snapjaw the Swamp Croc','🐊','💧','swamp','#b6ff7a','common',[82,6,18,24,58,76], null, 'Smiles a lot. That is not a good sign.'),
-  mk('grumbold','Grumbold the Frost Yeti','🦍','❄️','ice','#cfefff','common',[84,16,26,26,64,70], null, 'Hates summer, loves snowball fights.', 'grayscale(1) brightness(1.9) sepia(.25) hue-rotate(170deg)'),
+  mk('rattlebones','Rattlebones the Skeleton','☠️','🦴','graveyard','#e0e8ff','common',[62,42,34,52,80,88], null, 'Plays his own ribs like a xylophone.'),
+  mk('snapjaw','Snapjaw the Swamp Croc','🐊','💧','swamp','#b6ff7a','common',[88,12,24,30,64,82], null, 'Smiles a lot. That is not a good sign.'),
+  mk('grumbold','Grumbold the Frost Yeti','🦍','❄️','ice','#cfefff','common',[88,20,30,30,68,74], null, 'Hates summer, loves snowball fights.', 'grayscale(1) brightness(1.9) sepia(.25) hue-rotate(170deg)'),
   mk('morel','Morel the Mushroom Sprite','🍄','✨','forest','#ff7ac8','common',[10,58,36,62,30,18], pw('curse','Sneezy Spores',{amt:6}), 'Achoo! Everyone nearby is now slightly purple.'),
-  mk('nessa','Nessa the Loch Serpent','🦕','🌊','ocean','#66ffd9','common',[82,24,30,20,58,74], null, 'Shy. Very large. Mostly just wants to be left alone.', 'hue-rotate(40deg) saturate(1.3)'),
-  mk('cloudmane','Cloudmane the Pegasus','🐎','☁️','storm','#e8f4ff','common',[62,48,44,40,70,20], null, 'Gallops on clouds and lands without a sound.', 'grayscale(1) brightness(1.75)'),
-  mk('sandsting','Sandsting the Giant Scorpion','🦂','🌵','desert','#ffb347','common',[56,14,14,28,56,82], null, 'Hides under the dunes, waiting for the clumsy.'),
-  mk('midnight','Midnight the Witch’s Cat','🐈‍⬛','🌙','castle','#b46bff','common',[12,54,66,90,36,32], pw('lucky','Nine Lives'), 'Knows every spell, but only does them for treats.'),
+  mk('nessa','Nessa the Loch Serpent','🦕','🌊','ocean','#66ffd9','common',[89,31,37,27,65,81], null, 'Shy. Very large. Mostly just wants to be left alone.', 'hue-rotate(40deg) saturate(1.3)'),
+  mk('cloudmane','Cloudmane the Pegasus','🐎','☁️','storm','#e8f4ff','common',[79,65,61,57,87,37], null, 'Gallops on clouds and lands without a sound.', 'grayscale(1) brightness(1.75)'),
+  mk('sandsting','Sandsting the Giant Scorpion','🦂','🌵','desert','#ffb347','common',[61,19,19,33,61,87], null, 'Hides under the dunes, waiting for the clumsy.'),
+  mk('midnight','Midnight the Witch’s Cat','🐈‍⬛','🌙','castle','#b46bff','common',[3,41,53,77,23,19], pw('lucky','Nine Lives'), 'Knows every spell, but only does them for treats.'),
   mk('gorgle','Gorgle the Cave Ogre','👹','🍖','cavern','#ff6b6b','common',[88,8,10,14,64,80], null, 'Eats three dinners. Then a fourth, just in case.'),
-  mk('silverstag','The Silver Stag','🦌','🌿','forest','#e0f0ff','common',[54,58,50,38,70,16], null, 'Seen only by moonlight, and only by the kind.', 'grayscale(.7) brightness(1.5)'),
-  mk('razorfin','Razorfin the Sea Raider','🦈','⚓','ocean','#4dd8ff','common',[78,10,24,30,66,84], null, 'Smells treasure from ten miles away.'),
+  mk('silverstag','The Silver Stag','🦌','🌿','forest','#e0f0ff','common',[66,70,62,50,82,28], null, 'Seen only by moonlight, and only by the kind.', 'grayscale(.7) brightness(1.5)'),
+  mk('razorfin','Razorfin the Sea Raider','🦈','⚓','ocean','#4dd8ff','common',[82,14,28,34,70,88], null, 'Smells treasure from ten miles away.'),
+  // ---------- second wave ----------
+  mk('king','King Oberwald the Bold','🤴','👑','castle','#ffd700','legendary',[68,36,62,56,93,52], pw('decree','Royal Decree'), 'When the King speaks, even dragons sit down.'),
+  mk('thrumm','Storm Giant Thrumm','🧌','⚡','storm','#9fc8ff','legendary',[99,80,56,50,94,99], pw('storm','Shuffle Storm'), 'Each footstep is a thunderclap. Each sneeze, a hurricane.', 'hue-rotate(175deg) saturate(1.3) brightness(1.1)'),
+  mk('mirrorblade','Mirrorblade Knight','🥷','🪞','castle','#bfe9ff','epic',[6,1,11,9,13,3], pw('reflect','Reflect'), 'Strike at her and you only fight yourself.'),
+  mk('saltbeard','Captain Saltbeard','🧔','🏴‍☠️','ocean','#ffcf6b','epic',[90,40,68,84,98,86], pw('plunder','Plunder'), 'Arr! What\u2019s yours is mine, and what\u2019s mine is also mine.'),
+  mk('sandwyrm','Shai-Rath the Sand Wyrm','🪱','🌵','desert','#ffcf8a','epic',[93,58,47,33,75,98], null, 'The dunes ripple. Then the dunes open their mouth.', 'sepia(.8) saturate(1.8) hue-rotate(-12deg) brightness(1.05)'),
+  mk('dragonegg','The Dragon Egg','🥚','🔥','volcano','#ffb347','rare',[30,35,26,22,30,28], pw('egg','Dragon Heart',{amt:15,max:60}), 'Warm to the touch. Something inside is wriggling.'),
+  mk('fizzwhistle','Professor Fizzwhistle','🧑‍🔬','🎲','cosmos','#9dffe0','rare',[38,80,90,72,44,36], pw('wild','Wild Magic'), 'Nobody, least of all the Professor, knows what happens next.'),
+  mk('snorvax','Snorvax the Sleepy Dragon','🐉','💤','cavern','#b9a6ff','rare',[45,39,27,21,33,48], pw('boost','Wake the Dragon',{stats:['fear'],amt:50}), 'Shhh. Whatever you do, don\u2019t wake him up.', 'hue-rotate(160deg) saturate(1.2)'),
+  mk('thunderhoof','Thunderhoof the Minotaur','🐂','🪓','cavern','#ff9a6b','rare',[91,18,33,29,87,89], null, 'Lost in his own maze for a thousand years. Still cross about it.'),
+  mk('ursa','Ursa the Moon Bear','🐻','🌙','forest','#e6e0ff','rare',[94,54,50,44,84,78], null, 'Fishes for falling stars in the lake at midnight.', 'grayscale(.6) brightness(1.25)'),
+  mk('twinpip','Pip the Pixie Twin','🧚‍♀️','💞','meadow','#ffb3e6','common',[18,58,42,62,34,14], pw('twin','Better Together',{partner:'twinsqueak',amt:25}), 'Pip does the plans. Squeak does the giggling.'),
+  mk('twinsqueak','Squeak the Pixie Twin','🧚‍♂️','💞','meadow','#b3e6ff','common',[16,62,46,56,30,18], pw('twin','Better Together',{partner:'twinpip',amt:25}), 'Squeak does the giggling. Pip does the plans.'),
+  mk('oldtom','Old Tom the Tortoise','🐢','🍄','forest','#c8ff9e','common',[56,30,72,42,62,22], null, 'Slow and steady. Mostly slow.'),
+  mk('spike','Spike the Hedgehog Knight','🦔','🗡️','meadow','#ffd38a','common',[48,16,42,60,86,30], null, 'Very small. Very brave. Very pointy.'),
+  mk('glimmerwing','Glimmerwing the Moon Moth','🦋','🌙','cosmos','#d7b3ff','common',[10,68,38,72,30,26], null, 'Follows the moonlight wherever it goes.'),
+  mk('clatterclaw','Clatterclaw the Lava Crab','🦀','🔥','volcano','#ff8a5c','common',[87,33,35,45,81,77], null, 'Walks sideways through rivers of fire.'),
+  // ---------- mythic: only in some games ----------
+  mk('aurelion','Aurelion, the World Serpent','🐲','🌍','cosmos','#ffe9a0','mythic',[92,90,82,34,86,94], pw('eternal','Eternal',{amt:10}), 'Coiled around the world since before the first sunrise.', 'sepia(1) saturate(3) hue-rotate(5deg) brightness(1.15)'),
 ];
+CARDS.find(c => c.id === 'dragonegg').stages = [
+  {at: 0, name: 'The Dragon Egg', e: '🥚'}, {at: 15, name: 'Dragon Hatchling', e: '🐣'}, {at: 45, name: 'Young Dragon', e: '🐲'}];
 const CARD = Object.fromEntries(CARDS.map(c => [c.id, c]));
 const AVG = {}; STATS.forEach(s => AVG[s.k] = CARDS.reduce((a, c) => a + c.s[s.k], 0) / CARDS.length);
+// Growth from the Dragon Egg's power during the current game, and the card style in use.
+let GROW = {}, THEME = 'classic';
+const sv = (id, k) => CARD[id].s[k] + (GROW[id] || 0);
+// The card as it looks right now (the Dragon Egg changes as it grows).
+function look(c) {
+  if (!c.stages) return c;
+  const g = GROW[c.id] || 0, st = c.stages.filter(x => g >= x.at).pop();
+  return Object.assign({}, c, {name: st.name, e: st.e});
+}
+
+// Hero cards: each player can design one card with a points budget and no power.
+const HERO_BUDGET = 280, HERO_MIN = 5, HERO_MAX = 90;
+const SCENE_NAMES = {volcano: 'Volcano', ice: 'Frozen peaks', forest: 'Dark forest', castle: 'Haunted castle', ocean: 'Ocean deep', storm: 'Thunderstorm', cosmos: 'Starry sky', swamp: 'Swamp', desert: 'Desert', cavern: 'Crystal cave', meadow: 'Rainbow meadow', graveyard: 'Graveyard'};
+const SCENE_GLOW = {volcano: '#ff7a1a', ice: '#9be7ff', forest: '#a6ff7a', castle: '#c08bff', ocean: '#4dd8ff', storm: '#a0c8ff', cosmos: '#c9a6ff', swamp: '#9dff5c', desert: '#ffb347', cavern: '#5ef0ff', meadow: '#ff9ee8', graveyard: '#7dff9b'};
+const HERO_EMOJI = ['🐉','🦄','🧙','🧚','🦊','🐺','👻','🦉','🧝','🦁','🐸','🦖','🐙','🦈','🐯','🐼','🦅','🐍','🕷️','🤖','👽','🧛','🧜','🐲','🦇','🐻‍❄️','🦩','🐧'];
+// Returns a playable card from a player's hero design, or null if it breaks the rules.
+function heroCard(raw, pid, by) {
+  if (!raw || typeof raw !== 'object') return null;
+  const name = String(raw.name || '').trim().slice(0, 22), e = String(raw.e || '');
+  if (!name || !HERO_EMOJI.includes(e) || !SCENE_NAMES[raw.scene] || !raw.s) return null;
+  const st = {}; let total = 0;
+  for (const x of STATS) {
+    const v = Math.round(+raw.s[x.k]);
+    if (!(v >= HERO_MIN && v <= HERO_MAX)) return null;
+    st[x.k] = v; total += v;
+  }
+  if (total > HERO_BUDGET) return null;
+  return {id: 'hero-' + String(pid).replace(/[^a-z0-9]/gi, '').slice(-10), name, e, acc: '⭐', scene: raw.scene, glow: SCENE_GLOW[raw.scene], r: 'hero', s: st, p: null,
+    flav: `A hero card designed by ${String(by || 'a player').slice(0, 14)}.`, tint: '', by: String(by || '').slice(0, 14)};
+}
+function registerCustoms(defs) { (defs || []).forEach(c => { CARD[c.id] = c; }); }
 
 /* =====================================================================
    ART: procedural scenes
@@ -425,9 +533,31 @@ function particles(kind, r, glow) {
 }
 
 const SCENE_CACHE = {};
+// Halloween and Christmas decorations drawn over a card's scene.
+function seasonLayer(r) {
+  let s = '';
+  if (THEME === 'halloween') {
+    s += `<rect width="300" height="200" fill="#ff6a00" opacity=".14"/><circle cx="252" cy="40" r="22" fill="#ffb347" opacity=".9"/><circle cx="252" cy="40" r="34" fill="#ff8a1a" opacity=".18"/>`;
+    for (let i = 0; i < 4; i++) {
+      const x = 20 + r() * 240, y = 20 + r() * 70, sc = .7 + r() * .6, d = (r() * 6).toFixed(2), dur = (5 + r() * 4).toFixed(2);
+      s += `<g transform="translate(${f1(x)} ${f1(y)}) scale(${f1(sc)})"><path class="fx fx-drift" style="animation-delay:-${d}s;animation-duration:${dur}s" d="M0 0q4-6 9-2q2-4 4-1q2-3 4 1q5-4 9 2q-6-1-9 3q-2-2-4 0q-2-2-4 0q-3-4-9-3z" fill="#1a0a1f"/></g>`;
+    }
+  } else if (THEME === 'christmas') {
+    s += `<path d="M0 200V186Q75 176 150 186T300 183V200Z" fill="#f4fbff"/>`;
+    s += `<path d="M-5 6Q75 30 150 8T305 10" stroke="#2d3b2d" stroke-width="1.2" fill="none"/>`;
+    const cols = ['#ff4d4d', '#ffd24d', '#4dff88', '#4dd2ff', '#ff7ad9'];
+    for (let i = 0; i < 13; i++) {
+      const t = i / 12, x = t * 300, y = t < .5 ? 6 + Math.sin(t * Math.PI * 2) * 12 + t * 8 : 8 + Math.sin((t - .5) * Math.PI * 2) * 10;
+      s += `<circle class="fx fx-blink" style="animation-delay:-${(i * .37).toFixed(2)}s;animation-duration:1.6s" cx="${f1(x)}" cy="${f1(y + 4)}" r="2.6" fill="${cols[i % 5]}"/>`;
+    }
+    s += particles('snow', r, '#fff');
+  }
+  return s;
+}
 function sceneSVG(card) {
-  if (SCENE_CACHE[card.id]) return SCENE_CACHE[card.id];
-  const S = SC[card.scene], r = rng(hash(card.id)), id = 'sc_' + card.id, glow = card.glow;
+  const key = card.id + '|' + card.scene + '|' + THEME;
+  if (SCENE_CACHE[key]) return SCENE_CACHE[key];
+  const S = SC[card.scene], r = rng(hash(card.id)), id = 'sc_' + card.id.replace(/[^a-z0-9]/gi, '') + '_' + THEME[0], glow = card.glow;
   let defs = `<linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${S.sky[0]}"/><stop offset=".6" stop-color="${S.sky[1]}"/><stop offset="1" stop-color="${S.sky[2]}"/></linearGradient>
   <radialGradient id="${id}g" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="${glow}" stop-opacity=".9"/><stop offset=".45" stop-color="${glow}" stop-opacity=".35"/><stop offset="1" stop-color="${glow}" stop-opacity="0"/></radialGradient>
   <radialGradient id="${id}m" cx=".5" cy=".5" r=".5"><stop offset=".55" stop-color="#fff" stop-opacity=".5"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
@@ -513,13 +643,16 @@ function sceneSVG(card) {
       b += `<rect y="192" width="300" height="8" fill="${S.near}"/>`;
       break;
   }
+  b += seasonLayer(r);
   b += `<ellipse cx="150" cy="128" rx="88" ry="70" fill="url(#${id}g)"/>`;
   b += particles(S.fx, r, glow);
   const svg = `<svg viewBox="0 0 300 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs>${defs}</defs>${b}</svg>`;
-  return SCENE_CACHE[card.id] = svg;
+  return SCENE_CACHE[key] = svg;
 }
+const SEASON_ICON = {halloween: '🎃', christmas: '🎄'};
 function artInner(c) {
-  return `${sceneSVG(c)}<div class="c-shadow"></div><div class="c-crea" style="filter:${c.tint} drop-shadow(0 0 3cqw ${c.glow}) drop-shadow(0 1cqw 1cqw rgba(0,0,0,.6))"><span>${c.e}</span></div><div class="c-acc">${c.acc}</div>`;
+  c = look(c);
+  return `${sceneSVG(c)}<div class="c-shadow"></div><div class="c-crea" style="filter:${c.tint} drop-shadow(0 0 3cqw ${c.glow}) drop-shadow(0 1cqw 1cqw rgba(0,0,0,.6))"><span>${c.e}</span></div><div class="c-acc">${c.acc}</div>${SEASON_ICON[THEME] ? `<div class="c-season">${SEASON_ICON[THEME]}</div>` : ''}`;
 }
 
 /* =====================================================================
@@ -527,15 +660,15 @@ function artInner(c) {
    ===================================================================== */
 function cardHTML(id, o) {
   o = o || {};
-  const c = CARD[id], R = RAR[c.r];
+  const c = look(CARD[id]), R = RAR[c.r], grown = GROW[id] || 0;
   const stats = STATS.map(s => {
-    const v = c.s[s.k], cls = v >= 80 ? 'hi' : v < 30 ? 'lo' : '';
+    const v = sv(id, s.k), cls = v >= 80 ? 'hi' : v < 30 ? 'lo' : '';
     const tag = o.pick ? 'button' : 'div';
-    return `<${tag} class="st${o.sel === s.k ? ' sel' : ''}" ${o.pick ? `data-act="choose" data-stat="${s.k}"` : ''}><span class="si">${s.i}</span><span>${s.n}</span><span class="bar"><i class="${cls}" style="width:${v}%"></i></span><span class="sv">${v}</span></${tag}>`;
+    return `<${tag} class="st${o.sel === s.k ? ' sel' : ''}" ${o.pick ? `data-act="choose" data-stat="${s.k}"` : ''}><span class="si">${s.i}</span><span>${s.n}</span><span class="bar"><i class="${cls}" style="width:${Math.min(100, v)}%"></i></span><span class="sv">${v}</span></${tag}>`;
   }).join('');
   return `<div class="cardw"${o.zoom ? ` data-act="zoom" data-card="${id}"` : ''}><div class="card r-${c.r}" style="--glow:${c.glow};--rc:${R.c}"><div class="card-in">
     <div class="c-head"><span class="c-name">${esc(c.name)}</span><span class="c-gem">${R.gem}</span></div>
-    <div class="c-art">${artInner(c)}<div class="c-rar">${R.n.toUpperCase()}</div></div>
+    <div class="c-art">${artInner(c)}<div class="c-rar">${R.n.toUpperCase()}</div>${grown ? `<div class="c-grow">+${grown} grown</div>` : ''}</div>
     ${c.p ? `<div class="c-power"><b>${PICON[c.p.type]} ${esc(c.p.name)}:</b> ${powerText(c.p)}</div>` : ''}
     <div class="c-stats${o.pick ? ' pick' : ''}">${stats}</div>
     <div class="c-flav">“${esc(c.flav)}”</div>
@@ -553,41 +686,87 @@ const MODES = {
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 const TURN_MODES = {winner: 'The winner of each round', rotate: 'Take turns (round robin)'};
-function newGame(seats, mode, peekMode, turns) {
-  const deck = shuffle(CARDS.map(c => c.id)), n = seats.length, per = Math.floor(deck.length / n);
-  return {
-    phase: 'choose', round: 1, mode, peekMode: peekMode || 'tap', turns: TURN_MODES[turns] ? turns : 'winner',
+const THEMES = {classic: 'Classic', halloween: 'Halloween 🎃', christmas: 'Christmas 🎄'};
+const MYTHIC_CHANCE = 1 / 3;
+// opts: {theme, heroes: [hero cards], mythic: true/false/undefined (undefined = 1 game in 3)}
+function newGame(seats, mode, peekMode, turns, opts) {
+  opts = opts || {};
+  const heroes = opts.heroes || [];
+  const mythic = opts.mythic === undefined ? Math.random() < MYTHIC_CHANCE : !!opts.mythic;
+  const ids = CARDS.filter(c => c.r !== 'mythic' || mythic).map(c => c.id).concat(heroes.map(c => c.id));
+  const deck = shuffle(ids), n = seats.length, per = Math.floor(deck.length / n);
+  const g = {
+    gid: Math.random().toString(36).slice(2, 8), phase: 'pack', round: 1, mode, peekMode: peekMode || 'tap',
+    turns: TURN_MODES[turns] ? turns : 'winner', theme: THEMES[opts.theme] ? opts.theme : 'classic', customs: heroes, grow: {}, packReady: [],
     players: seats.map((p, i) => ({pid: p.pid, name: p.name, av: p.av, bot: !!p.bot, deck: deck.slice(i * per, (i + 1) * per)})),
     pot: deck.slice(per * n),
     chooser: seats[Math.floor(Math.random() * n)].pid,
     result: null, ready: [], standings: null,
   };
+  GROW = g.grow;
+  return g;
 }
 
 function resolveRound(g, stat) {
+  GROW = g.grow || (g.grow = {});
   const byPid = pid => g.players.find(p => p.pid === pid);
   const plays = g.players.filter(p => p.deck.length).map(p => ({pid: p.pid, id: p.deck.shift(), notes: []}));
-  const C = pl => CARD[pl.id], nm = pl => byPid(pl.pid).name;
+  plays.forEach(pl => { pl.orig = pl.id; });
+  const C = pl => CARD[pl.id], L = pl => look(C(pl)), nm = pl => byPid(pl.pid).name;
   const log = [];
   const silencers = plays.filter(pl => C(pl).p && C(pl).p.type === 'silence');
-  plays.forEach(pl => { const p = C(pl).p; pl.on = !!p && (!silencers.length || p.type === 'silence'); });
+  const setOn = () => plays.forEach(pl => { const p = C(pl).p; pl.on = !!p && (!silencers.length || p.type === 'silence'); });
+  setOn();
   silencers.forEach(pl => (pl.fired = true) && log.push(`🔇 ${nm(pl)}'s ${C(pl).name} used ${C(pl).p.name}: all other powers are cancelled!`));
   const has = (pl, t) => pl.on && C(pl).p.type === t;
 
+  // Shuffle Storm: every card passes one seat along before the flip.
+  const storm = plays.find(pl => has(pl, 'storm'));
+  if (storm && plays.length > 1) {
+    const stormId = storm.id, ids = plays.map(pl => pl.id);
+    plays.forEach((pl, i) => { pl.id = ids[(i - 1 + ids.length) % ids.length]; });
+    setOn();
+    plays.find(pl => pl.id === stormId).fired = true;
+    log.push(`🌪️ ${CARD[stormId].name}'s Shuffle Storm! Every card passed one seat along.`);
+  }
+  // Powers that change which stat the round is played on.
+  let st = stat;
+  const wild = plays.find(pl => has(pl, 'wild'));
+  if (wild) {
+    const others = STATS.map(x => x.k).filter(k => k !== st);
+    st = others[Math.floor(Math.random() * others.length)];
+    wild.fired = true; log.push(`🎲 ${L(wild).name}'s Wild Magic! The stat changes to ${SN(st)}!`);
+  }
+  const king = plays.find(pl => has(pl, 'decree'));
+  if (king) {
+    const best = STATS.reduce((a, x) => sv(king.id, x.k) > sv(king.id, a) ? x.k : a, STATS[0].k);
+    if (best !== st) { st = best; king.fired = true; log.push(`👑 ${L(king).name}'s Royal Decree! This round is now played on ${SN(st)}!`); }
+  }
+
   plays.forEach(pl => {
-    const c = C(pl); pl.base = c.s[stat]; pl.val = pl.base;
+    const c = C(pl); pl.base = sv(pl.id, st); pl.val = pl.base;
     if (has(pl, 'shapeshift')) {
-      const best = STATS.reduce((a, s) => c.s[s.k] > c.s[a] ? s.k : a, stat);
-      if (best !== stat) { pl.fired = true; pl.val = c.s[best]; pl.notes.push(`🌀 uses ${SN(best)}`); log.push(`🌀 ${c.name} shapeshifts and uses ${SN(best)} (${c.s[best]}) instead!`); }
+      const best = STATS.reduce((a, x) => sv(pl.id, x.k) > sv(pl.id, a) ? x.k : a, st);
+      if (best !== st) { pl.fired = true; pl.val = sv(pl.id, best); pl.notes.push(`🌀 uses ${SN(best)}`); log.push(`🌀 ${c.name} shapeshifts and uses ${SN(best)} (${pl.val}) instead!`); }
     }
   });
+  // Reflect copies the strongest enemy number before any other powers.
   plays.forEach(pl => {
-    const c = C(pl), p = c.p;
-    if (has(pl, 'boost') && p.stats.includes(stat)) { pl.fired = true; pl.val += p.amt; pl.notes.push(`💥 +${p.amt}`); log.push(`💥 ${c.name}'s ${p.name} adds +${p.amt}!`); }
-    if (has(pl, 'allboost')) { pl.fired = true; pl.val += p.amt; pl.notes.push(`🌈 +${p.amt}`); log.push(`🌈 ${c.name}'s ${p.name} adds +${p.amt}!`); }
+    if (!has(pl, 'reflect')) return;
+    const others = plays.filter(o => o !== pl && !has(o, 'reflect'));
+    if (!others.length) return;
+    const top = Math.max(...others.map(o => o.val));
+    pl.fired = true; pl.val = top; pl.tieWin = true; pl.notes.push(`🪞 copied`);
+    log.push(`🪞 ${L(pl).name} reflects the strongest card's number: ${top}!`);
+  });
+  plays.forEach(pl => {
+    const c = C(pl), p = c.p, n = L(pl).name;
+    if (has(pl, 'boost') && p.stats.includes(st)) { pl.fired = true; pl.val += p.amt; pl.notes.push(`💥 +${p.amt}`); log.push(`💥 ${n}'s ${p.name} adds +${p.amt}!`); }
+    if (has(pl, 'allboost') || has(pl, 'eternal')) { pl.fired = true; pl.val += p.amt; pl.notes.push(`${PICON[p.type]} +${p.amt}`); log.push(`${PICON[p.type]} ${n}'s ${p.name} adds +${p.amt}!`); }
+    if (has(pl, 'twin') && byPid(pl.pid).deck.includes(p.partner)) { pl.fired = true; pl.val += p.amt; pl.notes.push(`💞 +${p.amt}`); log.push(`💞 ${n} and ${CARD[p.partner].name} are better together: +${p.amt}!`); }
     if (has(pl, 'pack')) {
       const next = byPid(pl.pid).deck[0];
-      if (next) { pl.fired = true; const add = Math.floor(CARD[next].s[stat] / 2); pl.val += add; pl.notes.push(`🐾 +${add}`); log.push(`🐾 ${c.name} calls ${CARD[next].name} for help: +${add}!`); }
+      if (next) { pl.fired = true; const add = Math.floor(sv(next, st) / 2); pl.val += add; pl.notes.push(`🐾 +${add}`); log.push(`🐾 ${n} calls ${look(CARD[next]).name} for help: +${add}!`); }
     }
   });
   plays.forEach(pl => {
@@ -603,7 +782,7 @@ function resolveRound(g, stat) {
     pl.fired = true;
     const was = opp.val; opp.val = Math.floor(opp.val / 2);
     opp.notes.push(`<span class="neg">🪨 halved</span>`);
-    log.push(`🪨 ${C(pl).name}'s ${C(pl).p.name} halves ${C(opp).name} from ${was} to ${opp.val}!`);
+    log.push(`🪨 ${C(pl).name}'s ${C(pl).p.name} halves ${L(opp).name} from ${was} to ${opp.val}!`);
   });
   const reversers = plays.filter(pl => has(pl, 'reverse'));
   const low = reversers.length % 2 === 1;
@@ -615,15 +794,33 @@ function resolveRound(g, stat) {
   let win = null;
   if (tied.length === 1) win = tied[0];
   else {
-    const lucky = tied.filter(p => has(p, 'lucky'));
-    if (lucky.length === 1) { win = lucky[0]; win.fired = true; log.push(`🍀 It was a tie, but ${C(win).name}'s ${C(win).p.name} breaks it!`); }
+    const breakers = tied.filter(p => has(p, 'lucky') || p.tieWin);
+    if (breakers.length === 1) { win = breakers[0]; win.fired = true; log.push(`${has(win, 'lucky') ? '🍀' : '🪞'} It was a tie, but ${L(win).name}'s ${C(win).p.name} breaks it!`); }
   }
 
   const spoils = [];
   plays.forEach(pl => {
     if (pl === win) return;
-    if (has(pl, 'phoenix')) { pl.fired = true; byPid(pl.pid).deck.push(pl.id); pl.out = 'phoenix'; log.push(`🕊️ ${C(pl).name} escapes back to ${nm(pl)}'s deck!`); }
-    else { spoils.push(pl.id); pl.out = win ? 'lose' : 'tie'; }
+    if (has(pl, 'phoenix') || has(pl, 'eternal') || has(pl, 'egg')) {
+      pl.fired = true; byPid(pl.pid).deck.push(pl.id); pl.out = 'phoenix';
+      log.push(`🕊️ ${L(pl).name} escapes back to ${nm(pl)}'s deck!`);
+      if (has(pl, 'egg')) {
+        const p = C(pl).p, before = g.grow[pl.id] || 0, after = Math.min(p.max, before + p.amt);
+        if (after > before) {
+          g.grow[pl.id] = after;
+          const stage = look(C(pl)), was = C(pl).stages.filter(x => before >= x.at).pop();
+          log.push(stage.name !== was.name ? `${stage.e} The egg is changing… it's now a ${stage.name}! Every stat +${p.amt}.` : `🥚 ${stage.name} grows stronger: every stat +${p.amt}!`);
+        }
+      }
+    } else { spoils.push(pl.id); pl.out = win ? 'lose' : 'tie'; }
+  });
+  // Plunder grabs whatever was already sitting in the pot.
+  let plundered = 0;
+  plays.forEach(pl => {
+    if (pl === win || !has(pl, 'plunder') || !g.pot.length) return;
+    pl.fired = true; plundered = g.pot.length;
+    byPid(pl.pid).deck.push(...g.pot); g.pot = [];
+    log.push(`🏴‍☠️ ${C(pl).name} plunders the pot: ${plundered} card${plundered === 1 ? '' : 's'} for ${nm(pl)}!`);
   });
   let won = 0, stolen = null, toPot = 0;
   if (win) {
@@ -633,7 +830,7 @@ function resolveRound(g, stat) {
     win.out = 'win';
     if (has(win, 'steal')) {
       const rival = g.players.filter(p => p !== w && p.deck.length).sort((a, b) => b.deck.length - a.deck.length)[0];
-      if (rival) { win.fired = true; const cid = rival.deck.shift(); w.deck.push(cid); stolen = {from: rival.pid, id: cid}; log.push(`🖐️ ${C(win).name} also steals ${CARD[cid].name} from ${rival.name}!`); }
+      if (rival) { win.fired = true; const cid = rival.deck.shift(); w.deck.push(cid); stolen = {from: rival.pid, id: cid}; log.push(`🖐️ ${C(win).name} also steals ${look(CARD[cid]).name} from ${rival.name}!`); }
     }
     g.chooser = win.pid;
   } else {
@@ -646,7 +843,7 @@ function resolveRound(g, stat) {
     const seat = g.players.findIndex(p => p.pid === (g.turns === 'rotate' ? g._choosing : g.chooser));
     for (let k = 1; k <= g.players.length; k++) { const p = g.players[(seat + k) % g.players.length]; if (p.deck.length) { g.chooser = p.pid; break; } }
   }
-  g.result = {round: g.round, stat, by: g._choosing, plays: plays.map(p => ({pid: p.pid, id: p.id, base: p.base, val: p.val, notes: p.notes, out: p.out, fired: !!p.fired, muted: !!C(p).p && !p.on})), log, win: win ? win.pid : null, low, won, toPot, stolen, pot: g.pot.length};
+  g.result = {round: g.round, stat, used: st, by: g._choosing, plays: plays.map(p => ({pid: p.pid, id: p.id, orig: p.orig, base: p.base, val: p.val, notes: p.notes, out: p.out, fired: !!p.fired, muted: !!C(p).p && !p.on})), log, win: win ? win.pid : null, low, won, toPot, stolen, plundered, pot: g.pot.length};
   g.phase = 'reveal';
   g.ready = [];
   g.over = alive.length <= 1 || (MODES[g.mode].rounds && g.round >= MODES[g.mode].rounds) || g.round >= 250;
@@ -669,7 +866,7 @@ function botPick(cardId) {
   const c = CARD[cardId], p = c.p;
   let best = null, bv = -1e9;
   STATS.forEach(s => {
-    let v = c.s[s.k] - AVG[s.k];
+    let v = sv(cardId, s.k) - AVG[s.k];
     if (p && p.type === 'reverse') v = -v;
     if (p && p.type === 'boost' && p.stats.includes(s.k)) v += p.amt;
     v += Math.random() * 14;
@@ -688,7 +885,7 @@ let CLIENT = null; // {code, peer, conn, joined, leaving}
 const UI = {screen:'home', view:null, filter:'all', key:'', animRound:0, offline:false};
 
 function hostStart(online) {
-  HOST = {code: null, peer: null, conns: new Map(), me: ME.pid, seats: [{pid: ME.pid, name: ME.name, av: ME.av}], mode: 'std', peek: store('mt_peek') === 'count' ? 'count' : 'tap', turns: store('mt_turns') === 'rotate' ? 'rotate' : 'winner', g: null, timers: {}, online};
+  HOST = {code: null, peer: null, conns: new Map(), me: ME.pid, seats: [{pid: ME.pid, name: ME.name, av: ME.av, hero: loadHero()}], mode: 'std', theme: MONTH_THEME, heroes: 'on', peek: store('mt_peek') === 'count' ? 'count' : 'tap', turns: store('mt_turns') === 'rotate' ? 'rotate' : 'winner', g: null, timers: {}, online};
   if (!online) { addBot(); addBot(); addBot(); }
   UI.screen = 'game';
   pushState();
@@ -708,7 +905,8 @@ function isOn(pid) {
 }
 function viewFor(pid) {
   const H = HOST, g = H.g;
-  if (!g) return {phase: 'lobby', code: H.code, online: H.online, host: H.me, mode: H.mode, peek: H.peek, turns: H.turns, players: H.seats.map(s => ({pid: s.pid, name: s.name, av: s.av, bot: !!s.bot, on: isOn(s.pid)}))};
+  if (!g) return {phase: 'lobby', code: H.code, online: H.online, host: H.me, mode: H.mode, peek: H.peek, turns: H.turns, theme: H.theme, heroes: H.heroes,
+    players: H.seats.map(s => ({pid: s.pid, name: s.name, av: s.av, bot: !!s.bot, on: isOn(s.pid), hero: !!heroCard(s.hero, s.pid, s.name)}))};
   const me = g.players.find(p => p.pid === pid);
   return {
     phase: g.phase, code: H.code, online: H.online, host: H.me, mode: g.mode, round: g.round, chooser: g.chooser, pot: g.pot.length,
@@ -716,11 +914,22 @@ function viewFor(pid) {
     top: me && me.deck.length ? me.deck[0] : null,
     result: g.result, ready: g.ready, need: needReady(), standings: g.standings, over: !!g.over,
     shown: !g.peek, peekMode: g.peekMode, peekReady: g.peekReady || [], peekNeed: g.peek ? peekNeed() : [],
+    gid: g.gid, theme: g.theme, grow: g.grow, customs: g.customs,
+    hand: g.phase === 'pack' && me ? me.deck.slice() : null, packReady: g.packReady, packNeed: g.phase === 'pack' ? packNeed() : [],
   };
 }
 function needReady() {
   const g = HOST.g;
   return g.players.filter(p => !p.bot && p.deck.length && isOn(p.pid)).map(p => p.pid);
+}
+// Players who still have to open their pack before the first round.
+function packNeed() {
+  return HOST.g.players.filter(p => !p.bot && isOn(p.pid)).map(p => p.pid);
+}
+function startRounds() {
+  const g = HOST.g; if (!g || g.phase !== 'pack') return;
+  g.phase = 'choose';
+  pushState();
 }
 // Players who still have to look at their card before the cards flip.
 function peekNeed() {
@@ -743,7 +952,10 @@ function clearHostTimers() { Object.values(HOST.timers).forEach(clearTimeout); H
 function scheduleHost() {
   const g = HOST.g; clearHostTimers();
   if (!g) return;
-  if (g.phase === 'choose') {
+  if (g.phase === 'pack') {
+    const need = packNeed(), left = need.filter(p => !g.packReady.includes(p));
+    HOST.timers.pack = setTimeout(startRounds, !left.length ? (need.length ? 300 : 1500) : g.peekMode === 'count' ? 20000 : 90000);
+  } else if (g.phase === 'choose') {
     const ch = g.players.find(p => p.pid === g.chooser);
     if (ch.bot || !isOn(ch.pid)) HOST.timers.bot = setTimeout(() => doChoose(ch.pid, botPick(ch.deck[0]), true), ch.bot ? 1400 + Math.random() * 1200 : 6000);
   } else if (g.phase === 'reveal' && g.peek) {
@@ -792,12 +1004,23 @@ function hostAction(pid, m) {
       break;
     case 'mode': if (isHost && !g && MODES[m.mode]) { H.mode = m.mode; pushState(); } break;
     case 'turns': if (isHost && !g && TURN_MODES[m.turns]) { H.turns = m.turns; store('mt_turns', m.turns); pushState(); } break;
+    case 'theme': if (isHost && !g && THEMES[m.theme]) { H.theme = m.theme; pushState(); } break;
+    case 'heroes': if (isHost && !g && (m.heroes === 'on' || m.heroes === 'off')) { H.heroes = m.heroes; pushState(); } break;
+    case 'packReady':
+      if (g && g.phase === 'pack' && !g.packReady.includes(pid)) { g.packReady.push(pid); pushState(); }
+      break;
     case 'peekMode': if (isHost && !g && PEEK_MODES[m.peek]) { H.peek = m.peek; store('mt_peek', m.peek); pushState(); } break;
     case 'peek':
       if (g && g.phase === 'reveal' && g.peek && !g.peekReady.includes(pid)) { g.peekReady.push(pid); pushState(); }
       break;
     case 'start':
-      if (isHost && !g && H.seats.length >= 2) { H.g = newGame(H.seats, H.mode, H.peek, H.turns); pushState(); }
+      if (isHost && !g && H.seats.length >= 2) {
+        if (H.seats[0].pid === H.me) H.seats[0].hero = loadHero();
+        const heroes = H.heroes === 'on' ? H.seats.map(s => heroCard(s.hero, s.pid, s.name)).filter(Boolean) : [];
+        registerCustoms(heroes);
+        H.g = newGame(H.seats, H.mode, H.peek, H.turns, {theme: H.theme, heroes});
+        pushState();
+      }
       break;
     case 'again':
       if (isHost && g && g.phase === 'over') { H.g = null; H.seats = H.seats.filter(s => isOn(s.pid)); pushState(); }
@@ -839,8 +1062,8 @@ function onHostData(conn, d) {
     if (!known) {
       if (g) { conn.send({t: 'error', msg: 'That game has already started. Ask the host to start a new one.'}); return; }
       if (HOST.seats.length >= 6) { conn.send({t: 'error', msg: 'That game is full (6 players max).'}); return; }
-      HOST.seats.push({pid, name, av});
-    } else if (!g) { known.name = name; known.av = av; }
+      HOST.seats.push({pid, name, av, hero: d.hero || null});
+    } else if (!g) { known.name = name; known.av = av; known.hero = d.hero || null; }
     const old = HOST.conns.get(pid); if (old && old !== conn) try { old.close(); } catch (e) {}
     conn.pid = pid; HOST.conns.set(pid, conn);
     pushState();
@@ -875,7 +1098,7 @@ function connectToHost() {
   if (!CLIENT || CLIENT.leaving) return;
   const conn = CLIENT.peer.connect(PREFIX + CLIENT.code, {reliable: true});
   CLIENT.conn = conn;
-  conn.on('open', () => { CLIENT.tries = 0; conn.send({t: 'join', pid: ME.pid, name: ME.name, av: ME.av}); });
+  conn.on('open', () => { CLIENT.tries = 0; conn.send({t: 'join', pid: ME.pid, name: ME.name, av: ME.av, hero: loadHero()}); });
   conn.on('data', d => {
     if (!CLIENT || conn !== CLIENT.conn) return;
     if (d.t === 'state') { CLIENT.joined = true; UI.offline = false; UI.view = d.v; UI.screen = 'game'; render(); keepAwake(); }
@@ -954,6 +1177,24 @@ function store(k, v) { try { if (v === undefined) return localStorage.getItem(k)
 const AVATARS = ['🐲','🦄','🧙','🧚','🦊','🐺','👻','🦉','🧝','🦁','🐸','🦖'];
 const ME = {pid: store('mt_pid') || ('p-' + Math.random().toString(36).slice(2, 10)), name: store('mt_name') || '', av: store('mt_av') || AVATARS[Math.floor(Math.random() * AVATARS.length)]};
 store('mt_pid', ME.pid);
+const MONTH_THEME = (() => { const m = new Date().getMonth(); return m === 9 ? 'halloween' : m === 11 ? 'christmas' : 'classic'; })();
+UI.theme = MONTH_THEME;
+function loadHero() { try { return JSON.parse(store('mt_hero') || 'null'); } catch (e) { return null; } }
+// The album: every card you've ever had in your pack or won in a battle.
+function album() { try { return new Set(JSON.parse(store('mt_album') || '[]')); } catch (e) { return new Set(); } }
+function collect(ids) {
+  const a = album(), added = [];
+  ids.forEach(id => { if (CARD[id] && CARD[id].r !== 'hero' && !a.has(id)) { a.add(id); added.push(id); } });
+  if (added.length) store('mt_album', JSON.stringify([...a]));
+  return added;
+}
+// Game views carry the host's hero cards, Dragon Egg growth and card style.
+function applyView(v) {
+  if (v && v.customs) registerCustoms(v.customs);
+  GROW = (v && v.grow) || {};
+  setTheme((v && v.theme) || UI.theme);
+}
+function setTheme(t) { THEME = THEMES[t] ? t : 'classic'; document.body.dataset.theme = THEME; }
 let toastT;
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 3500); }
 function openModal(html) { const m = $('#modal'); m.innerHTML = html; m.classList.add('on'); }
@@ -964,16 +1205,20 @@ const later = (fn, ms) => animTimers.push(setTimeout(fn, ms));
 
 function render() {
   const app = $('#app');
+  if (UI.screen !== 'game') { GROW = {}; setTheme(UI.theme); }
   if (UI.screen === 'home') { UI.key = 'home'; clearAnim(); app.innerHTML = homeHTML(); return; }
   if (UI.screen === 'gallery') { UI.key = 'gallery'; app.innerHTML = galleryHTML(); return; }
+  if (UI.screen === 'hero') { UI.key = 'hero'; app.innerHTML = heroHTML(); return; }
   if (UI.screen === 'rules') { UI.key = 'rules'; app.innerHTML = rulesHTML(); return; }
   if (UI.screen === 'connecting') { UI.key = 'conn'; app.innerHTML = `<div class="stack center" style="margin-top:30vh"><div style="font-size:60px">🔮</div><h2 class="dots">Finding the game</h2><button class="btn ghost" data-act="leave">Cancel</button></div>`; return; }
   const v = UI.view; if (!v) return;
-  const key = v.phase + ':' + (v.round || 0) + ':' + (v.phase === 'choose' ? v.chooser + ':' + v.top : v.phase === 'reveal' ? (v.shown ? 'shown' : 'peek') : '');
+  applyView(v);
+  const key = v.phase + ':' + (v.round || 0) + ':' + (v.phase === 'choose' ? v.chooser + ':' + v.top : v.phase === 'reveal' ? (v.shown ? 'shown' : 'peek') : v.phase === 'pack' ? v.gid + (UI.packOpened === v.gid ? ':open' : '') : '');
   if (key === UI.key && v.phase !== 'lobby') {
     const hud = $('#hud'); if (hud) hud.innerHTML = hudHTML(v);
     const foot = $('#foot'); if (foot) { foot.innerHTML = footHTML(v); tickCountdown(); }
     const pb = $('#peekbar'); if (pb && v.peekMode === 'tap') pb.innerHTML = peekbarHTML(v);
+    const pkb = $('#packbar'); if (pkb) pkb.innerHTML = packbarHTML(v);
     const nb = $('#netbar'); if (nb) nb.innerHTML = netbarHTML();
     return;
   }
@@ -993,7 +1238,7 @@ function homeHTML() {
   const fan = ['kraken', 'ignarax', 'seraphine'].map(id => cardHTML(id)).join('');
   const params = new URLSearchParams(location.search);
   return `<div class="topbar"><div class="grow"></div><button class="iconbtn" data-act="sound" aria-label="Sound">${SFX.on ? '🔊' : '🔇'}</button></div>
-  <div class="logo"><h1>Card Battler</h1><p>Legends of the Six Realms</p></div>
+  <div class="logo"><h1>Card Battler</h1><p>${THEME === 'halloween' ? 'Halloween Edition 🎃' : THEME === 'christmas' ? 'Christmas Edition 🎄' : 'Legends of the Six Realms'}</p></div>
   <div class="fan">${fan}</div>
   <div class="stack">
     <div class="panel">
@@ -1004,7 +1249,8 @@ function homeHTML() {
     <button class="btn gold" data-act="host">🏰 Host a game</button>
     <button class="btn" data-act="join">🗝️ Join a game${params.get('join') ? ' (' + esc(params.get('join').toUpperCase().slice(0, 4)) + ')' : ''}</button>
     <button class="btn green" data-act="solo">⚔️ Practise against the computer</button>
-    <div class="row2"><button class="btn ghost" data-act="gallery">📖 All cards</button><button class="btn ghost" data-act="rules">❓ How to play</button></div>
+    <button class="btn hero" data-act="hero">🎨 ${loadHero() ? 'Edit your hero card' : 'Design your own hero card'}</button>
+    <div class="row2"><button class="btn ghost" data-act="gallery">📒 Cards &amp; album</button><button class="btn ghost" data-act="rules">❓ How to play</button></div>
   </div>`;
 }
 function needName() {
@@ -1024,7 +1270,7 @@ function lobbyHTML(v) {
       ${amHost && navigator.share ? `<button class="btn ghost sm" style="margin:10px auto 0" data-act="share" data-url="${esc(url)}">📤 Send invite link</button>` : ''}</div>`
     : `<div class="panel center"><h3 class="dots">Opening the portal</h3></div>`) : ''}
   <div class="panel"><h3 style="margin-bottom:10px">Players (${v.players.length}/6)</h3><div class="plist">
-    ${v.players.map(p => `<div class="pl"><span class="a">${p.av}</span><span class="grow">${esc(p.name)}${p.pid === ME.pid ? ' (you)' : ''}</span>${p.pid === v.host ? '<span class="tag">HOST</span>' : ''}${p.bot ? '<span class="tag">COMPUTER</span>' : ''}${!p.on ? '<span class="tag">📵</span>' : ''}${amHost && p.pid !== v.host ? `<button class="x" data-act="kick" data-pid="${esc(p.pid)}">✕</button>` : ''}</div>`).join('')}
+    ${v.players.map(p => `<div class="pl"><span class="a">${p.av}</span><span class="grow">${esc(p.name)}${p.pid === ME.pid ? ' (you)' : ''}</span>${p.pid === v.host ? '<span class="tag">HOST</span>' : ''}${p.bot ? '<span class="tag">COMPUTER</span>' : ''}${p.hero && v.heroes === 'on' ? '<span class="tag">🎨 HERO</span>' : ''}${!p.on ? '<span class="tag">📵</span>' : ''}${amHost && p.pid !== v.host ? `<button class="x" data-act="kick" data-pid="${esc(p.pid)}">✕</button>` : ''}</div>`).join('')}
   </div>${amHost && v.players.length < 6 ? `<button class="btn ghost sm" style="margin-top:10px" data-act="addBot">🤖 Add a computer player</button>` : ''}</div>
   <div class="panel"><h3 style="margin-bottom:8px">Game length</h3>
     ${amHost ? `<select class="txt" data-act="mode">${Object.entries(MODES).map(([k, m]) => `<option value="${k}"${k === v.mode ? ' selected' : ''}>${m.n}: ${m.d}</option>`).join('')}</select>` : `<div style="font-weight:800">${MODES[v.mode].n} <span class="mut">· ${MODES[v.mode].d}</span></div>`}
@@ -1032,6 +1278,13 @@ function lobbyHTML(v) {
   <div class="panel"><h3 style="margin-bottom:8px">Who picks the stat?</h3>
     ${amHost ? `<select class="txt" data-act="turns">${Object.entries(TURN_MODES).map(([k, n]) => `<option value="${k}"${k === v.turns ? ' selected' : ''}>${n}</option>`).join('')}</select>` : `<div style="font-weight:800">${TURN_MODES[v.turns]}</div>`}
     <div class="mut" style="font-size:13px;margin-top:6px">${v.turns === 'rotate' ? 'Everyone gets a go, in the order of the list above.' : 'Win a round and you pick again.'}</div>
+  </div>
+  <div class="panel"><h3 style="margin-bottom:8px">Card style</h3>
+    ${amHost ? `<select class="txt" data-act="theme">${Object.entries(THEMES).map(([k, n]) => `<option value="${k}"${k === v.theme ? ' selected' : ''}>${n}</option>`).join('')}</select>` : `<div style="font-weight:800">${THEMES[v.theme]}</div>`}
+  </div>
+  <div class="panel"><h3 style="margin-bottom:8px">Hero cards</h3>
+    ${amHost ? `<select class="txt" data-act="heroes"><option value="on"${v.heroes === 'on' ? ' selected' : ''}>Add everyone's hero card to the deck</option><option value="off"${v.heroes === 'off' ? ' selected' : ''}>Just the normal cards</option></select>` : `<div style="font-weight:800">${v.heroes === 'on' ? 'Everyone\u2019s hero card joins the deck' : 'Just the normal cards'}</div>`}
+    <div class="mut" style="font-size:13px;margin-top:6px">Design your hero card from the home screen before joining.</div>
   </div>
   <div class="panel"><h3 style="margin-bottom:8px">Game pace</h3>
     ${amHost ? `<select class="txt" data-act="peekMode">${Object.entries(PEEK_MODES).map(([k, n]) => `<option value="${k}"${k === v.peek ? ' selected' : ''}>${n}</option>`).join('')}</select>` : `<div style="font-weight:800">${PEEK_MODES[v.peek]}</div>`}
@@ -1053,9 +1306,49 @@ function mainHTML(v) {
     return `<div class="banner${mine ? ' go' : ''}">${mine ? '⚔️ Your turn! Tap a stat to battle' : `<span class="dots">${pname(v, v.chooser)} is choosing a stat</span>`}<small>${mine ? 'Pick the stat you think will beat everyone.' : 'Here’s your card. Hope it’s a good one!'}</small></div>
       <div class="mycard">${cardHTML(v.top, {pick: mine})}</div>`;
   }
+  if (v.phase === 'pack') return packHTML(v);
   if (v.phase === 'reveal') return revealHTML(v);
   if (v.phase === 'over') return overHTML(v);
   return '';
+}
+// ---------- pack opening ----------
+function miniTile(id) {
+  const c = look(CARD[id]);
+  return `<div class="tile r-${c.r}" style="--glow:${c.glow}" data-act="zoom" data-card="${id}"><div class="tile-in"><div class="t-art">${artInner(c)}</div><div class="t-name">${esc(c.name)}</div></div></div>`;
+}
+function packHTML(v) {
+  if (!v.hand) return `<div class="banner"><span class="dots">Everyone is opening their packs</span></div>`;
+  if (UI.packOpened !== v.gid) return `<div class="banner">🎁 Your pack has arrived!<small>${v.hand.length} cards inside. Tap the pack to open it.</small></div>
+    <button class="pack" data-act="openpack"><span class="pk-shine"></span><span class="pk-logo">Card<br>Battler</span><span class="pk-sub">${THEME === 'classic' ? 'Booster pack' : THEMES[THEME]}</span><span class="pk-count">${v.hand.length} cards</span></button>`;
+  const hand = v.hand.slice().sort((a, b) => RANK[CARD[a].r] - RANK[CARD[b].r]);
+  const counts = ['mythic', 'legendary', 'epic', 'hero', 'rare', 'common'].map(r => [r, hand.filter(id => CARD[id].r === r).length]).filter(x => x[1]);
+  return `<div class="banner">Your cards<small>${counts.map(([r, n]) => `${n} ${RAR[r].n}`).join(' · ')}</small></div>
+    <div class="pgrid">${hand.map((id, i) => `<div class="tilew pk-in" style="animation-delay:${i * 110}ms">${miniTile(id)}</div>`).join('')}</div>
+    <div id="packbar" class="packbar">${packbarHTML(v)}</div>`;
+}
+function packbarHTML(v) {
+  if (v.phase !== 'pack' || UI.packOpened !== v.gid) return '';
+  if (v.packNeed.includes(ME.pid) && !v.packReady.includes(ME.pid)) return `<button class="btn gold" data-act="packready">⚔️ Let's battle!</button>`;
+  const left = v.packNeed.filter(p => !v.packReady.includes(p) && p !== ME.pid);
+  return `<div class="wait">✅ ${left.length ? 'Waiting for ' + left.map(p => pname(v, p)).join(', ') + ' to open their pack' : '<span class="dots">Starting</span>'}</div>`;
+}
+function openPack() {
+  const v = UI.view; if (!v || v.phase !== 'pack' || !v.hand) return;
+  const pk = $('.pack'); if (pk) pk.classList.add('burst');
+  SFX.power(); vibrate(60);
+  setTimeout(() => {
+    UI.packOpened = v.gid;
+    const fresh = collect(v.hand);
+    render();
+    const hand = v.hand.slice().sort((a, b) => RANK[CARD[a].r] - RANK[CARD[b].r]);
+    const best = hand.filter(id => RANK[CARD[id].r] >= 3);
+    best.forEach(id => later(() => {
+      const r = CARD[id].r;
+      toast(`${RAR[r].gem} ${r === 'mythic' ? 'MYTHIC!!' : 'Legendary!'} You got ${look(CARD[id]).name}!`);
+      SFX.win(); confetti(r === 'mythic' ? 60 : 24);
+    }, hand.indexOf(id) * 110 + 300));
+    if (fresh.length && !best.length) later(() => toast(`📒 ${fresh.length} new card${fresh.length === 1 ? '' : 's'} for your album!`), hand.length * 110 + 300);
+  }, 450);
 }
 
 function revealHTML(v) {
@@ -1069,10 +1362,10 @@ function revealHTML(v) {
       <div class="t-out">${out}</div>
       <div class="tile-in"><div class="t-who">${pv ? pv.av : ''} ${pname(v, pl.pid)}</div>
       <div class="t-art">${artInner(c)}</div>
-      <div class="t-name">${esc(c.name)}</div>
+      <div class="t-name">${esc(look(c).name)}</div>
       ${c.p ? `<div class="t-pow${pl.fired ? ' fired' : ''}${pl.muted ? ' muted' : ''}">${pl.muted ? '🔇' : PICON[c.p.type]} ${esc(c.p.name)}</div>` : ''}
       <div class="t-num" data-base="${pl.base}" data-val="${pl.val}">${pl.val}</div>
-      <div class="t-stat">${SI(R.stat)} ${SN(R.stat)}</div>
+      <div class="t-stat">${SI(R.used || R.stat)} ${SN(R.used || R.stat)}</div>
       <div class="t-notes"><div>${pl.notes.join(' ')}</div></div></div></div></div>`;
   }).join('');
   let head;
@@ -1080,7 +1373,7 @@ function revealHTML(v) {
     const s = R.won === 1 ? 'card' : 'cards';
     head = R.win === ME.pid ? `<div class="headline big">🏆 You win ${R.won} ${s}!</div>` : `<div class="headline">${pname(v, R.win)} wins ${R.won} ${s}!</div>`;
   } else head = `<div class="headline">⚖️ It's a tie! ${R.toPot} card${R.toPot === 1 ? '' : 's'} go into the pot.<div class="mut" style="font-family:Nunito;font-size:14px;font-weight:700;margin-top:4px">The next winner takes the whole pot!</div></div>`;
-  return `<div class="banner" id="rvbanner">${pname(v, R.by)} picked <span class="statpill">${SI(R.stat)} ${SN(R.stat)}</span>${R.low ? '<span class="topsy">🔄 TOPSY-TURVY: lowest number wins!</span>' : ''}</div>
+  return `<div class="banner" id="rvbanner">${pname(v, R.by)} picked <span class="statpill">${SI(R.stat)} ${SN(R.stat)}</span>${R.used && R.used !== R.stat ? `<span class="topsy swap">➜ Now it's ${SI(R.used)} ${SN(R.used)}!</span>` : ''}${R.low ? '<span class="topsy">🔄 TOPSY-TURVY: lowest number wins!</span>' : ''}</div>
     <div class="rv${v.shown ? '' : ' pre'}" id="rv">${v.shown ? '' : announceHTML(v)}<div class="vs${R.plays.length === 1 ? ' n1' : revealCols(R.plays.length) === 3 ? ' c3' : ''}">${tiles}</div>
     ${head}
     ${R.log.length ? `<div class="plog">${R.log.map(l => `<div>${esc(l)}</div>`).join('')}</div>` : ''}</div>`;
@@ -1128,7 +1421,7 @@ function announceHTML(v) {
   const who = R.by === ME.pid ? 'You picked' : `${pname(v, R.by)} picked`;
   return `<div class="announce"><div class="top"><div class="big">${who}<br><span class="statpill">${SI(R.stat)} ${SN(R.stat)}</span></div>
     <div id="peekbar">${v.peekMode === 'count' ? '<div class="cd321" id="cd321" aria-live="polite">3</div>' : peekbarHTML(v)}</div></div>
-    ${mine ? `<div class="mycard">${cardHTML(mine.id, {sel: R.stat})}</div>` : ''}</div>`;
+    ${mine ? `<div class="mycard">${cardHTML(mine.orig || mine.id, {sel: R.stat})}</div>` : ''}</div>`;
 }
 function footHTML(v) {
   if (v.phase === 'reveal') {
@@ -1197,6 +1490,10 @@ function runReveal(v) {
     if (v.peekMode !== 'tap' || !v.need.length) { UI.cdStart = Date.now(); UI.cdEnd = UI.cdStart + (T.next - T.shown); }
     tickCountdown(); UI.cdTimer = setInterval(tickCountdown, 100);
     if (!R.win) SFX.tie(); else if (R.win === ME.pid) { SFX.win(); vibrate([60, 40, 120]); confetti(18); } else SFX.lose();
+    if (R.win === ME.pid) {
+      const fresh = collect(R.plays.map(p => p.id).concat(R.stolen ? [R.stolen.id] : []));
+      if (fresh.length) toast(fresh.length <= 2 ? `📒 New for your album: ${fresh.map(id => look(CARD[id]).name).join(' & ')}!` : `📒 ${fresh.length} new cards for your album!`);
+    }
   }, tt);
 }
 function tickCountdown() {
@@ -1215,12 +1512,66 @@ function confetti(n) {
   }
 }
 
+function mysteryCard() {
+  return `<div class="cardw"><div class="card r-mythic" style="--glow:#ff8ae2;--rc:#ff8ae2"><div class="card-in">
+    <div class="c-head"><span class="c-name">??? Secret card</span><span class="c-gem">✺</span></div>
+    <div class="c-art mys"><span>?</span><div class="c-rar">MYTHIC</div></div>
+    <div class="c-flav" style="padding-top:3cqw">Turns up in about 1 game in 3. Win it in a battle to add it to your album!</div></div></div></div>`;
+}
 function galleryHTML() {
-  const f = UI.filter, list = CARDS.filter(c => f === 'all' || (f === 'power' ? c.p : c.r === f));
+  const f = UI.filter, have = album(), total = CARDS.length, got = CARDS.filter(c => have.has(c.id)).length;
+  const list = CARDS.filter(c => f === 'all' || (f === 'power' ? c.p : f === 'album' ? have.has(c.id) : f === 'missing' ? !have.has(c.id) : c.r === f));
   const counts = r => CARDS.filter(c => c.r === r).length;
-  return `<div class="topbar"><button class="iconbtn" data-act="leave" aria-label="Back">←</button><h2 class="grow">All ${CARDS.length} cards</h2></div>
-  <div class="filters">${[['all', 'All'], ['legendary', `★ Legendary (${counts('legendary')})`], ['epic', `✦ Epic (${counts('epic')})`], ['rare', `◆ Rare (${counts('rare')})`], ['common', `● Common (${counts('common')})`], ['power', '💥 Powers']].map(([k, n]) => `<button class="${f === k ? 'on' : ''}" data-act="filter" data-f="${k}">${n}</button>`).join('')}</div>
-  <div class="grid">${list.map(c => cardHTML(c.id, {zoom: true})).join('')}</div>`;
+  const hero = heroCard(loadHero(), ME.pid, ME.name);
+  if (hero) registerCustoms([hero]);
+  const card = c => c.r === 'mythic' && !have.has(c.id) ? mysteryCard()
+    : `<div class="gcell${have.has(c.id) ? ' got' : ''}">${cardHTML(c.id, {zoom: true})}</div>`;
+  return `<div class="topbar"><button class="iconbtn" data-act="leave" aria-label="Back">←</button><h2 class="grow">Cards &amp; album</h2></div>
+  <div class="panel albumbar"><div><b>📒 Your album: ${got} of ${total}</b><span class="mut">${got === total ? ' Complete! You are a true Card Master.' : ' Cards from your packs and the battles you win are collected here.'}</span></div><div class="abar"><i style="width:${Math.round(100 * got / total)}%"></i></div></div>
+  <div class="filters">${Object.entries(THEMES).map(([k, n]) => `<button class="${THEME === k ? 'on' : ''}" data-act="style" data-t="${k}">${n}</button>`).join('')}</div>
+  <div class="filters">${[['all', 'All'], ['album', `📒 Collected (${got})`], ['missing', `🔒 Still to find (${total - got})`], ['mythic', '✺ Mythic'], ['legendary', `★ Legendary (${counts('legendary')})`], ['epic', `✦ Epic (${counts('epic')})`], ['rare', `◆ Rare (${counts('rare')})`], ['common', `● Common (${counts('common')})`], ['power', '💥 Powers']].map(([k, n]) => `<button class="${f === k ? 'on' : ''}" data-act="filter" data-f="${k}">${n}</button>`).join('')}</div>
+  ${hero && f === 'all' ? `<h3 style="margin:4px 0 8px">🎨 Your hero card</h3><div class="grid" style="margin-bottom:16px">${cardHTML(hero.id, {zoom: true})}<button class="btn ghost" data-act="hero" style="align-self:center">✏️ Edit</button></div>` : ''}
+  <div class="grid">${list.map(card).join('')}</div>`;
+}
+// ---------- hero card designer ----------
+function heroDraft() {
+  if (!UI.hero) {
+    const saved = loadHero();
+    UI.hero = saved && heroCard(saved, 'x', 'x') ? JSON.parse(JSON.stringify(saved))
+      : {name: '', e: '🦊', scene: 'forest', s: {str: 47, mag: 47, int: 47, wit: 47, cou: 46, fear: 46}};
+  }
+  return UI.hero;
+}
+const heroLeft = h => HERO_BUDGET - STATS.reduce((a, x) => a + h.s[x.k], 0);
+function heroPreview() {
+  const h = heroDraft();
+  CARD.__hero = {id: '__hero', name: h.name.trim() || 'Your hero', e: h.e, acc: '⭐', scene: h.scene, glow: SCENE_GLOW[h.scene], r: 'hero', s: Object.assign({}, h.s), p: null, flav: `A hero card designed by ${ME.name || 'you'}.`, tint: ''};
+  return cardHTML('__hero');
+}
+function heroHTML() {
+  const h = heroDraft(), left = heroLeft(h);
+  return `<div class="topbar"><button class="iconbtn" data-act="leave" aria-label="Back">←</button><h2 class="grow">Your hero card</h2></div>
+  <div class="mycard hero-prev" id="heroPreview">${heroPreview()}</div>
+  <div class="stack" style="margin-top:14px">
+    <div class="panel"><label class="mut" style="font-weight:800;font-size:14px">Name</label>
+      <input class="txt" id="heroName" maxlength="22" placeholder="e.g. Blaze the Brave" value="${esc(h.name)}" autocomplete="off" style="margin-top:6px"></div>
+    <div class="panel"><div class="mut" style="font-weight:800;font-size:14px;margin-bottom:8px">Creature</div>
+      <div class="avatars">${HERO_EMOJI.map(e => `<button class="av${e === h.e ? ' on' : ''}" data-act="heroemoji" data-e="${e}">${e}</button>`).join('')}</div></div>
+    <div class="panel"><div class="mut" style="font-weight:800;font-size:14px;margin-bottom:8px">Where does it live?</div>
+      <select class="txt" id="heroScene">${Object.entries(SCENE_NAMES).map(([k, n]) => `<option value="${k}"${k === h.scene ? ' selected' : ''}>${n}</option>`).join('')}</select></div>
+    <div class="panel"><div class="hero-pts"><b>Stat points left: <span id="heroLeft">${left}</span></b><span class="mut">of ${HERO_BUDGET}</span></div>
+      ${STATS.map(x => `<label class="hero-st"><span>${x.i} ${x.n}</span><input type="range" min="${HERO_MIN}" max="${HERO_MAX}" value="${h.s[x.k]}" data-stat="${x.k}"><b id="hv-${x.k}">${h.s[x.k]}</b></label>`).join('')}
+      <div class="mut" style="font-size:13px;margin-top:8px">💡 Tip: a few big stats win more battles than lots of middling ones. Pick that stat when it's your turn!</div></div>
+    <button class="btn gold" data-act="herosave">💾 Save my hero card</button>
+    ${loadHero() ? `<button class="btn ghost" data-act="herodelete">🗑️ Delete my hero card</button>` : ''}
+    <div class="wait">Your hero card joins the deck when the host has <b>Hero cards</b> switched on. Hero cards have no special power.</div>
+  </div>`;
+}
+function heroUpdate() {
+  const h = heroDraft(), pv = $('#heroPreview');
+  if (pv) pv.innerHTML = heroPreview();
+  const l = $('#heroLeft'); if (l) l.textContent = heroLeft(h);
+  STATS.forEach(x => { const e = $('#hv-' + x.k); if (e) e.textContent = h.s[x.k]; });
 }
 function rulesHTML() {
   const ex = {};
@@ -1230,10 +1581,13 @@ function rulesHTML() {
     <h3>🎯 The goal</h3><p>Win cards from the other players. In <b>Quick</b> and <b>Standard</b> games, whoever has the most cards at the end wins. In an <b>Epic Quest</b>, keep going until one player has every card.</p>
     <h3>📱 Getting started</h3><ul><li>One player taps <b>Host a game</b> and gets a 4-letter code. The host must keep their screen open.</li><li>Everyone else taps <b>Join a game</b> on their own phone and types the code.</li><li>Not enough players? The host can add computer players.</li></ul>
     <h3>⚔️ Each round</h3><ul><li>All ${CARDS.length} cards are shuffled and shared out. You can only see the card on top of your deck.</li><li>The player with the 👑 picks a stat: Strength, Magic, Intelligence, Wit, Courage or Fear Factor.</li><li>Everyone's top card is revealed. The highest number wins every card played!</li><li>Who picks next depends on the game's setting: either the round's winner picks again, or everyone takes turns in order (round robin).</li><li><b>Tie?</b> The cards go into the pot, and the next winner takes the lot.</li></ul>
-    <h3>💎 Rarity</h3><p>● Common, ◆ Rare, ✦ Epic and ★ Legendary. Rarer cards are usually stronger, but every card has a weak spot!</p>
+    <h3>🎁 Packs</h3><p>At the start of each game everyone opens their pack to see which cards they've got. Then the battle begins!</p>
+    <h3>💎 Rarity</h3><p>● Common, ◆ Rare, ✦ Epic and ★ Legendary. Rarer cards are usually stronger, but every card has a weak spot! There's also one secret ✺ <b>Mythic</b> card that turns up in about 1 game in 3. Can you win it?</p>
+    <h3>🎨 Hero cards</h3><p>Design your own card from the home screen: pick a creature, a home and share out ${HERO_BUDGET} stat points. If the host switches <b>Hero cards</b> on, everyone's hero joins the deck.</p>
+    <h3>📒 Album</h3><p>Every card in your pack, and every card you win in a battle, goes into your album. Collect all ${CARDS.length}!</p>
     <h3>💥 Special powers</h3><p>Some cards have powers that switch on automatically when they're played:</p>
     <div class="pw-list">${Object.keys(PICON).map(t => ex[t] ? `<div><b>${PICON[t]} ${esc(ex[t].p.name)}</b> (${esc(ex[t].name)}): ${powerText(ex[t].p)}</div>` : '').join('')}</div>
-    <h3>🧠 Top tip</h3><p>If <b>your</b> card has a Topsy-Turvy power, pick its <b>lowest</b> stat!</p>
+    <h3>🧠 Top tips</h3><p>If <b>your</b> card has a Topsy-Turvy power, pick its <b>lowest</b> stat! Keep the 🥚 Dragon Egg safe: every time it flies home it grows, until it hatches.</p>
   </div>`;
 }
 
@@ -1259,7 +1613,19 @@ document.addEventListener('click', e => {
     }
     case 'dojoin': joinGame($('#code').value); break;
     case 'close': closeModal(); break;
-    case 'gallery': UI.screen = 'gallery'; render(); window.scrollTo(0, 0); break;
+    case 'gallery': UI.screen = 'gallery'; UI.filter = 'all'; render(); window.scrollTo(0, 0); break;
+    case 'hero': UI.hero = null; UI.screen = 'hero'; render(); window.scrollTo(0, 0); break;
+    case 'heroemoji': heroDraft().e = el.dataset.e; document.querySelectorAll('[data-act=heroemoji]').forEach(b => b.classList.toggle('on', b.dataset.e === el.dataset.e)); heroUpdate(); break;
+    case 'herosave': {
+      const h = heroDraft();
+      if (!h.name.trim()) { toast('Give your hero a name first!'); $('#heroName') && $('#heroName').focus(); break; }
+      if (!heroCard(h, ME.pid, ME.name)) { toast('Something isn\u2019t right with your card. Check the stats.'); break; }
+      store('mt_hero', JSON.stringify(h)); SFX.win(); confetti(20); toast('Hero card saved! 🎉'); UI.screen = 'home'; render(); break;
+    }
+    case 'herodelete': if (confirm('Delete your hero card?')) { try { localStorage.removeItem('mt_hero'); } catch (e) {} UI.screen = 'home'; render(); } break;
+    case 'style': UI.theme = el.dataset.t; render(); break;
+    case 'openpack': openPack(); break;
+    case 'packready': el.disabled = true; send({t: 'packReady'}); break;
     case 'rules': UI.screen = 'rules'; render(); window.scrollTo(0, 0); break;
     case 'filter': UI.filter = el.dataset.f; render(); break;
     case 'zoom': openModal(cardHTML(el.dataset.card) + '<div class="close">Tap anywhere to close</div>'); break;
@@ -1288,6 +1654,19 @@ document.addEventListener('change', e => {
   if (e.target.dataset.act === 'mode') send({t: 'mode', mode: e.target.value});
   if (e.target.dataset.act === 'turns') send({t: 'turns', turns: e.target.value});
   if (e.target.dataset.act === 'peekMode') send({t: 'peekMode', peek: e.target.value});
+  if (e.target.dataset.act === 'theme') send({t: 'theme', theme: e.target.value});
+  if (e.target.dataset.act === 'heroes') send({t: 'heroes', heroes: e.target.value});
+  if (e.target.id === 'heroScene') { heroDraft().scene = e.target.value; heroUpdate(); }
+});
+// Stat sliders share a points budget: a slider can't go past the points that are left.
+document.addEventListener('input', e => {
+  const k = e.target.dataset && e.target.dataset.stat;
+  if (k && UI.screen === 'hero') {
+    const h = heroDraft(), max = h.s[k] + heroLeft(h);
+    h.s[k] = Math.min(+e.target.value, max); e.target.value = h.s[k];
+    heroUpdate();
+  }
+  if (e.target.id === 'heroName') { heroDraft().name = e.target.value; heroUpdate(); }
 });
 document.addEventListener('input', e => { if (e.target.id === 'name') { ME.name = e.target.value.trim().slice(0, 14); store('mt_name', ME.name); } if (e.target.id === 'code') e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, ''); });
 document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'code') joinGame(e.target.value); if (e.key === 'Escape') closeModal(); });
