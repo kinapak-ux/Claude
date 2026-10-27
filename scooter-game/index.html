@@ -116,6 +116,9 @@ tr.me td{color:var(--hivis)}
 .tc[data-act=t1]{right:calc(var(--u)*78);bottom:calc(var(--u)*12);width:calc(var(--u)*48);height:calc(var(--u)*48);font-size:calc(var(--u)*7)}
 .tc[data-act=t2]{right:calc(var(--u)*12);bottom:calc(var(--u)*78);width:calc(var(--u)*48);height:calc(var(--u)*48);font-size:calc(var(--u)*7)}
 .confirm{color:var(--bad)}
+body.fill #app{padding-left:env(safe-area-inset-left, 0px);padding-right:env(safe-area-inset-right, 0px);padding-block:0}
+body.fill #stage{box-shadow:none}
+#toast{position:absolute;left:50%;top:calc(var(--u)*30);transform:translateX(-50%);max-width:80%;background:#0c0a18e6;color:var(--ink);font-size:calc(var(--u)*10);line-height:1;padding:calc(var(--u)*4) calc(var(--u)*7);box-shadow:inset 0 0 0 calc(var(--u)*1) var(--hivis);text-align:center;pointer-events:none}
 @media (prefers-reduced-motion: reduce){.newhs{animation:none}}
 </style>
 
@@ -235,6 +238,7 @@ tr.me td{color:var(--hivis)}
         </div>
       </section>
     </div>
+    <div id="toast" role="status" hidden></div>
     <button id="fsBtn" aria-label="Full screen" title="Full screen" hidden><svg viewBox="0 0 11 11" aria-hidden="true"><path d="M1 4V1h3M7 1h3v3M10 7v3H7M4 10H1V7" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
   </div>
 </div>
@@ -575,10 +579,30 @@ function setFinger(id, btn) {
   if (prev && ![...touchMap.values()].includes(prev)) { release(prev.dataset.act); prev.classList.remove('on'); }
   if (btn) { touchMap.set(id, btn); press(btn.dataset.act); btn.classList.add('on'); }
 }
-const tcAt = (x, y) => { const el = document.elementFromPoint(x, y); return el && el.closest ? el.closest('.tc') : null; };
-touchEl.addEventListener('pointerdown', e => { const b = e.target.closest('.tc'); if (!b) return; e.preventDefault(); audioInit(); setFinger(e.pointerId, b); });
-touchEl.addEventListener('pointermove', e => { if (touchMap.has(e.pointerId)) setFinger(e.pointerId, tcAt(e.clientX, e.clientY)); });
-for (const t of ['pointerup', 'pointercancel']) touchEl.addEventListener(t, e => setFinger(e.pointerId, null));
+const tcBtns = [...document.querySelectorAll('.tc')];
+function tcAt(x, y) {
+  let best = null, bd = 1e9;
+  for (const b of tcBtns) {
+    const r = b.getBoundingClientRect(), pad = r.width * .18;
+    if (x < r.left - pad || x > r.right + pad || y < r.top - pad || y > r.bottom + pad) continue;
+    const d = Math.hypot(x - (r.left + r.right) / 2, y - (r.top + r.bottom) / 2);
+    if (d < bd) { bd = d; best = b; }
+  }
+  return best;
+}
+// Touch: raw touch events on the whole stage, so a thumb can start anywhere and slide across buttons.
+const touchActive = () => inGame() && !touchEl.hidden;
+function onTouch(e) {
+  if (!touchActive()) return;
+  if (e.target.closest && e.target.closest('#pauseBtn, #fsBtn')) return;
+  e.preventDefault(); audioInit();
+  const end = e.type === 'touchend' || e.type === 'touchcancel';
+  for (const t of e.changedTouches) setFinger(t.identifier, end ? null : tcAt(t.clientX, t.clientY));
+}
+for (const t of ['touchstart', 'touchmove', 'touchend', 'touchcancel']) stage.addEventListener(t, onTouch, { passive: false });
+// Mouse and pen still work on the buttons (useful on touch laptops).
+touchEl.addEventListener('pointerdown', e => { if (e.pointerType === 'touch') return; const b = e.target.closest('.tc'); if (!b) return; e.preventDefault(); setFinger('m' + e.pointerId, b); });
+window.addEventListener('pointerup', e => { if (e.pointerType !== 'touch') setFinger('m' + e.pointerId, null); });
 touchEl.addEventListener('contextmenu', e => e.preventDefault());
 // gamepad
 let padPrev = {};
@@ -1487,7 +1511,7 @@ function renderOptions() {
     ['Music: ' + (o.music ? 'On' : 'Off'), () => { o.music = !o.music; applyAudioOpts(); }],
     ['Sound effects: ' + (o.sfx ? 'On' : 'Off'), () => { o.sfx = !o.sfx; applyAudioOpts(); }],
     ['Screen shake: ' + (o.shake ? 'On' : 'Off'), () => { o.shake = !o.shake; }],
-    ...(fsOK ? [['Full screen: ' + (isFS() ? 'On' : 'Off'), () => { toggleFS(); }]] : []),
+    ['Full screen: ' + (isFS() || isFill() ? 'On' : 'Off'), () => { toggleFS().then(() => { if (curScreen === 'options') renderOptions(); }); }],
     ['Touch buttons: ' + ({ auto: 'Auto', on: 'On', off: 'Off' })[o.touch], () => { o.touch = { auto: 'on', on: 'off', off: 'auto' }[o.touch]; }],
     [resetArmed ? 'Press again to erase all progress' : 'Reset progress', () => {
       if (!resetArmed) { resetArmed = true; return; }
@@ -1577,20 +1601,28 @@ $('#resMenuBtn').addEventListener('click', () => { if (pendingHS) submitName(); 
 const fsBtn = $('#fsBtn'), pauseBtnEl = $('#pauseBtn');
 const fsOK = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
 const isFS = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+let toastT = 0;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 4500); }
+const isFill = () => document.body.classList.contains('fill');
+function setFill(on) { document.body.classList.toggle('fill', on); setTimeout(fit, 30); }
 async function toggleFS() {
-  try {
-    if (isFS()) await (document.exitFullscreen || document.webkitExitFullscreen).call(document);
-    else {
-      const el = document.documentElement;
-      await (el.requestFullscreen || el.webkitRequestFullscreen).call(el, { navigationUI: 'hide' });
-      try { await screen.orientation.lock('landscape'); } catch (_) {}
-    }
-  } catch (e) {}
+  if (isFS()) { try { await (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (e) {} setFill(false); return; }
+  if (isFill()) { setFill(false); return; }
+  const el = document.documentElement, req = el.requestFullscreen || el.webkitRequestFullscreen;
+  let ok = false;
+  if (fsOK && req) {
+    try { const r = req.call(el, { navigationUI: 'hide' }); if (r && r.then) await r; ok = true; } catch (e) {}
+    await new Promise(r => setTimeout(r, 150));
+    ok = ok && isFS();
+  }
+  if (ok) { try { await screen.orientation.lock('landscape'); } catch (_) {} return; }
+  setFill(true);
+  toast('Full screen is blocked here, so the game now fills the window. For true full screen, open the page in its own browser tab.');
 }
-function onFSChange() { fsBtn.setAttribute('aria-label', isFS() ? 'Exit full screen' : 'Full screen'); fsBtn.title = fsBtn.getAttribute('aria-label'); setTimeout(fit, 60); if (curScreen === 'options' && !overlay.hidden) renderOptions(); }
+function onFSChange() { if (!isFS()) setFill(false); fsBtn.setAttribute('aria-label', isFS() ? 'Exit full screen' : 'Full screen'); fsBtn.title = fsBtn.getAttribute('aria-label'); setTimeout(fit, 60); if (curScreen === 'options' && !overlay.hidden) renderOptions(); }
 document.addEventListener('fullscreenchange', onFSChange); document.addEventListener('webkitfullscreenchange', onFSChange);
-fsBtn.hidden = !fsOK;
-fsBtn.addEventListener('click', () => { audioInit(); toggleFS(); fsBtn.blur(); });
+fsBtn.hidden = false;
+fsBtn.addEventListener('click', () => { audioInit(); toggleFS().then(() => { if (curScreen === 'options' && !overlay.hidden) renderOptions(); }); fsBtn.blur(); });
 new MutationObserver(() => stage.classList.toggle('ingame', !pauseBtnEl.hidden)).observe(pauseBtnEl, { attributes: true, attributeFilter: ['hidden'] });
 
 // ================================================================ boot
