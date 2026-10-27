@@ -155,7 +155,8 @@ function render() {
   if (!S.level || !B.scootLevels.includes(S.level)) S.level = B.scootLevels[0] || null;
   const pod = champ.slice(0, 3);
   const podium = pod.length ? `<div class="podium">${[1, 0, 2].map(i => pod[i] ? `<div class="pod p${i + 1}"><div class="m">${['👑', '🥈', '🥉'][i]}</div><div class="n">${esc(pod[i].name)}</div><div class="pts">${pod[i].value} pts</div></div>` : '<div></div>').join('')}</div>` : '';
-  const section = (g, body) => `<div class="panel"><h2>${GAME[g].i} ${GAME[g].n}<span class="grow"></span><a class="iconbtn" style="height:32px;margin-left:auto" href="${GAME[g].url}">Play</a></h2>${body}</div>`;
+  const playUrl = g => g === 'hoopshot' && S.tab.hoop === 'timed' ? GAME[g].url + '?mode=timed' : g === 'echowheel' ? GAME[g].url + '?mode=' + S.tab.echo : GAME[g].url;
+  const section = (g, body) => `<div class="panel"><h2>${GAME[g].i} ${GAME[g].n}<span class="grow"></span><a class="iconbtn" style="height:32px;margin-left:auto" href="${playUrl(g)}">${g === 'hoopshot' && S.tab.hoop === 'timed' ? 'Play 60s' : 'Play'}</a></h2>${body}</div>`;
   app.innerHTML = top + who + `
     <div class="panel"><h2>👑 Family Champion</h2>${podium}${rankHTML(champ, x => `${x.value} pts`)}
       <p class="note">Points from every game: 5 for 1st place, 3 for 2nd, 2 for 3rd and 1 for 4th.</p></div>

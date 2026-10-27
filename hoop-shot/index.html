@@ -1855,6 +1855,12 @@
     updateHud(false);
     window.addEventListener('resize', resize);
     requestAnimationFrame(frame);
+    // Opened from the family leaderboard's 60-second board: go straight into a fresh challenge.
+    if (new URLSearchParams(location.search).get('mode') === 'timed') {
+      if (mode === 'timed') resetRound(); else setMode('timed');
+      updateHud(false);
+      history.replaceState(null, '', location.pathname);
+    }
     if (!p) openFamily();
   }
 
