@@ -58,8 +58,8 @@ Secrets are private. They never appear on the page or in the code, even though t
 
 ## Card Battler (card game for the kids)
 
-A fantasy Top Trumps game that 2 to 6 players play on their own phones. It lives in `top-trumps/index.html` and is published with the tracker at
-**https://kinapak-ux.github.io/Claude/top-trumps/**
+A fantasy Top Trumps game that 2 to 6 players play on their own phones. It lives in `card-battler/index.html` and is published with the tracker at
+**https://kinapak-ux.github.io/Claude/card-battler/** (the old `/top-trumps/` address redirects there)
 
 - One player taps **Host a game** and gets a 4-letter code. The other players open the same page, tap **Join a game** and type the code. The host's phone runs the game, so the host needs to keep the page open.
 - You can add computer players to make up the numbers, or tap **Practise against the computer** to play alone.
