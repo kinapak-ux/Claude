@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#120a24">
+<title>Update the Score Sheet</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="stylesheet" href="../kit.css">
+<style>
+:root{--accent:#ffcc4d}
+ol{margin:0;padding-left:22px;line-height:1.55}
+ol li{margin:0 0 12px}
+ol b{color:#fff}
+.key{display:inline-block;padding:1px 8px;border-radius:8px;background:rgba(255,255,255,.12);border:1px solid var(--line);white-space:nowrap}
+#status{font-size:16px}
+#status.ok{border-color:var(--good);color:var(--good)}
+#status.old{border-color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="iconbtn" href="./">← Leaderboard</a></div>
+  <h1 class="title" style="font-size:34px">Update the score sheet</h1>
+  <p class="subtitle">About 2 minutes, on a computer that can open Google Drive. You only need to do this once.</p>
+  <div class="stack">
+    <div class="panel center" id="status">Checking your sheet…</div>
+    <button class="btn" id="copy">📋 Copy the new script</button>
+    <div class="panel">
+      <ol>
+        <li>Tap <b>Copy the new script</b> above.</li>
+        <li>Open your <b>Family leaderboard</b> Google Sheet, the one with the <b>Scores</b> tab.</li>
+        <li>In the menu, click <span class="key">Extensions</span> then <span class="key">Apps Script</span>. The code opens in a new tab.</li>
+        <li>Click anywhere in the code, press <span class="key">Ctrl+A</span> (<span class="key">⌘+A</span> on a Mac) to select it all, then <span class="key">Ctrl+V</span> (<span class="key">⌘+V</span>) to paste over it.</li>
+        <li>Click the 💾 <b>Save</b> icon.</li>
+        <li>Click the blue <span class="key">Deploy</span> button (top right), then <span class="key">Manage deployments</span>.</li>
+        <li>Click the ✏️ <b>pencil</b> (Edit) icon.</li>
+        <li>Under <b>Version</b>, pick <span class="key">New version</span>. Leave everything else as it is.</li>
+        <li>Click <span class="key">Deploy</span>, then <span class="key">Done</span>. If Google asks for permission, click through and allow it as before.</li>
+        <li>Come back here and tap <b>Check again</b>.</li>
+      </ol>
+      <p class="mut" style="font-size:14px;margin:4px 0 0">Use <b>Manage deployments</b>, not <b>New deployment</b>. That way the web address stays the same and the games keep working.</p>
+    </div>
+    <button class="btn ghost" id="check">🔄 Check again</button>
+    <details class="panel"><summary style="cursor:pointer">Copy button not working? Show the script</summary>
+      <textarea class="txt" id="script" readonly style="margin-top:10px;min-height:220px"></textarea></details>
+  </div>
+</div>
+<script src="../scores.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+let script = '';
+fetch('apps-script.txt', {cache: 'no-cache'}).then(r => r.text()).then(t => { script = t; $('#script').value = t; }).catch(() => {});
+$('#copy').onclick = async () => {
+  const b = $('#copy');
+  try { await navigator.clipboard.writeText(script || $('#script').value); b.textContent = '✅ Copied! Now follow the steps below'; }
+  catch (e) { $('details').open = true; $('#script').select(); b.textContent = 'Select all the text in the box below and copy it'; }
+};
+async function check() {
+  const s = $('#status'); s.className = 'panel center'; s.textContent = 'Checking your sheet…';
+  try {
+    await FamilyScores.list();
+    if (FamilyScores.sheetUpdated()) { s.className = 'panel center ok'; s.innerHTML = '✅ <b>All done!</b> Your sheet is up to date and accepts scores from every game.'; FamilyScores.flush(); }
+    else { s.className = 'panel center old'; s.innerHTML = '⚠️ <b>Needs updating.</b> Your sheet works but can’t take Family Quiz, Battleships or Snap Race scores yet. Follow the steps below.'; }
+  } catch (e) {
+    s.className = 'panel center old';
+    s.textContent = e.message === 'not-set-up' ? 'The leaderboard isn’t connected yet. Set it up from the leaderboard page first.' : 'Couldn’t reach the sheet from here. Work networks often block it, so try on a phone or home Wi-Fi. You can still do the steps below.';
+  }
+}
+$('#check').onclick = check;
+check();
+</script>
+</body>
+</html>
