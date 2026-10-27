@@ -56,7 +56,7 @@ Secrets are private. They never appear on the page or in the code, even though t
 - **Change the chip targets** (for example, 20+ for Bench Boost): see the settings at the top of `chips.py`.
 - **Change the rules** (number of fixtures, form thresholds and so on): see the settings at the top of `build.py`.
 
-## Mythic Trumps (card game for the kids)
+## Card Battler (card game for the kids)
 
 A fantasy Top Trumps game that 2 to 6 players play on their own phones. It lives in `top-trumps/index.html` and is published with the tracker at
 **https://kinapak-ux.github.io/Claude/top-trumps/**
