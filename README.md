@@ -66,3 +66,25 @@ A fantasy Top Trumps game that 2 to 6 players play on their own phones. It lives
 - 40 cards: 16 Common, 12 Rare, 8 Epic and 4 Legendary. Each card has six stats: Strength, Magic, Intelligence, Wit, Courage and Fear Factor. 28 cards have special powers, such as stealing cards, halving an opponent's number or making the lowest number win.
 - Game length: Quick (15 rounds), Standard (30 rounds) or Epic Quest (play until one player owns every card).
 - Phones connect directly to each other using PeerJS's free connection service, so nobody needs an account. It works best when everyone is on the same Wi-Fi.
+
+## Family games (install them like apps)
+
+All five games are published with the tracker and can be installed on a phone's home screen, where they open full screen with their own icon:
+
+| Game | Address |
+|---|---|
+| Card Battler | https://kinapak-ux.github.io/Claude/card-battler/ |
+| Scoot City | https://kinapak-ux.github.io/Claude/scoot-city/ |
+| Skirmish Chess | https://kinapak-ux.github.io/Claude/chess/ |
+| Hoop Shot | https://kinapak-ux.github.io/Claude/hoop-shot/ |
+| Echo Wheel | https://kinapak-ux.github.io/Claude/echo-wheel/ |
+
+**To install:** on Android, open the game in Chrome, tap **⋮** and then **Install app** (or **Add to Home screen**). On iPhone, open it in Safari, tap **Share** and then **Add to Home Screen**.
+
+Once a game has been opened, it also works with no signal. The exception is anything that needs other phones, such as Card Battler multiplayer.
+
+These copies use the phone's own storage, so a few features only work in the claude.ai versions:
+- Online chess, which uses claude.ai's shared database. Play against the computer or on one device instead.
+- The shared high-score boards in Scoot City and Echo Wheel. Scores are kept on each phone instead.
+
+Each game folder holds the page (`index.html`), the app details (`manifest.webmanifest`), the icons, and `sw.js`, which keeps a copy of the game on the phone for offline play.
