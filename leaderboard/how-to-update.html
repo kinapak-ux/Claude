@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#120a24">
+<title>Score Sheet Picture Guide</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="stylesheet" href="../kit.css">
+<style>
+:root{--accent:#ffcc4d;--blue:#1a73e8}
+.step{display:grid;gap:10px}
+.num{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--accent);color:#3a2000;font-weight:900;margin-right:8px;flex:none}
+.step h2{display:flex;align-items:center;font-family:Nunito,system-ui,sans-serif;font-weight:900;font-size:19px}
+.step p{margin:0;line-height:1.5}
+.k{display:inline-block;padding:0 7px;border-radius:7px;background:rgba(255,255,255,.14);border:1px solid var(--line);white-space:nowrap;font-weight:900}
+.warn{background:rgba(255,92,122,.12);border:1px solid rgba(255,92,122,.5);border-radius:12px;padding:10px 12px;font-size:15px;line-height:1.45}
+.good{background:rgba(92,255,176,.1);border:1px solid rgba(92,255,176,.45);border-radius:12px;padding:10px 12px;font-size:15px;line-height:1.45}
+
+/* drawings of Google's screens */
+.mock{background:#fff;color:#202124;border-radius:12px;overflow:hidden;font:500 13px/1.35 Arial,Helvetica,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.4);position:relative}
+.mock .bar{display:flex;align-items:center;gap:6px;padding:7px 10px;background:#f1f3f4;border-bottom:1px solid #dadce0;font-size:12px;color:#5f6368;white-space:nowrap;overflow:hidden}
+.mock .row{display:flex;gap:12px;padding:6px 10px;flex-wrap:wrap}
+.mock .menu{position:relative;display:inline-block;padding:2px 4px;border-radius:4px}
+.mock .drop{background:#fff;border:1px solid #dadce0;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.2);padding:4px 0;min-width:170px;margin:4px 10px 10px auto}
+.mock .drop div{padding:7px 14px}
+.mock .dim{color:#9aa0a6}
+.mock .cells{display:grid;grid-template-columns:28px repeat(5,1fr);font-size:11px;color:#5f6368}
+.mock .cells div{border-right:1px solid #e8eaed;border-bottom:1px solid #e8eaed;padding:3px 4px;height:22px;overflow:hidden;white-space:nowrap}
+.mock .tabs{display:flex;gap:2px;padding:4px 8px;background:#f1f3f4;border-top:1px solid #dadce0;font-size:12px}
+.mock .tabs span{padding:4px 12px;border-radius:4px 4px 0 0}
+.mock .tabs .on{background:#fff;color:#188038;font-weight:700;border-bottom:2px solid #188038}
+.mock .editor{display:grid;grid-template-columns:96px 1fr;min-height:120px}
+.mock .side{background:#f8f9fa;border-right:1px solid #dadce0;padding:8px;font-size:12px}
+.mock .side .f{background:#e8f0fe;color:#1967d2;border-radius:0 12px 12px 0;padding:4px 8px;margin:4px -8px 0 -8px}
+.mock .src{font:12px/1.5 Consolas,Menlo,monospace;padding:8px;color:#188038;white-space:pre;overflow:hidden}
+.mock .src .sel{background:#c8dcfa}
+.mock .tool{display:flex;align-items:center;gap:10px;padding:6px 10px;border-bottom:1px solid #dadce0;font-size:13px}
+.mock .bluebtn{background:var(--blue);color:#fff;border-radius:6px;padding:6px 14px;font-weight:700;display:inline-block}
+.mock .linkbtn{color:var(--blue);font-weight:700;padding:6px 10px;display:inline-block}
+.mock .dlg{padding:10px 12px}
+.mock .dlg h3{font:400 17px Arial,sans-serif;margin:0 0 8px}
+.mock .split{display:grid;grid-template-columns:110px 1fr;gap:10px}
+.mock .list{border-right:1px solid #dadce0;padding-right:8px;font-size:12px}
+.mock .list .on{background:#e8f0fe;border-radius:6px;padding:6px}
+.mock .field{border:1px solid #80868b;border-radius:4px;padding:7px 10px;display:flex;justify-content:space-between;margin:4px 0}
+.mock .lab{font-size:11px;color:#5f6368;margin-top:6px}
+.mock .icon{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;font-size:16px}
+.mock .foot{display:flex;justify-content:flex-end;gap:6px;padding:8px 10px;border-top:1px solid #e8eaed}
+/* the thing to click */
+.hl{outline:3px solid #ff2d7a;outline-offset:2px;border-radius:5px;animation:pulse 1.4s infinite;position:relative;z-index:1}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,45,122,.6)}50%{box-shadow:0 0 0 8px rgba(255,45,122,0)}}
+.tapme{position:absolute;font-size:26px;pointer-events:none;animation:tap 1.4s infinite;z-index:2}
+@keyframes tap{50%{transform:translate(3px,3px) scale(.9)}}
+#status.ok{border-color:var(--good);color:var(--good)}
+#status.old{border-color:var(--accent)}
+details summary{cursor:pointer;font-weight:900}
+details p{margin:8px 0 0;line-height:1.5;color:var(--mut)}
+.toc a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a class="iconbtn" href="./">← Leaderboard</a><div class="grow"></div><a class="iconbtn" href="update.html">Short version</a></div>
+  <h1 class="title" style="font-size:32px">Score sheet:<br>picture guide</h1>
+  <p class="subtitle">This lets the newest games (Family Quiz, Battleships, Snap Race and Times Table Blaster) save scores to the family leaderboard. It takes about 3 minutes, and you only do it once.</p>
+
+  <div class="stack">
+    <div class="panel"><b>Before you start</b>
+      <p style="margin:8px 0 0;line-height:1.5">💻 Use a <b>home computer</b>, not your phone and not a work laptop. Work networks often block Google's script pages.<br>
+      👤 Sign in to the <b>Google account that made the score sheet</b>.<br>
+      📱 Tip: open this page on your phone too, so you can follow the pictures while you click on the computer.<br>
+      🔗 Address for the computer: <b style="word-break:break-all">kinapak-ux.github.io/Claude/leaderboard/how-to-update.html</b></p>
+    </div>
+
+    <div class="panel center" id="status">Checking your sheet…</div>
+
+    <!-- 1 -->
+    <div class="panel step">
+      <h2><span class="num">1</span>Copy the new script</h2>
+      <p>On the computer, click this button. It copies the new script, ready to paste in step 4.</p>
+      <button class="btn" id="copy">📋 Copy the new script</button>
+    </div>
+
+    <!-- 2 -->
+    <div class="panel step">
+      <h2><span class="num">2</span>Open your score sheet</h2>
+      <p>Go to <b>drive.google.com</b> or <b>sheets.google.com</b> and open the spreadsheet you made for the leaderboard. You'll know it's the right one because it has a <b>Scores</b> tab at the bottom, full of game results.</p>
+      <div class="mock">
+        <div class="bar">📗 <b style="color:#202124">Family leaderboard</b></div>
+        <div class="cells">
+          <div></div><div>A</div><div>B</div><div>C</div><div>D</div><div>E</div>
+          <div>1</div><div><b>Time</b></div><div><b>Game</b></div><div><b>Board</b></div><div><b>Player</b></div><div><b>Score</b></div>
+          <div>2</div><div>27/10 18:02</div><div>cardbattler</div><div>wins</div><div>Ella</div><div>1</div>
+          <div>3</div><div>27/10 18:20</div><div>hoopshot</div><div>timed</div><div>Dan</div><div>31</div>
+        </div>
+        <div class="tabs"><span>＋ ☰</span><span class="on hl">Scores</span></div>
+      </div>
+    </div>
+
+    <!-- 3 -->
+    <div class="panel step">
+      <h2><span class="num">3</span>Extensions → Apps Script</h2>
+      <p>In the menu along the top of the sheet, click <span class="k">Extensions</span>, then <span class="k">Apps Script</span>. The script editor opens in a <b>new tab</b>.</p>
+      <div class="mock">
+        <div class="row" style="font-size:13px"><span>File</span><span>Edit</span><span>View</span><span>Insert</span><span>Format</span><span>Data</span><span>Tools</span><span class="menu hl">Extensions</span><span>Help</span></div>
+        <div class="drop" style="margin:0 10px 10px 90px">
+          <div>Add-ons ▸</div><div>Macros ▸</div><div class="hl" style="margin:2px 6px">⚙️ Apps Script</div><div class="dim">AppSheet ▸</div>
+        </div>
+      </div>
+      <div class="warn">Can't see <b>Extensions</b>? Check you've opened the spreadsheet itself, not the Drive folder, and that you're on a computer. The phone app doesn't have it.</div>
+    </div>
+
+    <!-- 4 -->
+    <div class="panel step">
+      <h2><span class="num">4</span>Paste over the old script</h2>
+      <p>Click anywhere in the code. Press <span class="k">Ctrl</span>+<span class="k">A</span> to select <b>all</b> of it, so it all turns blue. Then press <span class="k">Ctrl</span>+<span class="k">V</span> to paste the new script over it.<br>
+      On a Mac, use <span class="k">⌘ Cmd</span> instead of Ctrl.</p>
+      <div class="mock">
+        <div class="bar"><b style="color:#202124">Apps Script</b> · Family leaderboard</div>
+        <div class="editor">
+          <div class="side">Files<div class="f">Code.gs</div></div>
+          <div class="src"><span class="sel">/**
+ * Family Games leaderboard.
+ * Paste this into the Apps Script
+ */
+const SHEET = 'Scores';
+const VERSION = 2;</span></div>
+        </div>
+      </div>
+      <div class="good">✅ <b>Check:</b> near the top of the code it should now say <b>const VERSION = 2;</b></div>
+    </div>
+
+    <!-- 5 -->
+    <div class="panel step">
+      <h2><span class="num">5</span>Save</h2>
+      <p>Click the <b>💾 Save</b> icon in the bar above the code, or press <span class="k">Ctrl</span>+<span class="k">S</span>.</p>
+      <div class="mock">
+        <div class="tool"><span class="dim">↶ ↷</span><span class="icon hl" title="Save project">💾</span><span class="dim">▶ Run</span><span class="dim">Debug</span><span style="margin-left:auto" class="bluebtn">Deploy ▾</span></div>
+        <div class="src" style="color:#5f6368">const VERSION = 2;</div>
+      </div>
+    </div>
+
+    <!-- 6 -->
+    <div class="panel step">
+      <h2><span class="num">6</span>Deploy → Manage deployments</h2>
+      <p>Click the blue <span class="k">Deploy</span> button in the top right, then <span class="k">Manage deployments</span>.</p>
+      <div class="mock">
+        <div class="tool"><span class="dim">💾 ▶ Run</span><span style="margin-left:auto" class="bluebtn hl">Deploy ▾</span></div>
+        <div class="drop">
+          <div class="dim">New deployment</div>
+          <div class="hl" style="margin:2px 6px">Manage deployments</div>
+          <div class="dim">Test deployments</div>
+        </div>
+      </div>
+      <div class="warn">⚠️ <b>Not "New deployment".</b> That would make a new web address, and the games wouldn't know about it. If you click it by mistake, just close it and pick <b>Manage deployments</b>.</div>
+    </div>
+
+    <!-- 7 -->
+    <div class="panel step">
+      <h2><span class="num">7</span>Click the pencil ✏️</h2>
+      <p>A box called <b>Manage deployments</b> opens. Click the <b>✏️ pencil</b> (Edit) at the top right of the box.</p>
+      <div class="mock">
+        <div class="dlg">
+          <h3>Manage deployments</h3>
+          <div class="split">
+            <div class="list"><div class="lab" style="margin:0 0 4px">Active</div><div class="on">Web app<br><span class="dim" style="font-size:11px">Version 1</span></div></div>
+            <div><div style="display:flex;justify-content:flex-end;gap:4px"><span class="icon hl">✏️</span><span class="icon dim">🗄️</span></div>
+              <div class="lab">Deployment ID</div><div class="dim" style="font-size:11px">AKfycbyu4xJr6AKWeN…</div>
+              <div class="lab">Web app URL</div><div class="dim" style="font-size:11px">https://script.google.com/macros/s/…/exec</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 8 -->
+    <div class="panel step">
+      <h2><span class="num">8</span>Version → New version</h2>
+      <p>Click the <b>Version</b> box and choose <span class="k">New version</span>. Leave everything else as it is, including "Execute as: Me" and "Who has access: Anyone".</p>
+      <div class="mock">
+        <div class="dlg">
+          <h3>Edit deployment</h3>
+          <div class="lab">Version</div>
+          <div class="field hl"><span>New version</span><span>▾</span></div>
+          <div class="drop" style="margin:0 0 6px 0;min-width:0"><div class="hl" style="margin:2px 6px">New version</div><div class="dim">Version 1 on 23 Oct</div></div>
+          <div class="lab">Execute as</div><div class="field dim"><span>Me</span><span>▾</span></div>
+          <div class="lab">Who has access</div><div class="field dim"><span>Anyone</span><span>▾</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 9 -->
+    <div class="panel step">
+      <h2><span class="num">9</span>Deploy, then Done</h2>
+      <p>Click the blue <span class="k">Deploy</span> button at the bottom of the box. When it says <b>Deployment successfully updated</b>, click <span class="k">Done</span>.</p>
+      <div class="mock">
+        <div class="foot"><span class="linkbtn">Cancel</span><span class="bluebtn hl">Deploy</span></div>
+        <div class="dlg" style="border-top:1px solid #e8eaed"><h3>Deployment successfully updated.</h3><div class="dim">Version 2 on 27 Oct</div></div>
+        <div class="foot"><span class="linkbtn hl">Done</span></div>
+      </div>
+      <div class="good">The web address stays the same, so there's nothing to change in any of the games.</div>
+    </div>
+
+    <!-- 10 -->
+    <div class="panel step">
+      <h2><span class="num">10</span>Check it worked</h2>
+      <p>Click below. When it turns green, you're all done 🎉. The scores waiting on everyone's phones send themselves the next time each phone opens a game or the leaderboard.</p>
+      <button class="btn ghost" id="check">🔄 Check my sheet</button>
+    </div>
+
+    <div class="panel stack">
+      <h2 style="font-family:Nunito,sans-serif;font-weight:900;font-size:19px">🤔 If something looks different</h2>
+      <details><summary>Google says "Authorisation required" or "Google hasn't verified this app"</summary>
+        <p>That's normal for a script you made yourself. Click <b>Review permissions</b> and choose your account. Then click <b>Advanced</b>, then <b>Go to … (unsafe)</b>, then <b>Allow</b>. It only gives your own script access to your own sheet.</p></details>
+      <details><summary>There's no pencil, or the list is empty</summary>
+        <p>Make sure you clicked <b>Manage deployments</b>, not Test deployments. If there's more than one item under <b>Active</b>, click the one marked <b>Web app</b> with the oldest date, then the pencil.</p></details>
+      <details><summary>I clicked "New deployment" and finished it</summary>
+        <p>No harm done. The games still use the old address. Go to <b>Deploy → Manage deployments</b>, pick the <b>older</b> Web app (the original), and do steps 7 to 9 on that one. You can archive the new one with the 🗄️ icon if you like.</p></details>
+      <details><summary>The Check still says "Needs updating"</summary>
+        <p>Wait a minute and check again. If it still says that, make sure you picked <b>New version</b> in step 8. Leaving it on "Version 1" keeps the old script running. Also check the code says <b>const VERSION = 2;</b> after you pasted it.</p></details>
+      <details><summary>The Check says it "couldn't reach the sheet"</summary>
+        <p>The network you're on is probably blocking Google's script pages, as many work networks do. Try the check on your phone with Wi-Fi turned off, or on home Wi-Fi.</p></details>
+      <details><summary>The Copy button didn't work</summary>
+        <p>Click below to show the whole script. Click inside the box, press <b>Ctrl+A</b> then <b>Ctrl+C</b> to copy it.</p>
+        <textarea class="txt" id="script" readonly style="margin-top:10px;min-height:200px"></textarea></details>
+    </div>
+
+    <a class="btn ghost" href="./">🏆 Back to the leaderboard</a>
+  </div>
+</div>
+<script src="../scores.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+let script = '';
+fetch('apps-script.txt', {cache: 'no-cache'}).then(r => r.text()).then(t => { script = t; $('#script').value = t; }).catch(() => {});
+$('#copy').onclick = async () => {
+  const b = $('#copy');
+  try { await navigator.clipboard.writeText(script || $('#script').value); b.textContent = '✅ Copied! Now go to step 2'; }
+  catch (e) { const d = $('#script').closest('details'); d.open = true; $('#script').select(); b.textContent = 'Copy the script from the box at the bottom of the page'; d.scrollIntoView({behavior: 'smooth'}); }
+};
+async function check() {
+  const s = $('#status'); s.className = 'panel center'; s.textContent = 'Checking your sheet…';
+  try {
+    await FamilyScores.list();
+    if (FamilyScores.sheetUpdated()) { s.className = 'panel center ok'; s.innerHTML = '✅ <b>All done!</b> Your sheet is up to date. You don’t need to do anything on this page.'; FamilyScores.flush(); }
+    else { s.className = 'panel center old'; s.innerHTML = '⚠️ <b>Needs updating.</b> Follow the steps below.'; }
+  } catch (e) {
+    s.className = 'panel center old';
+    s.textContent = 'Couldn’t reach the sheet from here. Work networks often block it. You can still follow the steps, then check on a phone or home Wi-Fi.';
+  }
+  return s;
+}
+$('#check').onclick = () => check().then(s => s.scrollIntoView({behavior: 'smooth', block: 'center'}));
+check();
+</script>
+</body>
+</html>
