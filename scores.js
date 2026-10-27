@@ -2,7 +2,7 @@
 // Google Sheet (see leaderboard/apps-script.txt). Results wait on the phone while it's
 // offline or before the sheet is set up, then send themselves later.
 (function () {
-  const ENDPOINT = '';  // the Google Apps Script web app address, filled in once it's deployed
+  const ENDPOINT = 'https://script.google.com/macros/s/AKfycbyu4xJr6AKWeN0rTNnAFsAYo_uPQNt0m9ZBUVmaYP9nFBBbAq8GWAZNUpi66C0OpZasQQ/exec';  // the family's Google Apps Script web app
   const QUEUE = 'family-scores-queue', NAME = 'family-name';
   const get = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
   const set = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} };
