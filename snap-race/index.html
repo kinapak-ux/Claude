@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Snap Race</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#2a0a12">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Snap Race">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@600;800;900&display=swap">
+<link rel="stylesheet" href="../kit.css">
+<style>
+:root{--bg:#1c0610;--bg2:#7a1530;--accent:#ffd23f;--accent-ink:#3a1500;--display:"Bungee",Impact,system-ui,sans-serif}
+.scores{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.sc{flex:1 0 auto;min-width:70px;text-align:center;padding:6px 8px;border-radius:12px;background:rgba(0,0,0,.3);border:2px solid transparent}
+.sc .n{font-size:12px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px}
+.sc .p{font-family:var(--display);font-size:18px;color:var(--accent)}
+.sc.me{background:rgba(255,210,63,.15)}
+.sc.frz{opacity:.5}
+.meta{display:flex;justify-content:space-between;font-weight:900;color:var(--mut);font-size:14px;margin:8px 2px}
+.table{display:grid;grid-template-columns:1fr 1.6fr;gap:14px;align-items:center;margin:8px 0 14px}
+.card{aspect-ratio:3/4;border-radius:18px;display:grid;place-items:center;border:5px solid #fff;box-shadow:0 10px 30px rgba(0,0,0,.5);position:relative}
+.card .e{font-size:clamp(60px,22vw,120px);line-height:1;filter:drop-shadow(0 4px 6px rgba(0,0,0,.35))}
+.card.prev{transform:rotate(-8deg) scale(.92);opacity:.85}
+.card.prev .e{font-size:clamp(36px,13vw,70px)}
+.card.flip{animation:flip .28s ease-out}
+@keyframes flip{from{transform:rotateY(90deg) scale(.9)}}
+.card .lbl{position:absolute;top:-24px;left:0;right:0;text-align:center;font-size:12px;font-weight:900;color:var(--mut)}
+.empty{border-style:dashed;border-color:rgba(255,255,255,.3);box-shadow:none;background:rgba(0,0,0,.2)}
+.pile{text-align:center;font-family:var(--display);font-size:18px;margin-bottom:8px}
+.snap{width:100%;border:0;border-radius:24px;padding:26px 0;font-family:var(--display);font-size:clamp(40px,14vw,64px);color:#fff;background:radial-gradient(circle at 50% 30%,#ff5a6e,#c4122f);box-shadow:0 8px 0 #6e0a1a,0 14px 30px rgba(255,40,80,.4);cursor:pointer;letter-spacing:2px;touch-action:manipulation;user-select:none}
+.snap:active{transform:translateY(6px);box-shadow:0 2px 0 #6e0a1a}
+.snap:disabled{background:#4a3a52;box-shadow:0 8px 0 #2a1f30;font-size:28px}
+.snapbar{position:sticky;bottom:0;padding:10px 0 calc(8px + env(safe-area-inset-bottom));background:linear-gradient(rgba(28,6,16,0),var(--bg) 25%)}
+.event{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%);z-index:30;pointer-events:none;text-align:center;font-family:var(--display);font-size:clamp(28px,9vw,48px);text-shadow:0 4px 0 rgba(0,0,0,.6);animation:ev 1.4s ease-out forwards;width:90vw}
+.event small{display:block;font-family:Nunito,sans-serif;font-weight:900;font-size:18px;margin-top:4px}
+@keyframes ev{0%{transform:translate(-50%,-50%) scale(.4);opacity:0}15%{transform:translate(-50%,-50%) scale(1.1);opacity:1}75%{opacity:1}100%{transform:translate(-50%,-80%);opacity:0}}
+.lrow{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.25);border-radius:12px;padding:12px 14px;font-weight:900}
+.lrow .name{flex:1}
+.lrow .pts{font-family:var(--display);color:var(--accent)}
+.howto{font-size:14px;line-height:1.5;color:var(--mut)}
+</style>
+</head>
+<body>
+<main class="wrap" id="app"></main>
+<div id="modal"></div>
+<div id="toast"></div>
+<script src="../scores.js"></script>
+<script src="../party.js"></script>
+<script>
+'use strict';
+const PREFIX = 'snaprace-v1-';
+const SYMBOLS = ['🍎', '🐸', '⭐', '🚀', '🍩', '🐙', '⚽', '🌈', '👻', '🦄'];
+const COLORS = ['#ff5a6e', '#3fa9ff', '#3fd88a', '#ffb53f', '#b46bff', '#ff7ad9'];
+const SPEEDS = {chill: {n: 'Chilled', from: 2300, to: 1700}, normal: {n: 'Normal', from: 1800, to: 1150}, turbo: {n: 'Turbo', from: 1250, to: 750}};
+const LENGTHS = {30: 'Short (30 cards)', 50: 'Medium (50)', 80: 'Long (80)'};
+const MATCH_CHANCE = .28, WINDOW_MS = 300, PAUSE_MS = 1700, FREEZE_MS = 2000;
+const BOTS = [['Snappy Bot', 420, 820], ['Speedy Bot', 380, 700], ['Sleepy Bot', 520, 1000], ['Zippy Bot', 400, 760], ['Turbo Bot', 360, 660]];
+const app = document.getElementById('app');
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+let toastT;
+function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 3000); }
+function openModal(h) { const m = $('#modal'); m.innerHTML = h; m.classList.add('on'); }
+function closeModal() { const m = $('#modal'); m.classList.remove('on'); m.innerHTML = ''; }
+function confetti(n) { const bits = ['🎉', '⚡', '⭐', '🏆', '🃏']; for (let i = 0; i < n; i++) { const d = document.createElement('div'); d.className = 'conf'; d.textContent = bits[i % bits.length]; d.style.left = Math.random() * 100 + 'vw'; d.style.animationDuration = (2 + Math.random() * 2.5) + 's'; document.body.appendChild(d); setTimeout(() => d.remove(), 6000); } }
+function vibrate(p) { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} }
+function showEvent(html, color) { const d = document.createElement('div'); d.className = 'event'; d.style.color = color; d.innerHTML = html; document.body.appendChild(d); setTimeout(() => d.remove(), 1500); }
+const SFX = {
+  ctx: null,
+  init() { if (!this.ctx) try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
+  tone(f, t, d, type, v) { if (!this.ctx) return; const c = this.ctx, o = c.createOscillator(), g = c.createGain(), s = c.currentTime + t; o.type = type || 'triangle'; o.frequency.setValueAtTime(f, s); g.gain.setValueAtTime(.0001, s); g.gain.exponentialRampToValueAtTime(v || .15, s + .01); g.gain.exponentialRampToValueAtTime(.0001, s + d); o.connect(g); g.connect(c.destination); o.start(s); o.stop(s + d + .05); },
+  flip() { this.tone(900, 0, .05, 'square', .04); },
+  snap() { [784, 1047, 1319].forEach((f, i) => this.tone(f, i * .06, .2)); },
+  oops() { this.tone(160, 0, .4, 'sawtooth', .1); },
+  win() { [523, 659, 784, 1047, 784, 1047].forEach((f, i) => this.tone(f, i * .13, .3)); },
+};
+
+/* ================= game (runs on the host) ================= */
+let G = null, ROOM = null, C = null;
+const UI = {screen: 'home', v: null, shownAt: {}, lastN: -1, lastEv: '', offline: false, reported: null, myBest: null};
+function newGame(solo) {
+  G = {phase: 'lobby', solo, gid: '', settings: {cards: 50, speed: 'normal'}, n: 0, card: null, prev: null, pile: 0, claimed: -1, pending: null, last: null, timer: null,
+    players: [{pid: Party.pid, name: Party.name() || 'You', score: 0, frozenUntil: 0, best: null}]};
+  if (solo) { addBot(); addBot(); }
+}
+function addBot() {
+  if (G.players.length >= 6) return;
+  const used = G.players.map(p => p.name), b = BOTS.find(x => !used.includes(x[0]));
+  G.players.push({pid: 'bot' + Math.random().toString(36).slice(2, 7), name: b[0], bot: true, min: b[1], max: b[2], score: 0, frozenUntil: 0, best: null});
+}
+const isOn = p => p.bot || p.pid === Party.pid || !!(ROOM && ROOM.isOn(p.pid));
+function viewFor(pid) {
+  const now = Date.now(), me = G.players.find(p => p.pid === pid);
+  return {phase: G.phase, solo: G.solo, code: ROOM ? ROOM.code : null, host: Party.pid, gid: G.gid, settings: G.settings,
+    players: G.players.map(p => ({pid: p.pid, name: p.name, score: p.score, bot: !!p.bot, on: isOn(p), frozen: p.frozenUntil > now, best: p.best})),
+    n: G.n, total: G.settings.cards, card: G.card, prev: G.prev, pile: G.pile, last: G.last,
+    frozenMs: me ? Math.max(0, me.frozenUntil - now) : 0};
+}
+function push() {
+  if (!G) return;
+  if (ROOM) G.players.forEach(p => { if (!p.bot && p.pid !== Party.pid) ROOM.send(p.pid, {t: 'state', v: viewFor(p.pid)}); });
+  UI.v = viewFor(Party.pid); render();
+}
+function startGame() {
+  G.phase = 'play'; G.gid = Math.random().toString(36).slice(2, 8);
+  G.n = 0; G.card = null; G.prev = null; G.pile = 0; G.claimed = -1; G.pending = null; G.last = null;
+  G.players.forEach(p => { p.score = 0; p.frozenUntil = 0; p.best = null; });
+  push();
+  clearTimeout(G.timer); G.timer = setTimeout(flip, 1500);
+}
+const isMatch = () => G.prev && G.card && G.prev.s === G.card.s;
+function flip() {
+  if (!G || G.phase !== 'play') return;
+  if (isMatch() && G.claimed !== G.n) G.last = {type: 'missed', n: G.n, pile: G.pile + 1, id: G.gid + ':m' + G.n};
+  if (G.n >= G.settings.cards) { endGame(); return; }
+  G.prev = G.card;
+  const s = G.prev && Math.random() < MATCH_CHANCE ? G.prev.s : (sym => { let x; do { x = Math.floor(Math.random() * SYMBOLS.length); } while (G.prev && x === G.prev.s); return x; })();
+  G.card = {s, c: Math.floor(Math.random() * COLORS.length)};
+  G.n++; G.pile++;
+  push();
+  // Computer players react to a match after their own reaction time, and very occasionally jump the gun.
+  G.players.filter(p => p.bot).forEach(p => {
+    const n = G.n;
+    if (isMatch()) { const rt = p.min + Math.random() * (p.max - p.min); setTimeout(() => act(p.pid, {t: 'snap', n, rt}), rt); }
+    else if (Math.random() < .02) setTimeout(() => act(p.pid, {t: 'snap', n, rt: 500}), 500);
+  });
+  const sp = SPEEDS[G.settings.speed], k = G.n / G.settings.cards;
+  G.timer = setTimeout(flip, sp.from + (sp.to - sp.from) * k);
+}
+function act(pid, m) {
+  if (!G) return;
+  const p = G.players.find(x => x.pid === pid), isHost = pid === Party.pid;
+  switch (m.t) {
+    case 'snap': {
+      if (G.phase !== 'play' || !p || m.n !== G.n || p.frozenUntil > Date.now()) return;
+      if (!isMatch()) {
+        p.score = Math.max(0, p.score - 2); p.frozenUntil = Date.now() + FREEZE_MS;
+        G.last = {type: 'false', pid, n: G.n, id: G.gid + ':f' + G.n + pid};
+        push(); setTimeout(push, FREEZE_MS + 50); return;
+      }
+      if (G.claimed === G.n) return;
+      const rt = Math.max(80, Math.min(+m.rt || 9999, 5000));
+      if (!G.pending || G.pending.n !== G.n) {
+        G.pending = {n: G.n, taps: []};
+        setTimeout(settleSnap, WINDOW_MS);   // gather near-simultaneous snaps, then the quickest reaction wins
+      }
+      if (!G.pending.taps.some(t => t.pid === pid)) G.pending.taps.push({pid, rt});
+      break;
+    }
+    case 'settings': if (isHost && G.phase === 'lobby') { Object.assign(G.settings, m.s); push(); } break;
+    case 'addBot': if (isHost && G.phase === 'lobby') { addBot(); push(); } break;
+    case 'kick': if (isHost && G.phase === 'lobby' && m.pid !== Party.pid) { G.players = G.players.filter(x => x.pid !== m.pid); push(); } break;
+    case 'start': if (isHost && G.phase === 'lobby' && G.players.length >= 2) startGame(); break;
+    case 'again': if (isHost && G.phase === 'over') { G.phase = 'lobby'; G.players = G.players.filter(isOn); push(); } break;
+  }
+}
+function settleSnap() {
+  const pd = G && G.pending;
+  if (!pd || G.phase !== 'play' || pd.n !== G.n || G.claimed === G.n) return;
+  const best = pd.taps.sort((a, b) => a.rt - b.rt)[0], p = G.players.find(x => x.pid === best.pid);
+  const won = G.pile;
+  p.score += won; p.best = p.best === null ? best.rt : Math.min(p.best, best.rt);
+  G.claimed = G.n; G.pile = 0; G.pending = null;
+  G.last = {type: 'snap', pid: p.pid, n: G.n, won, rt: Math.round(best.rt), id: G.gid + ':s' + G.n};
+  clearTimeout(G.timer); G.timer = setTimeout(flip, PAUSE_MS);
+  push();
+}
+function endGame() {
+  clearTimeout(G.timer);
+  G.phase = 'over'; push();
+}
+function hostGame() {
+  newGame(false); UI.screen = 'game'; push();
+  Party.host(PREFIX, {
+    onOpen: () => push(),
+    onJoin: (pid, hello) => {
+      const p = G.players.find(x => x.pid === pid);
+      if (p) { p.name = String(hello.name || p.name).slice(0, 16); return true; }
+      if (G.phase !== 'lobby') return 'That race has already started. Ask the host to start a new one.';
+      if (G.players.length >= 6) return 'That race is full (6 players).';
+      G.players.push({pid, name: String(hello.name || 'Player').slice(0, 16), score: 0, frozenUntil: 0, best: null});
+      return true;
+    },
+    onConnect: () => push(), onLeave: () => push(), onMessage: (pid, m) => act(pid, m), onError: t => toast(t),
+  }).then(r => { ROOM = r; push(); }).catch(() => { toast('Could not load the connection helper. Check your internet.'); goHome(); });
+}
+function practise() { newGame(true); UI.screen = 'game'; push(); }
+function joinGame(code) {
+  code = Party.cleanCode(code);
+  if (code.length !== 4) return toast('The race code has 4 letters.');
+  closeModal(); UI.screen = 'connecting'; render();
+  Party.join(PREFIX, code, {
+    onMessage: d => { if (d.t === 'state') { UI.v = d.v; UI.screen = 'game'; render(); } },
+    onStatus: s => { UI.offline = s === 'lost'; const nb = $('#netbar'); if (nb) nb.innerHTML = netbar(); },
+    onFail: t => { toast(t); goHome(); },
+  }).then(c => { C = c; }).catch(() => { toast('Could not load the connection helper. Check your internet.'); goHome(); });
+}
+function send(m) { if (G) act(Party.pid, m); else if (C && !C.send(m)) toast('Not connected right now. Reconnecting…'); }
+function goHome() { if (G) clearTimeout(G.timer); if (ROOM) ROOM.close(); if (C) C.close(); G = null; ROOM = null; C = null; UI.screen = 'home'; UI.v = null; UI.offline = false; render(); }
+const netbar = () => UI.offline ? `<div class="netbar">📡 Lost connection to the host. Reconnecting…</div>` : '';
+
+/* ================= screens ================= */
+const cardHTML = (c, cls) => c ? `<div class="card ${cls || ''}" style="background:${COLORS[c.c]}"><span class="e">${SYMBOLS[c.s]}</span></div>` : `<div class="card empty ${cls || ''}"></div>`;
+function render() {
+  if (UI.screen === 'home') { app.innerHTML = homeHTML(); return; }
+  if (UI.screen === 'connecting') { app.innerHTML = `<div class="stack center" style="margin-top:30vh"><div style="font-size:60px">📡</div><h2 class="dots">Finding the race</h2><button class="btn ghost" data-act="home">Cancel</button></div>`; return; }
+  const v = UI.v; if (!v) return;
+  const amHost = v.host === Party.pid;
+  const top = `<div class="top"><button class="iconbtn" data-act="quit">✕ Exit</button><div class="grow"></div>${v.code ? `<span class="mut" style="font-size:13px">Race ${v.code}</span>` : ''}</div><div id="netbar">${netbar()}</div>`;
+  if (v.phase === 'lobby') { app.innerHTML = top + lobbyHTML(v, amHost); return; }
+  if (v.phase === 'over') { app.innerHTML = top + overHTML(v, amHost); return; }
+  // play
+  if (v.n !== UI.lastN) { UI.lastN = v.n; UI.shownAt[v.n] = performance.now(); if (v.n) SFX.flip(); }
+  if (v.last && v.last.id !== UI.lastEv) {
+    UI.lastEv = v.last.id;
+    const who = v.players.find(p => p.pid === v.last.pid), mine = v.last.pid === Party.pid;
+    if (v.last.type === 'snap') { SFX.snap(); showEvent(`⚡ ${mine ? 'You' : esc(who.name)} SNAP!<small>+${v.last.won} card${v.last.won === 1 ? '' : 's'} · ${(v.last.rt / 1000).toFixed(2)}s</small>`, mine ? '#5cffb0' : '#ffd23f'); if (mine) { vibrate([40, 30, 80]); confetti(10); } }
+    else if (v.last.type === 'false') { if (mine) { SFX.oops(); vibrate(200); } showEvent(`❌ ${mine ? 'Too soon!' : esc(who.name) + ' slipped!'}<small>No match: −2 and frozen for 2s</small>`, '#ff8a9c'); }
+    else if (v.last.type === 'missed') showEvent(`😮 Missed it!<small>Nobody snapped. The pile keeps growing!</small>`, '#9fd8ff');
+  }
+  const frozen = v.frozenMs > 0;
+  app.innerHTML = top + `<div class="scores">${v.players.map(p => `<div class="sc${p.pid === Party.pid ? ' me' : ''}${p.frozen ? ' frz' : ''}"><div class="n">${p.frozen ? '❄️ ' : ''}${p.pid === Party.pid ? 'You' : esc(p.name)}</div><div class="p">${p.score}</div></div>`).join('')}</div>
+    <div class="meta"><span>Card ${v.n} of ${v.total}</span><span>${SPEEDS[v.settings.speed].n} speed</span></div>
+    <div class="table"><div style="position:relative">${v.prev ? '<div class="lbl" style="position:absolute;top:-20px;width:100%;text-align:center;font-size:12px;color:var(--mut)">Last card</div>' : ''}${cardHTML(v.prev, 'prev')}</div>${v.card ? cardHTML(v.card, 'flip') : `<div class="card empty"><span class="dots" style="font-weight:900">Get ready</span></div>`}</div>
+    <div class="pile">🃏 Pile: ${v.pile}</div>
+    <div class="snapbar"><button class="snap" data-act="snap" ${frozen || !v.card ? 'disabled' : ''}>${frozen ? '❄️ Frozen…' : 'SNAP!'}</button></div>`;
+  if (frozen) setTimeout(() => { if (UI.v === v) { v.frozenMs = 0; render(); } }, v.frozenMs);
+}
+function homeHTML() {
+  const pre = Party.codeFromUrl();
+  return `<div class="top"><a class="iconbtn" href="/">🏠 Main menu</a><div class="grow"></div><a class="iconbtn" href="../leaderboard/">🏆</a></div>
+  <h1 class="title">Snap Race</h1><p class="subtitle">Same picture twice in a row? Hit SNAP before anyone else!</p>
+  <div class="stack">
+    <div class="panel"><div class="label">Your name</div><input class="txt" id="name" maxlength="16" placeholder="Type your name" value="${esc(Party.name())}" autocomplete="off" style="margin-top:6px"></div>
+    <button class="btn" data-act="host">⚡ Host a race</button>
+    <button class="btn alt" data-act="join">📱 Join a race${pre ? ' (' + pre + ')' : ''}</button>
+    <button class="btn green" data-act="solo">🤖 Practise against the computer</button>
+    <div class="panel howto"><b style="color:var(--ink)">How to play:</b> cards flip over faster and faster. When a card has the same picture as the one before (the colour doesn't matter), tap <b>SNAP!</b> The quickest player wins the whole pile. Snap when it's not a match and you lose 2 cards and freeze for 2 seconds!</div>
+    <a class="btn ghost" href="../leaderboard/">🏆 Family leaderboard</a>
+    <a class="btn ghost" href="/">🏠 Exit to main menu</a>
+  </div>`;
+}
+function lobbyHTML(v, amHost) {
+  const st = v.settings;
+  return `<h2 class="title" style="font-size:30px">${v.solo ? 'Practice race' : amHost ? 'Gather the racers' : 'You’re in!'}</h2><div class="stack">
+    ${v.solo ? '' : v.code ? `<div class="panel center"><div class="label">Race code</div><div class="code">${v.code.split('').map(c => `<span>${c}</span>`).join('')}</div>
+      <div class="mut" style="font-size:14px">${amHost ? 'Everyone opens Snap Race, taps <b>Join a race</b> and types this code.' : 'Waiting for the host to start…'}</div>
+      ${amHost && navigator.share ? `<button class="btn ghost sm" style="margin:10px auto 0" data-act="share">📤 Send invite link</button>` : ''}</div>` : `<div class="panel center"><span class="dots">Opening the race</span></div>`}
+    <div class="panel"><div class="label" style="margin-bottom:8px">Racers (${v.players.length}/6)</div><div class="plist">${v.players.map(p => `<div class="pl"><span class="grow">${esc(p.name)}${p.pid === Party.pid ? ' (you)' : ''}</span>${p.bot ? '<span class="tag">COMPUTER</span>' : ''}${!p.on ? '<span class="tag">📵</span>' : ''}${amHost && p.pid !== Party.pid ? `<button class="chip" data-act="kick" data-pid="${esc(p.pid)}">✕</button>` : ''}</div>`).join('')}</div>
+      ${amHost && v.players.length < 6 ? `<button class="btn ghost sm" style="margin-top:10px" data-act="addBot">🤖 Add a computer racer</button>` : ''}</div>
+    ${amHost ? `<div class="panel stack"><div><div class="label" style="margin-bottom:6px">Speed</div><div class="chips">${Object.entries(SPEEDS).map(([k, s]) => `<button class="chip${st.speed === k ? ' on' : ''}" data-set="speed" data-val="${k}">${s.n}</button>`).join('')}</div></div>
+      <div><div class="label" style="margin-bottom:6px">Length</div><div class="chips">${Object.entries(LENGTHS).map(([k, n]) => `<button class="chip${st.cards === +k ? ' on' : ''}" data-set="cards" data-val="${k}">${n}</button>`).join('')}</div></div></div>
+      <button class="btn" data-act="start" ${v.players.length < 2 ? 'disabled' : ''}>⚡ Start the race!</button>${v.players.length < 2 ? '<div class="wait">You need at least 2 racers.</div>' : ''}` : `<div class="panel"><b>${SPEEDS[st.speed].n}</b> speed · ${LENGTHS[st.cards]}</div><div class="wait dots">Waiting for the host to start</div>`}
+  </div>`;
+}
+function overHTML(v, amHost) {
+  const r = v.players.slice().sort((a, b) => b.score - a.score), me = r.find(p => p.pid === Party.pid), pod = r.slice(0, 3);
+  const won = me && me.score === r[0].score && r.filter(p => p.score === r[0].score).length === 1;
+  if (UI.reported !== v.gid) {
+    UI.reported = v.gid;
+    if (won) { SFX.win(); confetti(40); }
+    if (window.FamilyScores && me) {
+      FamilyScores.submit('snaprace', 'wins', won ? 1 : 0, {player: me.name, detail: `${r.indexOf(me) + 1} of ${r.length}, ${me.score} cards`});
+      if (me.best) FamilyScores.submit('snaprace', 'fastest', Math.round(me.best), {player: me.name});
+    }
+  }
+  const fastest = v.players.filter(p => p.best).sort((a, b) => a.best - b.best)[0];
+  return `<h2 class="title" style="font-size:32px">${won ? '🏆 You win!' : esc(r[0].name) + ' wins!'}</h2>
+  <div class="podium">${[1, 0, 2].map(i => pod[i] ? `<div class="pod p${i + 1}"><div class="m">${['🥇', '🥈', '🥉'][i]}</div><div class="n">${esc(pod[i].name)}</div><div>${pod[i].score} cards</div></div>` : '<div></div>').join('')}</div>
+  <div class="stack">${r.slice(3).map((p, k) => `<div class="lrow"><span>${k + 4}</span><span class="name">${esc(p.name)}</span><span class="pts">${p.score}</span></div>`).join('')}
+  ${fastest ? `<div class="panel center">⚡ Fastest snap: <b>${esc(fastest.name)}</b> in <b>${(fastest.best / 1000).toFixed(2)}s</b></div>` : ''}
+  ${amHost ? `<button class="btn" data-act="again">🔁 Race again</button>` : '<div class="wait">The host can start another race.</div>'}
+  <a class="btn ghost" href="../leaderboard/">🏆 Family leaderboard</a><button class="btn ghost" data-act="home">⚡ Snap Race menu</button></div>`;
+}
+
+/* ================= events ================= */
+function needName() { const el = $('#name'), n = el ? el.value.trim() : Party.name(); if (!n) { toast('Type your name first!'); el && el.focus(); return false; } Party.setName(n); return true; }
+// SNAP reacts on touch-down, not on release, so it's as quick as possible.
+document.addEventListener('pointerdown', e => {
+  const el = e.target.closest('[data-act=snap]');
+  if (!el || el.disabled || !UI.v || UI.v.phase !== 'play') return;
+  e.preventDefault();
+  const v = UI.v, rt = performance.now() - (UI.shownAt[v.n] || performance.now());
+  send({t: 'snap', n: v.n, rt});
+});
+document.addEventListener('click', e => {
+  SFX.init();
+  if (e.target.id === 'modal') { closeModal(); return; }
+  const el = e.target.closest('[data-act],[data-set]');
+  if (!el) return;
+  if (el.dataset.set) { send({t: 'settings', s: {[el.dataset.set]: isNaN(+el.dataset.val) ? el.dataset.val : +el.dataset.val}}); return; }
+  switch (el.dataset.act) {
+    case 'host': if (needName()) hostGame(); break;
+    case 'solo': if (needName()) practise(); break;
+    case 'join':
+      if (!needName()) break;
+      openModal(`<div class="mbox panel stack"><h2 class="center">📱 Join a race</h2><div class="mut center">Type the 4-letter code from the host's phone.</div>
+        <input class="txt center" id="code" maxlength="4" value="${esc(Party.codeFromUrl())}" placeholder="ABCD" autocomplete="off" autocapitalize="characters" style="font-size:32px;letter-spacing:10px">
+        <button class="btn" data-act="dojoin">Join!</button><button class="btn ghost" data-act="close">Cancel</button></div>`);
+      setTimeout(() => $('#code') && $('#code').focus(), 50); break;
+    case 'dojoin': joinGame($('#code').value); break;
+    case 'close': closeModal(); break;
+    case 'addBot': send({t: 'addBot'}); break;
+    case 'kick': send({t: 'kick', pid: el.dataset.pid}); break;
+    case 'start': send({t: 'start'}); break;
+    case 'again': send({t: 'again'}); break;
+    case 'share': navigator.share({title: 'Snap Race', text: 'Race me at Snap! Code: ' + UI.v.code, url: Party.inviteLink(UI.v.code)}).catch(() => {}); break;
+    case 'quit':
+      if (UI.v && UI.v.phase === 'play' && !confirm('Leave this race?')) break;
+      goHome(); break;
+    case 'home': goHome(); break;
+  }
+});
+document.addEventListener('input', e => { if (e.target.id === 'name') Party.setName(e.target.value); if (e.target.id === 'code') e.target.value = Party.cleanCode(e.target.value); });
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'code') joinGame(e.target.value); if (e.code === 'Space' && UI.v && UI.v.phase === 'play') { e.preventDefault(); const b = $('[data-act=snap]'); if (b && !b.disabled) b.dispatchEvent(new PointerEvent('pointerdown', {bubbles: true})); } });
+render();
+</script>
+<script>if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));</script>
+</body>
+</html>

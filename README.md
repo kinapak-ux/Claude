@@ -74,7 +74,7 @@ A fantasy Top Trumps game that 2 to 6 players play on their own phones. It lives
 
 ## Family games (install them like apps)
 
-All five games are published with the tracker and can be installed on a phone's home screen, where they open full screen with their own icon:
+All eight games are published with the tracker and can be installed on a phone's home screen, where they open full screen with their own icon:
 
 | Game | Address |
 |---|---|
@@ -83,10 +83,15 @@ All five games are published with the tracker and can be installed on a phone's 
 | Skirmish Chess | https://kinapak-ux.github.io/Claude/chess/ |
 | Hoop Shot | https://kinapak-ux.github.io/Claude/hoop-shot/ |
 | Echo Wheel | https://kinapak-ux.github.io/Claude/echo-wheel/ |
+| Family Quiz Night | https://kinapak-ux.github.io/Claude/family-quiz/ |
+| Battleships | https://kinapak-ux.github.io/Claude/battleships/ |
+| Snap Race | https://kinapak-ux.github.io/Claude/snap-race/ |
 
 **To install:** on Android, open the game in Chrome, tap **⋮** and then **Install app** (or **Add to Home screen**). On iPhone, open it in Safari, tap **Share** and then **Add to Home Screen**.
 
 Once a game has been opened, it also works with no signal. The exception is anything that needs other phones, such as Card Battler multiplayer.
+
+Family Quiz Night, Battleships and Snap Race also work like Card Battler: one phone hosts and shows a 4-letter code, and the others join with it. Each also has a no-internet mode (pass-the-phone quiz, Battleships against the computer, Snap practice against computer racers). Their shared code is in `party.js` (connecting phones) and `kit.css` (the look).
 
 Online chess works like Card Battler: one player taps **Online** and then **Start a new game**, and the other types in the 5-character code. If either phone drops out, the game pauses until it reconnects. Whoever started the game can reopen it from **Online** and then **Resume**.
 
@@ -96,11 +101,12 @@ Each game folder holds the page (`index.html`), the app details (`manifest.webma
 
 ## Family leaderboard
 
-All five games send their results to one shared leaderboard at
+All eight games send their results to one shared leaderboard at
 **https://kinapak-ux.github.io/Claude/leaderboard/**. It shows each game's best scores, plus an overall Family Champion (5, 3, 2 and 1 points for the top four on each game's board).
 
 - The scores are kept in a Google Sheet in your own Google Drive, through a small Google Apps Script (`leaderboard/apps-script.txt`). The leaderboard page shows the setup steps until it's connected. Once deployed, its web app address goes into `ENDPOINT` in `scores.js`.
 - Each phone keeps its results until they've been sent, so nothing is lost while it's offline or before the sheet is connected.
 - Names come from the game (Card Battler, Hoop Shot) or are asked for once per phone. Each phone's name can be changed on the leaderboard page.
+- The newer games (Family Quiz, Battleships, Snap Race) need version 2 of the script. To update it, paste the new `leaderboard/apps-script.txt` into the Apps Script editor, then **Deploy → Manage deployments → ✏️ → Version: New version → Deploy**. The address stays the same. Until then, those games' scores wait on the phones.
 - To fix or remove a score, edit or delete its row in the sheet's **Scores** tab.
 - The web app address is in this public repository, so anyone who found it could read or add scores. First names or nicknames are best.
