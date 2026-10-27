@@ -55,3 +55,14 @@ Secrets are private. They never appear on the page or in the code, even though t
 - **Change team:** edit `TEAM_ID` in `.github/workflows/update-tracker.yml`.
 - **Change the chip targets** (for example, 20+ for Bench Boost): see the settings at the top of `chips.py`.
 - **Change the rules** (number of fixtures, form thresholds and so on): see the settings at the top of `build.py`.
+
+## Mythic Trumps (card game for the kids)
+
+A fantasy Top Trumps game that 2 to 6 players play on their own phones. It lives in `top-trumps/index.html` and is published with the tracker at
+**https://kinapak-ux.github.io/Claude/top-trumps/**
+
+- One player taps **Host a game** and gets a 4-letter code. The other players open the same page, tap **Join a game** and type the code. The host's phone runs the game, so the host needs to keep the page open.
+- You can add computer players to make up the numbers, or tap **Practise against the computer** to play alone.
+- 40 cards: 16 Common, 12 Rare, 8 Epic and 4 Legendary. Each card has six stats: Strength, Magic, Intelligence, Wit, Courage and Fear Factor. 28 cards have special powers, such as stealing cards, halving an opponent's number or making the lowest number win.
+- Game length: Quick (15 rounds), Standard (30 rounds) or Epic Quest (play until one player owns every card).
+- Phones connect directly to each other using PeerJS's free connection service, so nobody needs an account. It works best when everyone is on the same Wi-Fi.
