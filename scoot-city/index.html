@@ -179,6 +179,7 @@ body.fill #stage{box-shadow:none}
             <button class="btn ghost" data-go="help">How to play</button>
           </div>
           <button class="btn ghost" data-go="options">Options</button>
+          <button class="btn ghost" onclick="location.href='/'">🏠 Exit to main menu</button>
         </nav>
         <p class="foot" id="titleFoot">Arrow keys and Enter to choose</p>
       </section>
@@ -299,7 +300,8 @@ body.fill #stage{box-shadow:none}
           <button class="btn ghost" data-go="help">How to play</button>
           <button class="btn ghost" id="pauseEditBtn" hidden>Back to editor</button>
           <button class="btn ghost" id="pauseLevelsBtn">Level select</button>
-          <button class="btn ghost" id="quitBtn">Main menu</button>
+          <button class="btn ghost" id="quitBtn">Exit game</button>
+          <button class="btn ghost" onclick="location.href='/'">🏠 Exit to main menu</button>
         </nav>
       </section>
 
@@ -2690,6 +2692,19 @@ if (isTouch) $('#titleFoot').textContent = 'Tap to choose. Turn your phone sidew
 fit();
 setAttract(save.level);
 show('title');
+// Opened from the family leaderboard: show that level, selected and ready to ride.
+{
+  const want = new URLSearchParams(location.search).get('level');
+  if (want) {
+    history.replaceState(null, '', location.pathname);
+    const i = want === dailyDef().name ? 'daily' : LEVELS.findIndex(d => d.name === want);
+    if (i === 'daily' || i >= 0) {
+      if (validLevel(i)) { save.level = i; persist(); setAttract(i); }
+      else toast('Finish ' + LEVELS[i - 1].name + ' to unlock ' + want + ', or turn on Unlock all levels in Options.');
+      toLevels();
+    }
+  }
+}
 document.addEventListener('pointerdown', audioInit, { once: true });
 window.ScootCity = { get state() { return state; }, get P() { return P; }, get run() { return run; }, get L() { return L; }, LEVELS, getDef, startLevel, press, release, held, step };
 requestAnimationFrame(t => { last = t; requestAnimationFrame(frame); });
