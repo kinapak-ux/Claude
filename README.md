@@ -100,6 +100,17 @@ The shared high-score boards in Scoot City and Echo Wheel only work in the claud
 
 Each game folder holds the page (`index.html`), the app details (`manifest.webmanifest`), the icons, and `sw.js`, which keeps a copy of the game on the phone for offline play.
 
+## Club Poker Coach
+
+A drill trainer for the club cash game, aimed at playing more aggressively. It lives in `poker-coach/index.html` and is published at
+**https://kinapak-ux.github.io/Claude/poker-coach/**. It installs on a phone like the family games and works offline. It doesn't send scores to the family leaderboard.
+
+- Each spot is one decision: your cards, the board, the pot and the opponent type. Pick an action and see whether it was best, OK or a mistake, and why.
+- Drill packs: Big blind defence, Flop & turn, River, Preflop pressure, and Winning the night (the new 1,500 / 1,000 points for 1st and 2nd). The big-blind and open-raising spots are dealt fresh each time from range charts; the rest are hand-written.
+- It counts **too passive** mistakes (checking, calling or folding when betting or raising was better) separately from **too loose** ones, and keeps your misses for a review session.
+- The **Game plan** tab is a one-page summary to read before the game.
+- Your record stays on your phone. To change the range charts, edit `BB_VS` and `OPEN` near the top of the script; to add a spot, add one to `SPOTS`.
+
 ## Family leaderboard
 
 All nine games send their results to one shared leaderboard at

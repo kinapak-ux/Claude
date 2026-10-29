@@ -1,0 +1,756 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#0e2419">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Poker Coach">
+</head><body>
+<title>Club Poker Coach</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Stencil+One&family=Saira+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+/* Layout: a cricket-club scoreboard. Painted-white stencil numbers on board green; one column of drill, table and verdict. */
+:root {
+  --board: #0e2419;
+  --board-2: #143323;
+  --felt: #1b5a3a;
+  --chalk: #f1eee3;
+  --muted: #a3b8a9;
+  --brass: #e2b84e;
+  --good: #7fd18b;
+  --ok: #e2b84e;
+  --bad: #ef7a6b;
+  --line: rgba(241, 238, 227, 0.16);
+  --card: #fbfaf4;
+  --spade: #16181a;
+  --heart: #c62a1f;
+  --diamond: #1d5fc4;
+  --club: #1d7a37;
+  --f-display: "Saira Stencil One", "Saira Condensed", Impact, sans-serif;
+  --f-label: "Saira Condensed", "Arial Narrow", sans-serif;
+  --f-body: "Source Sans 3", -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+html, body { min-height: 100%; }
+body {
+  background: var(--board);
+  color: var(--chalk);
+  font-family: var(--f-body);
+  font-size: 16px;
+  line-height: 1.45;
+  -webkit-tap-highlight-color: transparent;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--board); }
+.wrap {
+  max-width: 620px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 14px 40px;
+  display: grid;
+  gap: 16px;
+}
+header { display: grid; gap: 10px; }
+h1 {
+  margin: 0;
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: clamp(30px, 8vw, 44px);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-wrap: balance;
+}
+h1 small { display: block; font-family: var(--f-label); font-size: 14px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--brass); margin-top: 6px; font-weight: 600; }
+h2 { margin: 0; font-family: var(--f-label); font-weight: 700; font-size: 22px; letter-spacing: 0.02em; text-wrap: balance; }
+h3 { margin: 0; font-family: var(--f-label); font-weight: 700; font-size: 18px; color: var(--brass); letter-spacing: 0.03em; text-transform: uppercase; }
+.label { font-family: var(--f-label); font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+nav.tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--line); }
+nav.tabs button {
+  appearance: none; background: none; border: 0; color: var(--muted); cursor: pointer;
+  font: 600 16px var(--f-label); letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 8px 10px 10px; border-bottom: 3px solid transparent; margin-bottom: -1px;
+}
+nav.tabs button[aria-selected="true"] { color: var(--chalk); border-bottom-color: var(--brass); }
+button:focus-visible, .pack:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+
+/* Scoreboard strip */
+.scoreboard {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+  background: var(--line); border: 1px solid var(--line); border-radius: 4px; overflow: hidden;
+}
+.scoreboard div { background: var(--board-2); padding: 8px 6px 6px; text-align: center; min-width: 0; }
+.scoreboard b { display: block; font: 400 26px/1 var(--f-display); font-variant-numeric: tabular-nums; color: var(--chalk); }
+.scoreboard span { font: 600 11px var(--f-label); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.scoreboard .warn b { color: var(--bad); }
+
+/* Pack picker */
+.packs { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 10px; }
+.pack {
+  appearance: none; text-align: left; cursor: pointer; color: var(--chalk);
+  background: var(--board-2); border: 1px solid var(--line); border-radius: 6px;
+  padding: 12px; display: grid; gap: 4px; font: inherit; min-width: 0;
+}
+.pack:hover { border-color: var(--brass); }
+.pack strong { font: 700 18px var(--f-label); letter-spacing: 0.02em; }
+.pack span { font-size: 14px; color: var(--muted); }
+.pack em { font-style: normal; font: 600 12px var(--f-label); letter-spacing: 0.1em; text-transform: uppercase; color: var(--brass); }
+.pack.hot { border-color: var(--brass); }
+
+/* Spot */
+.spot { display: grid; gap: 14px; }
+.spot-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.progress { font: 600 14px var(--f-label); letter-spacing: 0.1em; color: var(--muted); font-variant-numeric: tabular-nums; }
+.table {
+  background: radial-gradient(ellipse at 50% 40%, #237049 0%, var(--felt) 55%, #134129 100%);
+  border: 6px solid #3a2a17; border-radius: 120px / 80px;
+  padding: 18px 16px 16px; display: grid; gap: 12px; justify-items: center;
+  box-shadow: inset 0 0 30px rgba(0,0,0,0.35);
+}
+.board { display: flex; gap: 6px; min-height: 64px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.board .empty { font: 600 14px var(--f-label); letter-spacing: 0.12em; text-transform: uppercase; color: rgba(241,238,227,0.6); }
+.pot { font: 600 15px var(--f-label); letter-spacing: 0.08em; text-transform: uppercase; color: var(--chalk); font-variant-numeric: tabular-nums; }
+.pot b { font-family: var(--f-display); font-weight: 400; font-size: 20px; color: var(--brass); }
+.hero { display: grid; justify-items: center; gap: 6px; }
+.hero .cards { display: flex; gap: 6px; }
+.seat { font: 600 13px var(--f-label); letter-spacing: 0.1em; text-transform: uppercase; background: rgba(0,0,0,0.35); padding: 3px 10px; border-radius: 20px; }
+.card {
+  width: 44px; height: 62px; border-radius: 6px; background: var(--card);
+  display: grid; place-items: center; align-content: center; gap: 0;
+  font: 700 22px/1 var(--f-label); box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+}
+.hero .card { width: 54px; height: 76px; font-size: 27px; }
+.card i { font-style: normal; font-size: 0.85em; line-height: 1; }
+.card.s { color: var(--spade); } .card.h { color: var(--heart); } .card.d { color: var(--diamond); } .card.c { color: var(--club); }
+.card.turn { margin-left: 6px; }
+.story { display: grid; gap: 6px; }
+.story p { margin: 0; }
+.villain { font-size: 15px; color: var(--muted); }
+.villain b { color: var(--chalk); font-weight: 600; }
+.standings { display: flex; gap: 8px; flex-wrap: wrap; }
+.standings span { font: 600 14px var(--f-label); letter-spacing: 0.04em; background: var(--board-2); border: 1px solid var(--line); border-radius: 4px; padding: 3px 8px; font-variant-numeric: tabular-nums; }
+.standings span.me { border-color: var(--brass); color: var(--brass); }
+.question { font: 700 19px var(--f-label); letter-spacing: 0.02em; margin: 0; }
+.opts { display: grid; gap: 8px; }
+.opt {
+  appearance: none; cursor: pointer; font: 600 18px var(--f-label); letter-spacing: 0.03em;
+  color: var(--chalk); background: var(--board-2); border: 1px solid var(--line); border-radius: 6px;
+  padding: 13px 14px; text-align: left; display: flex; justify-content: space-between; gap: 10px; align-items: center;
+}
+.opt:hover:not(:disabled) { border-color: var(--brass); }
+.opt:disabled { cursor: default; }
+.opt .tag { font: 600 12px var(--f-label); letter-spacing: 0.1em; text-transform: uppercase; }
+.opt.g2 { border-color: var(--good); } .opt.g2 .tag { color: var(--good); }
+.opt.g1 { border-color: var(--ok); } .opt.g1 .tag { color: var(--ok); }
+.opt.g0 .tag { color: var(--bad); }
+.opt.picked { box-shadow: 0 0 0 2px var(--chalk) inset; }
+.verdict { border-left: 4px solid var(--muted); background: var(--board-2); padding: 12px 14px; border-radius: 0 6px 6px 0; display: grid; gap: 8px; }
+.verdict.g2 { border-color: var(--good); } .verdict.g1 { border-color: var(--ok); } .verdict.g0 { border-color: var(--bad); }
+.verdict h2 { font-size: 21px; }
+.verdict.g2 h2 { color: var(--good); } .verdict.g1 h2 { color: var(--ok); } .verdict.g0 h2 { color: var(--bad); }
+.verdict p { margin: 0; }
+.flag { font: 600 13px var(--f-label); letter-spacing: 0.1em; text-transform: uppercase; color: var(--bad); }
+.primary {
+  appearance: none; cursor: pointer; border: 0; border-radius: 6px; padding: 14px 18px;
+  font: 700 18px var(--f-label); letter-spacing: 0.08em; text-transform: uppercase;
+  background: var(--brass); color: var(--board);
+}
+.ghost {
+  appearance: none; cursor: pointer; border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px;
+  font: 600 15px var(--f-label); letter-spacing: 0.08em; text-transform: uppercase; background: none; color: var(--chalk);
+}
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+/* Summary + plan + stats */
+.panel { background: var(--board-2); border: 1px solid var(--line); border-radius: 6px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.big { font: 400 56px/1 var(--f-display); color: var(--brass); font-variant-numeric: tabular-nums; }
+.plan { display: grid; gap: 16px; }
+.plan ol, .plan ul { margin: 0; padding-left: 22px; display: grid; gap: 8px; }
+.plan p { margin: 0; max-width: 65ch; }
+.callout { border: 1px solid var(--brass); border-radius: 6px; padding: 12px 14px; display: grid; gap: 8px; }
+.points { display: grid; grid-template-columns: auto 1fr 1fr; gap: 4px 14px; font-variant-numeric: tabular-nums; font-size: 15px; }
+.points .h { font: 600 12px var(--f-label); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.points .up { color: var(--brass); font-weight: 700; }
+.bars { display: grid; gap: 10px; }
+.bar { display: grid; gap: 4px; }
+.bar .top { display: flex; justify-content: space-between; gap: 8px; font-size: 15px; }
+.bar .track { height: 8px; background: rgba(241,238,227,0.1); border-radius: 4px; overflow: hidden; }
+.bar .fill { height: 100%; background: var(--brass); }
+.confirm { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.note { font-size: 14px; color: var(--muted); max-width: 65ch; margin: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .verdict { animation: rise 0.25s ease-out; }
+  @keyframes rise { from { transform: translateY(6px); opacity: 0.4; } to { transform: none; opacity: 1; } }
+}
+@media (max-width: 380px) {
+  .card { width: 38px; height: 54px; font-size: 19px; }
+  .scoreboard b { font-size: 22px; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Club Poker Coach<small>Aggression drills for the club cash game</small></h1>
+    <nav class="tabs" role="tablist">
+      <button id="tab-train" role="tab" aria-selected="true" data-view="train">Train</button>
+      <button id="tab-plan" role="tab" aria-selected="false" data-view="plan">Game plan</button>
+      <button id="tab-stats" role="tab" aria-selected="false" data-view="stats">My leaks</button>
+    </nav>
+  </header>
+  <main id="view"></main>
+</div>
+
+<script>
+(() => {
+'use strict';
+// ---------- Storage (per phone; the page works without it) ----------
+const KEY = 'club-poker-coach-v1';
+const blank = () => ({ answered: 0, points: 0, passive: 0, loose: 0, packs: {}, misses: [] });
+let stats = blank();
+try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && typeof s === 'object') stats = Object.assign(blank(), s); } catch (e) {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(stats)); } catch (e) {} };
+
+// ---------- Hand ranges ----------
+const R = 'AKQJT98765432';
+const ri = r => R.indexOf(r);
+function expand(list) {
+  const out = new Set();
+  for (const tok of list.split(',').map(s => s.trim()).filter(Boolean)) {
+    const plus = tok.endsWith('+'), t = plus ? tok.slice(0, -1) : tok;
+    if (t.includes('-')) {
+      const [a, b] = t.split('-');
+      if (a[0] === a[1]) { for (let i = ri(a[0]); i <= ri(b[0]); i++) out.add(R[i] + R[i]); }
+      else { for (let i = ri(a[1]); i <= ri(b[1]); i++) out.add(a[0] + R[i] + a[2]); }
+    } else if (t[0] === t[1]) {
+      if (plus) { for (let i = 0; i <= ri(t[0]); i++) out.add(R[i] + R[i]); } else out.add(t);
+    } else if (plus) {
+      for (let i = ri(t[0]) + 1; i <= ri(t[1]); i++) out.add(t[0] + R[i] + t[2]);
+    } else out.add(t);
+  }
+  return out;
+}
+const ALL = [];
+for (let i = 0; i < 13; i++) for (let j = 0; j < 13; j++) {
+  if (i === j) ALL.push(R[i] + R[i]); else if (i < j) ALL.push(R[i] + R[j] + 's', R[i] + R[j] + 'o');
+}
+// Each chart lists hands by best action, strongest first. "mix" hands: the second action is fine too.
+function chart(c) { const o = {}; for (const k in c) o[k] = expand(c[k]); return o; }
+function classify(ch, h, order) { for (const k of order) if (ch[k] && ch[k].has(h)) return k; return 'fold'; }
+
+// Big blind against a 3bb open, live club sizing.
+const BB_VS = {
+  UTG: chart({
+    raise: 'QQ+, AKs, AKo', raiseMix: 'JJ, AQs, A5s',
+    call: '22-TT, AJs-A6s, A4s-A2s, KTs+, QTs+, JTs, T9s, 98s, AQo, AJo, KQo',
+    callMix: 'K9s, Q9s, 87s, 76s, ATo, KJo' }),
+  MP: chart({
+    raise: 'JJ+, AQs+, AKo', raiseMix: 'TT, AJs, AQo, KQs, A5s, A4s',
+    call: '22-99, ATs-A6s, A3s-A2s, K9s+, Q9s+, J9s+, T9s, 98s, 87s, 76s, 65s, AJo, ATo, KQo, KJo',
+    callMix: 'K8s, T8s, 97s, 54s, QJo, A9o' }),
+  CO: chart({
+    raise: 'TT+, AJs+, AQo+, KQs, A5s, A4s', raiseMix: '99, ATs, KJs, AJo, KQo, A3s, 76s, 65s',
+    call: '22-88, A9s-A6s, A2s, K6s+, Q8s+, J8s+, T8s+, 97s+, 87s, 86s, 75s, 54s, ATo, A9o, KJo, KTo, QJo, QTo, JTo',
+    callMix: 'K5s, Q7s, J7s, 64s, 53s, A8o, A7o, K9o, Q9o, J9o, T9o' }),
+  BTN: chart({
+    raise: '99+, ATs+, AJo+, KQs, KJs, A5s, A4s', raiseMix: '88, 77, A9s, KTs, QJs, KQo, ATo, A3s, A2s, J9s, T8s, 97s, 86s',
+    call: '22-66, A8s-A6s, K2s+, Q4s+, J6s+, T6s+, 96s+, 85s+, 75s+, 64s+, 53s+, 43s, A9o-A2o, K8o+, Q9o+, J9o+, T9o, 98o',
+    callMix: 'Q3s, Q2s, J5s, T5s, 95s, 74s, 63s, 52s, 42s, K7o-K5o, Q8o, J8o, T8o, 97o, 87o, 76o' }),
+  SB: chart({
+    raise: '88+, A9s+, ATo+, KTs+, QJs, A5s-A2s, KQo', raiseMix: '77, 66, A8s-A6s, K9s, QTs, JTs, A9o, KJo, T9s, 98s, 87s',
+    call: '22-55, K2s+, Q2s+, J4s+, T6s+, 96s+, 85s+, 74s+, 63s+, 53s+, 43s, A8o-A2o, K7o+, Q8o+, J8o+, T8o+, 97o+, 87o, 76o',
+    callMix: 'J3s, J2s, T5s, T4s, 95s, 84s, 73s, 62s, 52s, 42s, 32s, K6o, K5o, Q7o, J7o, T7o, 86o, 65o' })
+};
+// Opening when it folds to you (9-handed).
+const OPEN = {
+  UTG: chart({ raise: '55+, A9s+, A5s, A4s, KTs+, QTs+, JTs, T9s, AJo+, KQo', mix: '44, A8s, 98s, ATo, KJo' }),
+  MP: chart({ raise: '44+, A2s+, K9s+, Q9s+, J9s+, T9s, 98s, 87s, ATo+, KJo+', mix: '33, 22, K8s, 76s, 65s, A9o, QJo' }),
+  CO: chart({ raise: '22+, A2s+, K7s+, Q8s+, J8s+, T8s+, 97s+, 86s+, 76s, 65s, 54s, A9o+, KTo+, QTo+, JTo', mix: 'K6s, K5s, Q7s, 75s, 64s, A8o, A7o, K9o, Q9o, J9o, T9o' }),
+  BTN: chart({ raise: '22+, A2s+, K2s+, Q5s+, J7s+, T7s+, 96s+, 85s+, 75s+, 64s+, 53s+, 43s, A2o+, K8o+, Q9o+, J9o+, T9o, 98o', mix: 'Q4s, Q3s, J6s, T6s, 95s, 74s, 63s, 52s, K7o, K6o, Q8o, J8o, T8o, 87o, 97o' }),
+  SB: chart({ raise: '22+, A2s+, K5s+, Q8s+, J8s+, T8s+, 97s+, 86s+, 75s+, 65s, 54s, A7o+, A5o, KTo+, QTo+, JTo', mix: 'K4s, K3s, Q7s, J7s, 64s, A6o, A4o, K9o, Q9o, J9o, T9o' })
+};
+const POS_NAME = { UTG: 'Under the gun', MP: 'Middle position', CO: 'Cutoff', BTN: 'Button', SB: 'Small blind' };
+const aPos = p => (p === 'UTG' ? 'an ' : 'a ') + POS_NAME[p].toLowerCase();
+
+const rand = n => Math.floor(Math.random() * n);
+const pick = a => a[rand(a.length)];
+const SUITS = 'shdc';
+function dealHand(h) {
+  const a = h[0], b = h[1];
+  if (a === b) { const s = [...SUITS].sort(() => Math.random() - 0.5); return [a + s[0], b + s[1]]; }
+  const s1 = pick(SUITS); let s2 = s1;
+  if (h[2] === 'o') { while (s2 === s1) s2 = pick(SUITS); }
+  return [a + s1, b + s2];
+}
+function handWords(h) {
+  if (h[0] === h[1]) return ri(h[0]) <= 4 ? 'a big pair' : ri(h[0]) <= 7 ? 'a middle pair' : 'a small pair, which wins big when it makes a set';
+  const s = h[2] === 's', gap = ri(h[1]) - ri(h[0]);
+  if (h[0] === 'A') return s ? 'a suited ace: nut-flush potential and a strong top card' : 'an offsuit ace';
+  if (ri(h[1]) <= 4) return s ? 'two suited high cards' : 'two high cards';
+  if (s && gap <= 2) return 'a suited connector: it makes straights, flushes and disguised two pairs';
+  if (s) return 'a suited hand with some flush potential';
+  return gap <= 1 ? 'an offsuit connector' : 'an unconnected offsuit hand';
+}
+
+function genBB() {
+  const opener = pick(['UTG', 'MP', 'CO', 'BTN', 'BTN', 'CO', 'SB']);
+  const ch = BB_VS[opener], order = ['raise', 'raiseMix', 'call', 'callMix'];
+  const want = Math.random();
+  const bucket = want < 0.3 ? ['raise', 'raiseMix'] : want < 0.68 ? ['call', 'callMix'] : ['fold'];
+  const wide = BB_VS.BTN, late = opener === 'BTN' || opener === 'SB';
+  const pool = ALL.filter(h => bucket.includes(classify(ch, h, order)) && (bucket[0] !== 'fold' || late || classify(wide, h, order) !== 'fold'));
+  const h = pick(pool), cls = classify(ch, h, order);
+  const best = cls.startsWith('raise') ? 'raise' : cls.startsWith('call') ? 'call' : 'fold';
+  const ok = cls === 'raiseMix' ? 'call' : cls === 'callMix' ? 'fold' : null;
+  const g = a => a === best ? 2 : a === ok ? 1 : 0;
+  const pot = opener === 'SB' ? 4 : 4.5, fin = pot + 2;
+  const potOdds = `You’re getting a good price: you call 2bb more into a pot that will be ${fin}bb, so you need only about ${Math.round(200 / fin)}% equity.`;
+  const whys = {
+    raise: `${h} is ${handWords(h)}. Against ${aPos(opener)} open it’s strong enough to 3-bet. Re-raising wins the pot right away when they fold, and when they call you’re in a bigger pot with a hand that’s often ahead.`,
+    call: `${h} is ${handWords(h)}. ${potOdds} It’s too good to fold, but not strong enough to re-raise for value against ${aPos(opener)} range.`,
+    fold: `${h} is ${handWords(h)}. Even with the big-blind discount, it does badly against ${aPos(opener)} raise: it rarely makes a strong hand and is often dominated. Folding here is fine.`
+  };
+  let why = whys[best];
+  if (cls === 'raiseMix') why += ' Calling is also fine. Live opponents call 3-bets a lot, so 3-bet these hands most often against loose openers.';
+  if (cls === 'callMix') why += ' It’s close. Defend it against frequent stealers and fold it against tight players.';
+  if (opener === 'BTN' || opener === 'SB') why += ' Late-position raisers steal with wide ranges, so the big blind should defend far more hands than most club players do.';
+  if (opener === 'UTG' && best === 'fold') why += ' Early-position raisers are tight, which is why this range is narrower than against the button.';
+  return {
+    id: null, pack: 'bb', gen: true, title: `Big blind v ${POS_NAME[opener]}`,
+    seat: `Big blind v ${opener === 'SB' ? 'small blind' : POS_NAME[opener].toLowerCase()}`,
+    hero: dealHand(h), board: [], pot, stack: 100,
+    story: opener === 'SB' ? 'It folds to the small blind, who raises to 3bb.' : `${POS_NAME[opener]} raises to 3bb and it folds to you in the big blind.`,
+    opts: [
+      { t: 'Fold', g: g('fold'), p: true },
+      { t: 'Call', g: g('call'), p: best === 'raise', l: best === 'fold' },
+      { t: opener === 'SB' ? 'Raise to 9bb' : 'Raise to 11bb', g: g('raise'), l: best !== 'raise' }
+    ], why
+  };
+}
+function genOpen() {
+  const pos = pick(['UTG', 'MP', 'CO', 'CO', 'BTN', 'BTN', 'SB']);
+  const ch = OPEN[pos], order = ['raise', 'mix'];
+  const bucket = Math.random() < 0.62 ? ['raise', 'mix'] : ['fold'];
+  const pool = ALL.filter(h => bucket.includes(classify(ch, h, order)) && (bucket[0] !== 'fold' || OPEN.BTN.raise.has(h) || OPEN.BTN.mix.has(h) || pos === 'BTN' || pos === 'SB'));
+  const h = pick(pool), cls = classify(ch, h, order);
+  const best = cls === 'fold' ? 'fold' : 'raise';
+  const late = pos === 'CO' || pos === 'BTN' || pos === 'SB';
+  let why = best === 'raise'
+    ? `${h} is ${handWords(h)}. It’s a profitable open from ${POS_NAME[pos].toLowerCase()}. ${late ? 'Only a few players are left to act, the blinds are often tight-passive, and you’ll usually have position after the flop. Steal often.' : 'Raise rather than limp: you take the lead and can win the pot with a continuation bet.'}`
+    : `${h} is ${handWords(h)}. From ${POS_NAME[pos].toLowerCase()} there are too many players left to act, and this hand plays badly when called. Fold it, and open it from later seats.`;
+  if (cls === 'mix') why += ' It’s borderline. Folding is fine at a tough table; open it when the players behind are tight.';
+  why += ' Limping is almost never right at the club: it gives the big blind a free look and gives up the lead.';
+  return {
+    id: null, pack: 'pre', gen: true, title: `Folded to you: ${POS_NAME[pos]}`, seat: POS_NAME[pos],
+    hero: dealHand(h), board: [], pot: 1.5, stack: 100,
+    story: pos === 'SB' ? 'It folds to you in the small blind. Only the big blind is left.' : `It folds to you in ${POS_NAME[pos].toLowerCase()}.`,
+    opts: [
+      { t: 'Fold', g: best === 'fold' ? 2 : cls === 'mix' ? 1 : 0, p: true },
+      { t: pos === 'SB' ? 'Complete (limp)' : 'Limp', g: pos === 'SB' && best === 'raise' ? 1 : 0, p: best === 'raise', l: best === 'fold' },
+      { t: pos === 'SB' ? 'Raise to 3.5bb' : 'Raise to 3bb', g: best === 'raise' ? 2 : cls === 'mix' ? 1 : 0, l: best === 'fold' }
+    ], why
+  };
+}
+
+// ---------- Hand-built spots ----------
+// g: 2 best, 1 fine, 0 mistake. p: the passive choice. l: the loose or over-aggressive choice.
+const SPOTS = [
+  // Big blind postflop
+  { id: 'bb1', pack: 'bb', title: 'Low flop v a button steal', seat: 'Big blind v button', hero: ['7s','6s'], board: ['8d','5c','2h'], pot: 6.5, stack: 97,
+    villain: 'Button: steals a lot', story: 'Button raises to 3bb, you call. Flop 8-5-2. You check, button bets 2bb.',
+    opts: [{ t: 'Fold', g: 0, p: true }, { t: 'Call', g: 1, p: true }, { t: 'Raise to 8bb', g: 2 }],
+    why: 'You have an open-ended straight draw: any 9 or 4 makes your straight. Low, connected boards favour the big blind, because you have the 7-6, 6-4 and small pairs that the button often folds preflop. A small bet from a wide stealing range folds a lot to a check-raise. When it’s called you still hit your straight about a third of the time by the river. Calling is OK, but the check-raise wins the pot outright far more often.' },
+  { id: 'bb2', pack: 'bb', title: 'Flopped set, draws around', seat: 'Big blind v cutoff', hero: ['9h','9c'], board: ['9s','6d','2d'], pot: 6.5, stack: 97,
+    villain: 'Cutoff: solid regular', story: 'Cutoff raises to 3bb, you call. Flop 9-6-2 with two diamonds. You check, cutoff bets 3bb.',
+    opts: [{ t: 'Fold', g: 0, p: true }, { t: 'Call', g: 1, p: true }, { t: 'Raise to 11bb', g: 2 }],
+    why: 'Top set on a board with a flush draw and straight draws. Raise now. It builds the pot while you’re far ahead, and makes every diamond draw and 8-7 pay to continue. Passive players call here to “trap”. Then a diamond turns up, the action stops, and the big pot never happens.' },
+  { id: 'bb3', pack: 'bb', title: 'They checked back the flop', seat: 'Big blind v cutoff', hero: ['Ts','9s'], board: ['Jh','7c','4d','2s'], pot: 6.5, stack: 97,
+    villain: 'Cutoff: average player', story: 'Cutoff raises to 3bb, you call. Flop J-7-4: you check, cutoff checks behind. Turn 2. You act first.',
+    opts: [{ t: 'Check', g: 1, p: true }, { t: 'Bet 4bb', g: 2 }, { t: 'Bet 6.5bb (pot)', g: 1 }],
+    why: 'When the preflop raiser checks back a jack-high flop, they rarely have a jack. Their range is mostly ace-high, small pairs and give-ups. Lead out on the turn (a “probe bet”): lots of those hands fold, and you have a gutshot (any 8) plus overcards to the 7 if called. If you check, they’ll often bet and push you off the best draw. A pot-sized bet works too, but 4bb risks less for the same folds.' },
+  { id: 'bb4', pack: 'bb', title: 'A board that isn’t yours', seat: 'Big blind v under the gun', hero: ['8c','7c'], board: ['As','Kd','4h'], pot: 6.5, stack: 97,
+    villain: 'Under the gun: tight', story: 'UTG raises to 3bb, you call. Flop A-K-4. You check, UTG bets 2bb.',
+    opts: [{ t: 'Fold', g: 2 }, { t: 'Call', g: 0, l: true }, { t: 'Raise to 8bb', g: 0, l: true }],
+    why: 'Aggression is about picking spots, and this isn’t one. An ace-king board hits a tight early raiser hard (AK, AQ, AJ, KQ, AA, KK), and you have no pair and no draw. Bluff-raising into the top of their range burns money. Fold, and save your aggression for low, connected boards where you hold more strong hands.' },
+  { id: 'bb5', pack: 'bb', title: 'Monster draw v small blind', seat: 'Big blind v small blind', hero: ['Qs','Ts'], board: ['Js','9d','4s'], pot: 6, stack: 97,
+    villain: 'Small blind: raises a lot', story: 'It folds to the small blind, who raises to 3bb. You call. Flop J-9-4 with two spades. Small blind bets 3bb.',
+    opts: [{ t: 'Fold', g: 0, p: true }, { t: 'Call', g: 1, p: true }, { t: 'Raise to 10bb', g: 2 }],
+    why: 'Open-ended straight draw (a K or an 8) plus a flush draw: about 15 outs, and a 54% favourite even against top pair with two cards to come. When you’re a favourite, put money in. Raising also wins straight away when they have ace-high or a small pair. Calling is fine, but it gives up the fold equity that makes this hand so profitable.' },
+  { id: 'bb6', pack: 'bb', title: 'Limpers to your big blind', seat: 'Big blind, limped pot', hero: ['Ad','Jc'], board: [], pot: 5, stack: 100,
+    villain: 'Three limpers and the small blind: loose', story: 'Three players limp, the small blind completes, and it’s your option in the big blind.',
+    opts: [{ t: 'Check', g: 1, p: true }, { t: 'Raise to 3bb', g: 0 }, { t: 'Raise to 7bb', g: 2 }],
+    why: 'Ace-jack is far ahead of a limping range. Raise about 3bb plus 1bb for each limper, and a little more because you’ll be out of position. A tiny raise to 3bb just builds a five-way pot you can’t play. Checking lets five people see a free flop when you probably hold the best hand. Limped pots are where club games give away the most money. Attack them.' },
+
+  // Preflop aggression
+  { id: 'pf1', pack: 'pre', title: 'Two limpers, you’re on the button', seat: 'Button', hero: ['Kd','Jd'], board: [], pot: 3.5, stack: 100,
+    villain: 'Two limpers: passive', story: 'Two players limp in front of you.',
+    opts: [{ t: 'Fold', g: 0, p: true }, { t: 'Limp behind', g: 1, p: true }, { t: 'Raise to 5bb', g: 2 }],
+    why: 'Isolate. Raise to 3bb plus 1bb per limper. Limpers fold often and call with weak hands, so you either win now or play a heads-up pot in position with the lead. King-jack suited is well ahead of a limping range. Limping behind gives up all of that.' },
+  { id: 'pf2', pack: 'pre', title: 'Loose cutoff opens', seat: 'Button v cutoff', hero: ['Ad','Qc'], board: [], pot: 4.5, stack: 100,
+    villain: 'Cutoff: opens a lot of hands', story: 'Cutoff raises to 3bb. You’re on the button.',
+    opts: [{ t: 'Fold', g: 0, p: true }, { t: 'Call', g: 1, p: true }, { t: 'Raise to 10bb', g: 2 }],
+    why: 'Against a wide opener, ace-queen is a value 3-bet. You’re ahead of most of their range, and you shut the blinds out so you play heads-up in position. Calling keeps the pot small when you have a big edge and invites the blinds to squeeze.' },
+  { id: 'pf3', pack: 'pre', title: 'Raise and two callers', seat: 'Big blind', hero: ['Js','Jh'], board: [], pot: 10.5, stack: 100,
+    villain: 'Middle position opener, cutoff and button callers', story: 'Middle position raises to 3bb, the cutoff and button both call. You’re in the big blind.',
+    opts: [{ t: 'Call', g: 1, p: true }, { t: 'Raise to 15bb', g: 2 }, { t: 'All in (100bb)', g: 0, l: true }],
+    why: 'Squeeze. Jacks do badly multiway out of position but well heads-up. The callers usually have medium hands they’ll fold, and there’s already 10.5bb of dead money in the pot. Make it big (about 4–5 times the open) because you’re out of position. Shoving 100bb only gets called by hands that beat you.' },
+  { id: 'pf4', pack: 'pre', title: 'Raise and a re-raise in front', seat: 'Button', hero: ['As','Jc'], board: [], pot: 14.5, stack: 100,
+    villain: 'UTG opener (tight), middle-position 3-bettor (tight)', story: 'UTG raises to 3bb, middle position re-raises to 10bb. You’re on the button.',
+    opts: [{ t: 'Fold', g: 2 }, { t: 'Call', g: 0, l: true }, { t: 'Raise to 25bb', g: 0, l: true }],
+    why: 'A raise and a re-raise from two tight players means big pairs and AK/AQ. Ace-jack offsuit is dominated: when you hit an ace you’re often beaten by a better ace. Folding here is part of good aggression. You want your chips in where you have the edge.' },
+
+  // Flop and turn
+  { id: 'ft1', pack: 'post', title: 'Dry king-high flop', seat: 'Button v big blind', hero: ['Ac','Qd'], board: ['Ks','7d','2c'], pot: 6.5, stack: 97,
+    villain: 'Big blind: average', story: 'You raise to 3bb on the button, the big blind calls. Flop K-7-2 rainbow. Big blind checks.',
+    opts: [{ t: 'Check', g: 1, p: true }, { t: 'Bet 2bb', g: 2 }, { t: 'Bet 5bb', g: 1 }],
+    why: 'Dry, king-high boards favour the preflop raiser. You have all the AK, KK and KQ, and the big blind would often have 3-bet those. A small bet works with nearly your whole range: it folds out hands with real equity (6-5, 4-3, Q-J) and makes small pairs pay. Ace-queen also has two overcards and a backdoor straight draw.' },
+  { id: 'ft2', pack: 'post', title: 'Aces on a wet board', seat: 'Cutoff v big blind', hero: ['Ah','Ac'], board: ['8s','7s','6d'], pot: 6.5, stack: 97,
+    villain: 'Big blind: calls a lot', story: 'You raise to 3bb, the big blind calls. Flop 8-7-6 with two spades. Big blind checks.',
+    opts: [{ t: 'Check', g: 0, p: true }, { t: 'Bet 2bb', g: 1, p: true }, { t: 'Bet 5bb', g: 2 }],
+    why: 'Aces are probably best now but very vulnerable: flush draws, straight draws, two pairs. Bet bigger to charge every draw and to build the pot while you’re ahead. Against someone who calls a lot, the big bet also gets paid by any pair. A free card here can cost you the whole pot.' },
+  { id: 'ft3', pack: 'post', title: 'Missed, four-way', seat: 'Middle position, 4-way pot', hero: ['Kc','Qc'], board: ['9h','8h','4s'], pot: 12, stack: 97,
+    villain: 'Button and both blinds called', story: 'You raise to 3bb, the button and both blinds call. Flop 9-8-4 with two hearts. Both blinds check.',
+    opts: [{ t: 'Check', g: 2 }, { t: 'Bet 4bb', g: 0, l: true }, { t: 'Bet 9bb', g: 0, l: true }],
+    why: 'With three opponents, someone usually connects with 9-8-4 two-tone. King-high with only a backdoor flush draw won’t get enough folds. Multiway, bet your strong hands and good draws and check the rest. Use your aggression in heads-up pots, where it works.' },
+  { id: 'ft4', pack: 'post', title: 'Turn gives you a big draw', seat: 'Button v big blind', hero: ['Kh','Jh'], board: ['Ts','7h','3h','Qc'], pot: 10.5, stack: 95,
+    villain: 'Big blind: average', story: 'You raise to 3bb, the big blind calls. Flop T-7-3 with two hearts: big blind checks, you bet 2bb, they call. Turn Q. Big blind checks.',
+    opts: [{ t: 'Check', g: 1, p: true }, { t: 'Bet 7bb', g: 2 }, { t: 'All in (95bb)', g: 0, l: true }],
+    why: 'You now have a flush draw plus an open-ended straight draw (any A or 9): 15 outs, about 34% to hit on the river. The queen is also a good card for your story. Bet: you fold out 7s, weak 10s and pairs below. When called you still have a third of the pot. Checking gives up the folds.' },
+  { id: 'ft5', pack: 'post', title: 'Overcard turn', seat: 'Button v big blind', hero: ['Qs','Js'], board: ['9d','5c','2h','Kd'], pot: 10.5, stack: 95,
+    villain: 'Big blind: average', story: 'You raise to 3bb, the big blind calls. Flop 9-5-2: big blind checks, you bet 2bb, they call. Turn K. Big blind checks.',
+    opts: [{ t: 'Check', g: 1, p: true }, { t: 'Bet 7bb', g: 2 }],
+    why: 'The king helps your range far more than theirs. You raise every king preflop, and they’d often 3-bet their best ones. Their flop calls are mostly 9s, 5s and small pairs, which hate a king. You also picked up a gutshot (any 10). This is the classic second barrel. Checking here gives up lots of pots you’d win.' },
+  { id: 'ft6', pack: 'post', title: 'Turn helps nothing', seat: 'Button v big blind', hero: ['6h','5h'], board: ['As','Kd','9c','2c'], pot: 10.5, stack: 95,
+    villain: 'Big blind: calls a lot', story: 'You raise to 3bb, the big blind calls. Flop A-K-9: big blind checks, you bet 2bb, they call. Turn 2. Big blind checks.',
+    opts: [{ t: 'Check', g: 2 }, { t: 'Bet 7bb', g: 0, l: true }],
+    why: 'They called on A-K-9, so they have aces, kings, nines or Q-J and Q-T. A 2 doesn’t scare any of those, and you have no draw. Against someone who calls a lot, this barrel just loses 7bb. Aggression is choosing your spots: bet turns that help you (ft5) and give up on turns like this.' },
+  { id: 'ft7', pack: 'post', title: 'Top pair, weak kicker', seat: 'Cutoff v big blind', hero: ['Qs','9s'], board: ['Qd','6c','3h','2s'], pot: 10.5, stack: 95,
+    villain: 'Big blind: calls a lot', story: 'You raise to 3bb, the big blind calls. Flop Q-6-3: big blind checks, you bet 2bb, they call. Turn 2. Big blind checks.',
+    opts: [{ t: 'Check', g: 1, p: true }, { t: 'Bet 7bb', g: 2 }],
+    why: 'Top pair, weak kicker feels “thin”, but at the club people call with 6s, 3s, pocket pairs and worse queens (Q-8, Q-7, Q-5). Betting gets value from all of them, and checking lets them catch up for free. The most common leak of passive players is checking back hands like this.' },
+  { id: 'ft8', pack: 'post', title: 'Combo draw in position', seat: 'Button v cutoff', hero: ['8h','7h'], board: ['9h','6c','2h'], pot: 7.5, stack: 97,
+    villain: 'Cutoff: regular', story: 'Cutoff raises to 3bb, you call on the button. Flop 9-6-2 with two hearts. Cutoff bets 4bb.',
+    opts: [{ t: 'Fold', g: 0, p: true }, { t: 'Call', g: 1, p: true }, { t: 'Raise to 12bb', g: 2 }],
+    why: 'Open-ended straight draw plus flush draw: 15 outs, roughly a coin flip against an overpair. Raising makes A-K, A-Q and other big cards fold, which is a lot of their range, and builds a pot when you’re close to even money anyway. Calling is OK, but the raise wins more.' },
+  { id: 'ft9', pack: 'post', title: 'Nut flush draw, short stack', seat: 'Button v cutoff', hero: ['As','Ts'], board: ['Ks','8s','3d','4c'], pot: 20, stack: 25,
+    villain: 'Cutoff: regular', story: 'You called the cutoff’s raise and their flop bet. On the turn they bet 8bb into 20bb. You have 25bb left.',
+    opts: [{ t: 'Fold', g: 0, p: true }, { t: 'Call', g: 1, p: true }, { t: 'All in (25bb)', g: 2 }],
+    why: 'Nut flush draw plus an ace: about 9–12 outs. All in, you win when they fold Q-Q, J-J, 8x and weak kings, and when called you still hit about a quarter of the time. If you just call, you’re left with 17bb in a 36bb pot and have to guess on the river.' },
+
+  // River
+  { id: 'rv1', pack: 'river', title: 'Thin value v a caller', seat: 'Button v big blind', hero: ['Kc','9c'], board: ['Ks','7d','3h','5c','2d'], pot: 10.5, stack: 95,
+    villain: 'Big blind: calls a lot', story: 'You raise, the big blind calls. Flop: you bet 2bb, they call. Turn: both check. River 2. Big blind checks.',
+    opts: [{ t: 'Check', g: 1, p: true }, { t: 'Bet 6bb', g: 2 }, { t: 'All in (95bb)', g: 0, l: true }],
+    why: 'They called the flop and checked twice, so they mostly have 7s, 5s, worse kings and middle pairs. Against someone who calls a lot, bet a solid size: they call with all of those. Checking back wins nothing extra. Going all in only gets called by hands that beat you.' },
+  { id: 'rv2', pack: 'river', title: 'You have the nuts', seat: 'Cutoff v big blind', hero: ['9s','8s'], board: ['7s','6d','2c','Th','Kc'], pot: 24.5, stack: 84,
+    villain: 'Big blind: calls a lot', story: 'Flop: you bet 2bb, they call. Turn T gives you a straight: you bet 7bb, they call. River K. Big blind checks.',
+    opts: [{ t: 'Check', g: 0, p: true }, { t: 'Bet 8bb', g: 1, p: true }, { t: 'Bet 20bb', g: 2 }],
+    why: 'You have the best possible hand. Players who call a lot don’t fold top pair or two pair on the river, so bet big. Most of the money you win at the club comes from big value bets like this. A small bet leaves a lot on the table.' },
+  { id: 'rv3', pack: 'river', title: 'Missed draw v a tight player', seat: 'Button v big blind', hero: ['Qh','Jh'], board: ['9h','5h','2c','Ks','3d'], pot: 10.5, stack: 95,
+    villain: 'Big blind: tight, folds when they miss', story: 'Flop: you bet 2bb, they call. Turn: both check. River 3. Big blind checks.',
+    opts: [{ t: 'Check', g: 0, p: true }, { t: 'Bet 7bb', g: 2 }],
+    why: 'Queen-high almost never wins if you check. They’ve checked twice, so they rarely have a strong king, and a tight player folds 5s, weak 9s and small pairs to a confident river bet. Bet missed draws that can’t win at showdown, against players who fold.' },
+  { id: 'rv4', pack: 'river', title: 'Missed draw v a calling station', seat: 'Button v big blind', hero: ['Qh','Jh'], board: ['9h','5h','2c','Ks','3d'], pot: 10.5, stack: 95,
+    villain: 'Big blind: calls everything', story: 'Same hand as before. Flop: you bet 2bb, they call. Turn: both check. River 3. Big blind checks.',
+    opts: [{ t: 'Check', g: 2 }, { t: 'Bet 7bb', g: 0, l: true }],
+    why: 'Same cards, different opponent. Someone who calls everything won’t fold a pair, so a bluff just loses 7bb. Against these players, put your aggression into value bets (rv1, rv2) and save bluffs for players who fold.' },
+  { id: 'rv5', pack: 'river', title: 'Flush card, you hold the ace', seat: 'Button v big blind', hero: ['As','4c'], board: ['Qs','8s','3d','6c','2s'], pot: 10.5, stack: 95,
+    villain: 'Big blind: regular', story: 'Flop: you bet 2bb, they call. Turn: both check. River 2 of spades completes the flush. Big blind checks.',
+    opts: [{ t: 'Check', g: 1, p: true }, { t: 'Bet 7bb', g: 2 }],
+    why: 'You hold the ace of spades, so they can never have the best flush, and they’d usually bet a flush themselves. Your story is believable: you could easily have a spade. A bet folds their queens and eights. Checking ace-high sometimes wins, but betting wins much more often.' },
+  { id: 'rv6', pack: 'river', title: 'Three barrels from a tight player', seat: 'Button v middle position', hero: ['9c','9d'], board: ['Qh','8s','4c','2d','Ks'], pot: 40, stack: 72,
+    villain: 'Middle position: tight, rarely bluffs', story: 'Middle position raised, you called. They bet the flop and the turn, and you called both. River K. They bet 40bb, the size of the pot.',
+    opts: [{ t: 'Fold', g: 2 }, { t: 'Call', g: 0, p: true }, { t: 'All in', g: 0, l: true }],
+    why: 'Three big bets from a tight player is almost always a queen or better, and club players bluff the river far less than they should. Fold. Calling all three streets with a middle pair isn’t aggression, it’s the passive player’s most expensive habit. Raise or fold earlier rather than calling down hoping.' },
+
+  // Winning the night: the new points
+  { id: 'n1', pack: 'night', title: 'Last hand, 40bb off the lead', seat: 'Button, last hand of the night', hero: ['7s','6s'], board: [], pot: 1.5, stack: 100,
+    standings: [['Leader (big blind)', 140], ['You', 100, true], ['3rd', 70]],
+    villain: 'Leader in the big blind: defends a fair amount', story: 'Last hand of the night. It folds to you on the button.',
+    opts: [{ t: 'Fold and take 2nd', g: 0, p: true }, { t: 'Raise to 3bb', g: 1 }, { t: 'Raise to 6bb, and keep betting', g: 2 }],
+    why: 'Folding locks in 2nd: 1,000 points. Under the old points first was only worth 100 more, so that was fine. Now it’s worth 500 more. Each big blind you win from the leader closes the gap by two, so you need to win about 21bb from them. Raise big enough that a flop bet or two gets there, and keep betting. Your downside is small: you only drop to 3rd if you lose more than 30bb.' },
+  { id: 'n2', pack: 'night', title: 'Big draw against the leader', seat: 'Button v leader', hero: ['Qh','Jh'], board: ['Th','9h','3c'], pot: 20, stack: 90,
+    standings: [['Leader', 130], ['You', 105, true], ['3rd', 80]],
+    villain: 'Leader: bets top pair hard', story: 'Last orbit. The leader bets 10bb into 20bb on the flop.',
+    opts: [{ t: 'Fold', g: 0, p: true }, { t: 'Call', g: 1, p: true }, { t: 'Raise to 35bb', g: 2 }],
+    why: 'Open-ended straight draw plus flush draw: about 15 outs, a small favourite against top pair with two cards to come. That’s already a raise in chips. With the new points it matters even more: winning this pot from the leader swings about 70bb and puts you top for 1,500 instead of 1,000. High-variance spots where you have the edge are now worth much more than safe calls.' },
+  { id: 'n3', pack: 'night', title: 'Protect the lead', seat: 'Big blind v 2nd place', hero: ['As','Jc'], board: [], pot: 51.5, stack: 160,
+    standings: [['You', 160, true], ['2nd (button)', 100], ['3rd', 70]],
+    villain: '2nd place: shoving wide to catch you', story: 'Last orbit. 2nd place shoves 50bb from the button. You’re in the big blind.',
+    opts: [{ t: 'Fold', g: 2 }, { t: 'Call', g: 0, l: true }],
+    why: 'In chips this call is a small winner: ace-jack is about 55% against a wide shove. In points it’s a big loser. If you win, you’re still 1st: you gain nothing. If you lose, they pass you (150 v 110) and you drop 500 points. When you lead late, avoid flips against the player who can catch you. Keep pressing the short stacks, who can’t.' },
+  { id: 'n4', pack: 'night', title: 'First hour: chips are chips', seat: 'Cutoff v button', hero: ['Ad','Kh'], board: [], pot: 44.5, stack: 100,
+    standings: [['Everyone', 100]],
+    villain: 'Button: loose, shoves light', story: 'First hour of the night. You raise to 3bb, the loose button shoves 40bb. The blinds fold.',
+    opts: [{ t: 'Fold', g: 0, p: true }, { t: 'Call', g: 2 }],
+    why: 'Early in the night, places are far away, so just take good chip spots. Ace-king is well ahead of a loose shoving range. The new structure rewards finishing with the biggest stack, so building one early with +EV aggression is worth more than it used to be.' },
+  { id: 'n5', pack: 'night', title: 'Last orbit: bet for the lead', seat: 'Button v leader', hero: ['Qc','Tc'], board: ['Qd','7s','4h','2c','9d'], pot: 10.5, stack: 100,
+    standings: [['Leader (big blind)', 125], ['You', 105, true], ['3rd', 70]],
+    villain: 'Leader: calls with any pair', story: 'Last orbit. You raised, the leader called. Flop: you bet 2bb, they called. Turn: both checked. River 9. Leader checks. These stacks are from before the hand.',
+    opts: [{ t: 'Check', g: 1, p: true }, { t: 'Bet 6bb', g: 2 }],
+    why: 'Top pair is a value bet anyway: worse queens, 7s and 9s call. But count the places too. If you check and win, you finish 110 v 120: still 2nd. If you bet 6bb, get called and win, you finish 116 v 114: 1st, worth 500 more points. Late in the night, size your value bets to take you past the leader.' }
+];
+const PACKS = [
+  { id: 'mix', name: 'Mixed session', blurb: 'Ten spots from every pack', hot: true },
+  { id: 'bb', name: 'Big blind defence', blurb: 'Defend, 3-bet and check-raise' },
+  { id: 'post', name: 'Flop & turn', blurb: 'C-bets, barrels and draws' },
+  { id: 'river', name: 'River', blurb: 'Value bets, bluffs and big folds' },
+  { id: 'pre', name: 'Preflop pressure', blurb: 'Open, isolate and 3-bet' },
+  { id: 'night', name: 'Winning the night', blurb: 'The new 1,500 / 1,000 points' }
+];
+const PACK_NAME = Object.fromEntries(PACKS.map(p => [p.id, p.name]));
+PACK_NAME.review = 'Review my misses';
+
+// ---------- Session ----------
+const LEN = 10;
+let session = null;
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = rand(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function buildSession(pack) {
+  let spots = [];
+  if (pack === 'review') {
+    spots = stats.misses.slice(-LEN).map(m => m.spot ? m.spot : SPOTS.find(s => s.id === m.id)).filter(Boolean);
+    shuffle(spots);
+  } else if (pack === 'mix') {
+    const hand = shuffle(SPOTS.slice()).slice(0, 7);
+    spots = shuffle(hand.concat([genBB(), genBB(), genOpen()]));
+  } else {
+    const hand = shuffle(SPOTS.filter(s => s.pack === pack));
+    const gen = pack === 'bb' ? genBB : pack === 'pre' ? genOpen : null;
+    spots = hand.slice(0, gen ? 5 : LEN);
+    while (gen && spots.length < LEN) spots.push(gen());
+    shuffle(spots);
+  }
+  return { pack, spots, i: 0, points: 0, passive: 0, loose: 0, answered: null };
+}
+
+// ---------- Rendering ----------
+const view = document.getElementById('view');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const SYM = { s: '♠', h: '♥', d: '♦', c: '♣' };
+const cardHTML = (c, cls = '') => `<div class="card ${c[1]} ${cls}" aria-label="${c[0] === 'T' ? '10' : c[0]} of ${{ s: 'spades', h: 'hearts', d: 'diamonds', c: 'clubs' }[c[1]]}">${c[0] === 'T' ? '10' : c[0]}<i>${SYM[c[1]]}</i></div>`;
+const fmt = n => (Math.round(n * 10) / 10).toLocaleString();
+
+function scoreboard() {
+  const acc = stats.answered ? Math.round(stats.points / stats.answered) : 0;
+  return `<div class="scoreboard" aria-label="Your record">
+    <div><b>${stats.answered}</b><span>Spots</span></div>
+    <div><b>${acc}</b><span>Avg score</span></div>
+    <div class="${stats.passive > stats.loose ? 'warn' : ''}"><b>${stats.passive}</b><span>Too passive</span></div>
+    <div><b>${stats.loose}</b><span>Too loose</span></div>
+  </div>`;
+}
+
+function renderHome() {
+  const misses = stats.misses.length;
+  view.innerHTML = `<div class="spot">
+    ${scoreboard()}
+    <h3>Pick a drill</h3>
+    <div class="packs">
+      ${PACKS.map(p => `<button class="pack ${p.hot ? 'hot' : ''}" data-pack="${p.id}"><strong>${p.name}</strong><span>${p.blurb}</span>${p.hot ? '<em>Start here</em>' : ''}</button>`).join('')}
+      ${misses ? `<button class="pack" data-pack="review"><strong>Review my misses</strong><span>${misses} spot${misses === 1 ? '' : 's'} to try again</span></button>` : ''}
+    </div>
+    <p class="note">Each spot is one decision. Pick an action and see how it rates and why. Amounts are in big blinds (bb), assuming 100bb stacks unless the spot says otherwise. The answers follow standard solver-based strategy, adjusted for a live club game where people call too much and bluff too little.</p>
+  </div>`;
+}
+
+function renderSpot() {
+  const s = session.spots[session.i];
+  const done = session.answered;
+  const boardHTML = s.board.length
+    ? s.board.map((c, k) => cardHTML(c, k === 3 ? 'turn' : '')).join('')
+    : '<span class="empty">Preflop</span>';
+  view.innerHTML = `<div class="spot">
+    <div class="spot-head"><span class="label">${esc(PACK_NAME[session.pack])}</span><span class="progress">${session.i + 1} / ${session.spots.length} · ${session.points} pts</span></div>
+    <h2>${esc(s.title)}</h2>
+    ${s.standings ? `<div class="standings">${s.standings.map(x => `<span class="${x[2] ? 'me' : ''}">${esc(x[0])} ${x[1]}bb</span>`).join('')}</div>` : ''}
+    <div class="table">
+      <div class="board">${boardHTML}</div>
+      <div class="pot">Pot <b>${fmt(s.pot)}</b>bb · Stack ${fmt(s.stack)}bb</div>
+      <div class="hero"><div class="cards">${s.hero.map(c => cardHTML(c)).join('')}</div><span class="seat">${esc(s.seat)}</span></div>
+    </div>
+    <div class="story">
+      <p>${esc(s.story)}</p>
+      ${s.villain ? `<p class="villain">Opponent: <b>${esc(s.villain)}</b></p>` : ''}
+    </div>
+    <p class="question">What do you do?</p>
+    <div class="opts">${s.opts.map((o, k) => {
+      const cls = done ? `g${o.g} ${done.k === k ? 'picked' : ''}` : '';
+      const tag = done ? (o.g === 2 ? 'Best' : o.g === 1 ? 'OK' : 'Mistake') : '';
+      return `<button class="opt ${cls}" data-k="${k}" ${done ? 'disabled' : ''}><span>${esc(o.t)}</span><span class="tag">${tag}</span></button>`;
+    }).join('')}</div>
+    ${done ? verdictHTML(s, done) : ''}
+  </div>`;
+  const n = done && document.getElementById('next');
+  if (n) { n.focus({ preventScroll: true }); n.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+}
+
+function verdictHTML(s, done) {
+  const o = s.opts[done.k], best = s.opts.find(x => x.g === 2);
+  const head = o.g === 2 ? 'Best play' : o.g === 1 ? `OK, but ${best.t.toLowerCase()} is better` : `Mistake: ${best.t.toLowerCase()} is best`;
+  const flag = done.passive ? '<span class="flag">Too passive</span>' : done.loose ? '<span class="flag">Too loose</span>' : '';
+  const last = session.i === session.spots.length - 1;
+  return `<div class="verdict g${o.g}" role="status">
+    <div class="row" style="justify-content:space-between"><h2>${esc(head)}</h2>${flag}</div>
+    <p>${esc(s.why)}</p>
+  </div>
+  <div class="row"><button class="primary" id="next">${last ? 'See my score' : 'Next spot'}</button><button class="ghost" id="quit">Back to drills</button></div>`;
+}
+
+function answer(k) {
+  const s = session.spots[session.i], o = s.opts[k];
+  const pts = o.g === 2 ? 100 : o.g === 1 ? 50 : 0;
+  const passive = !!o.p && o.g < 2, loose = !!o.l && o.g < 2;
+  session.answered = { k, passive, loose };
+  session.points += pts; if (passive) session.passive++; if (loose) session.loose++;
+  stats.answered++; stats.points += pts; if (passive) stats.passive++; if (loose) stats.loose++;
+  const pk = stats.packs[s.pack] || (stats.packs[s.pack] = { n: 0, pts: 0, passive: 0 });
+  pk.n++; pk.pts += pts; if (passive) pk.passive++;
+  const keyOf = m => m.id || JSON.stringify(m.spot.hero) + m.spot.title;
+  const me = s.id ? { id: s.id } : { spot: s };
+  stats.misses = stats.misses.filter(m => keyOf(m) !== keyOf(me));
+  if (o.g < 2) stats.misses.push(me);
+  if (stats.misses.length > 40) stats.misses = stats.misses.slice(-40);
+  save();
+  renderSpot();
+}
+
+function renderSummary() {
+  const n = session.spots.length, sc = session.points;
+  const verdict = session.passive > session.loose + 1 ? 'Still too passive. Look for the bet or raise first, and only check or call when you have a reason.'
+    : session.loose > session.passive + 1 ? 'Too loose this time. Aggression pays on the right boards and against the right players. Pick your spots.'
+    : sc >= n * 80 ? 'Sharp. That’s the aggression level to bring to the table.' : 'Balanced, but there are points to pick up. Review your misses.';
+  view.innerHTML = `<div class="spot">
+    <span class="label">${esc(PACK_NAME[session.pack])}: finished</span>
+    <div class="panel">
+      <div class="big">${sc}<span style="font-size:24px;color:var(--muted)"> / ${n * 100}</span></div>
+      <div class="row"><span class="seat">Too passive: ${session.passive}</span><span class="seat">Too loose: ${session.loose}</span></div>
+      <p style="margin:0">${esc(verdict)}</p>
+    </div>
+    <div class="row">
+      <button class="primary" data-pack="${session.pack === 'review' ? 'mix' : session.pack}">Play again</button>
+      ${stats.misses.length ? '<button class="ghost" data-pack="review">Review my misses</button>' : ''}
+      <button class="ghost" id="quit">All drills</button>
+    </div>
+  </div>`;
+}
+
+function renderPlan() {
+  view.innerHTML = `<div class="plan">
+    <div class="callout">
+      <h3>The new points</h3>
+      <div class="points">
+        <span class="h">Place</span><span class="h">Before</span><span class="h">From tomorrow</span>
+        <span>1st</span><span>1,000</span><span class="up">1,500</span>
+        <span>2nd</span><span>900</span><span>1,000</span>
+        <span>Gap</span><span>100</span><span class="up">500</span>
+      </div>
+      <p>Winning the night is now worth five times more than it was over 2nd. Safe play that settles for 2nd costs you.</p>
+      <ul>
+        <li><b>Early:</b> chips are chips. Take every good spot and build a stack.</li>
+        <li><b>Chasing late:</b> take high-variance spots where you have an edge, especially against the leader. Each bb you win from them closes the gap by two.</li>
+        <li><b>Leading late:</b> avoid coin flips against whoever can catch you. Keep pressing the short stacks.</li>
+        <li><b>Count the places</b> on the last orbit and size your bets to get past the leader.</li>
+      </ul>
+      <p class="note">This assumes places go by chip count at the end of the night, and that 3rd place and below are worth about what they were.</p>
+    </div>
+    <section class="plan">
+      <h3>Big blind</h3>
+      <ol>
+        <li>Defend wide against cutoff, button and small-blind raises. You need only about 30% equity.</li>
+        <li>3-bet more against late-position steals: big pairs, AQ+, KQs, plus A5s and A4s as bluffs.</li>
+        <li>Check-raise low, connected flops (8-5-2, 7-6-4) with sets, two pairs and good draws.</li>
+        <li>If the raiser checks back the flop, bet the turn.</li>
+        <li>Fold to tight early raisers on A-K and K-Q boards when you’ve missed.</li>
+      </ol>
+    </section>
+    <section class="plan">
+      <h3>Flop and turn</h3>
+      <ol>
+        <li>Heads-up on dry, high boards: bet small (a third of the pot) often.</li>
+        <li>Wet boards with a strong hand: bet big, two-thirds of the pot or more.</li>
+        <li>Raise your big draws (straight + flush draws). Don’t just call.</li>
+        <li>Barrel turns that help you: overcards, or cards that give you a draw. Give up on blanks.</li>
+        <li>Multiway: bet strong hands and good draws, check the rest.</li>
+        <li>Bet top pair for value on two streets. Club players call with worse.</li>
+      </ol>
+    </section>
+    <section class="plan">
+      <h3>River</h3>
+      <ol>
+        <li>Value bet big against players who call a lot.</li>
+        <li>Bluff missed draws against tight players. Never against calling stations.</li>
+        <li>Bluff with blockers (holding the ace of the flush suit).</li>
+        <li>Fold to three barrels from a tight player. Raise or fold earlier rather than calling down.</li>
+      </ol>
+    </section>
+    <section class="plan">
+      <h3>Preflop</h3>
+      <ol>
+        <li>Raise or fold. Don’t limp.</li>
+        <li>Raise limpers: 3bb plus 1bb per limper.</li>
+        <li>Open wide from the cutoff and button.</li>
+        <li>Squeeze (re-raise a raise plus callers) with strong hands.</li>
+      </ol>
+    </section>
+    <section class="plan">
+      <h3>At the table</h3>
+      <p>Give each regular a one-word label: <b>tight</b>, <b>loose</b>, <b>station</b> or <b>maniac</b>. Bluff the tight ones, value bet the stations, and let the maniacs bluff into you.</p>
+    </section>
+  </div>`;
+}
+
+function renderStats() {
+  const rows = PACKS.filter(p => p.id !== 'mix').map(p => {
+    const k = stats.packs[p.id];
+    const avg = k && k.n ? Math.round(k.pts / k.n) : 0;
+    return `<div class="bar"><div class="top"><span>${p.name}</span><span>${k && k.n ? `${avg} avg · ${k.n} spots${k.passive ? ` · ${k.passive} too passive` : ''}` : 'Not played yet'}</span></div><div class="track"><div class="fill" style="width:${avg}%"></div></div></div>`;
+  }).join('');
+  const lean = stats.answered === 0 ? 'Play a few drills to see your leaks.'
+    : stats.passive > stats.loose * 1.5 ? 'Your biggest leak is still passivity: checking or calling when you should bet or raise.'
+    : stats.loose > stats.passive * 1.5 ? 'You’ve swung too far: you’re betting into boards and opponents where it doesn’t work.'
+    : 'Your passive and loose mistakes are in balance. Now work on the weakest pack below.';
+  view.innerHTML = `<div class="spot">
+    ${scoreboard()}
+    <div class="panel"><p style="margin:0">${esc(lean)}</p></div>
+    <h3>By pack</h3>
+    <div class="bars">${rows}</div>
+    <div class="row" id="reset-row"><button class="ghost" id="reset">Reset my record</button></div>
+    <p class="note">Your record is saved on this phone only.</p>
+  </div>`;
+}
+
+let tab = 'train';
+function show(t) {
+  tab = t;
+  document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.view === t)));
+  if (t === 'plan') renderPlan();
+  else if (t === 'stats') renderStats();
+  else if (session && session.i < session.spots.length) renderSpot();
+  else if (session) renderSummary();
+  else renderHome();
+}
+document.querySelector('nav.tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) show(b.dataset.view); });
+view.addEventListener('click', e => {
+  const pk = e.target.closest('[data-pack]');
+  if (pk) { session = buildSession(pk.dataset.pack); if (!session.spots.length) { session = null; renderHome(); return; } renderSpot(); window.scrollTo(0, 0); return; }
+  const opt = e.target.closest('.opt');
+  if (opt && !opt.disabled && session && !session.answered) { answer(+opt.dataset.k); return; }
+  const t = e.target.closest('button'); if (!t) return;
+  if (t.id === 'next') {
+    session.i++; session.answered = null;
+    if (session.i >= session.spots.length) renderSummary(); else renderSpot();
+    window.scrollTo(0, 0);
+  } else if (t.id === 'quit') { session = null; renderHome(); window.scrollTo(0, 0); }
+  else if (t.id === 'reset') {
+    document.getElementById('reset-row').innerHTML = '<div class="confirm"><span>Clear your whole record?</span><button class="ghost" id="reset-yes">Yes, clear it</button><button class="ghost" id="reset-no">Keep it</button></div>';
+  } else if (t.id === 'reset-yes') { stats = blank(); save(); renderStats(); }
+  else if (t.id === 'reset-no') renderStats();
+});
+show('train');
+if ('serviceWorker' in navigator && /github\.io$/.test(location.hostname)) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body></html>
