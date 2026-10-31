@@ -260,6 +260,11 @@
         <li><span class="tag" style="--c: var(--p-slow)">SLOW</span><span>Slow Motion: the ball flies at half speed. <em>3 shots</em></span></li>
         <li><span class="tag" style="--c: var(--p-triple)">x3</span><span>Triple Shot: your next throw fires three balls. <em>1 shot</em></span></li>
       </ul>
+      <h3>Other modes</h3>
+      <ul>
+        <li><span class="tag" style="--c: var(--p-fire)">Fuse</span><span>Hot potato: every ball has a lit fuse. Score before it burns down or it blows up. The fuse gets shorter as your streak grows.</span></li>
+        <li><span class="tag" style="--c: #ffb347">Smash</span><span>Demolition: smash crates and pumpkins for +3 each and clear the set for +5. Explosions take out anything nearby, and a shot that smashes something never counts as a miss.</span></li>
+      </ul>
       <h3>It gets harder</h3>
       <ul>
         <li><span class="tag">20</span><span>Reach a streak of 20 and the hoop starts sliding slowly side to side. It speeds up the longer your streak runs and stops when you miss.</span></li>
@@ -306,11 +311,12 @@
       <div class="home-btns">
         <button class="close-btn" id="home-free" type="button">Free play</button>
         <button class="close-btn" id="home-timed" type="button">60-second challenge</button>
+        <button class="close-btn" id="home-potato" type="button">Hot potato</button>
+        <button class="close-btn" id="home-demo" type="button">Demolition</button>
         <div class="home-row">
           <button class="help-btn" id="home-player" type="button">Change player</button>
           <button class="help-btn" id="home-ball" type="button">Ball &amp; court</button>
           <button class="help-btn" id="home-rules" type="button">Rules</button>
-          <button class="help-btn" type="button" onclick="location.href='/'">🏠 Exit to main menu</button>
         </div>
       </div>
     </div>
@@ -368,6 +374,14 @@
     rugby:      { name: 'Rugby ball',   note: 'Tumbles end over end. Its pointy shape makes every bounce unpredictable.', size: 1.05, grav: 1.05, bounce: 0.9, wind: 1.1, drag: 0.04, speed: 1.04, wobble: 0.9, meters: { bounce: 3, weight: 3, wind: 2 } },
     pingpong:   { name: 'Ping pong ball', note: 'Tiny and feather-light. Air slows it fast and the wind throws it around.', size: 0.4, grav: 0.8, bounce: 1.7, wind: 3.5, drag: 0.7, speed: 1.25, meters: { bounce: 5, weight: 1, wind: 5 } },
     pumpkin:    { name: "Jack-o'-lantern", note: 'A carved pumpkin with a candle inside. Lands with a squashy thud and leaves a trail of candlelight.', size: 1.1, grav: 1.1, bounce: 0.55, wind: 0.7, drag: 0.03, speed: 1.07, glow: '#ffb347', meters: { bounce: 1, weight: 4, wind: 2 } },
+    snowball:   { name: 'Snowball', note: 'Packed snow. It shrinks a little every time it bounces and melts away if it rolls along the ground too long.', size: 1, grav: 1, bounce: 0.6, wind: 0.8, drag: 0.03, speed: 1.03, noShine: true, meters: { bounce: 2, weight: 3, wind: 2 } },
+    balloon:    { name: 'Water balloon', note: 'Bursts the moment it touches anything, even the rim. Swish or splash.', size: 1.15, grav: 1.05, bounce: 0.5, wind: 1.2, drag: 0.06, speed: 1.04, wobble: 0.3, noShine: true, meters: { bounce: 1, weight: 3, wind: 3 } },
+    bomb:       { name: 'Cartoon bomb', note: 'Bounces like a basketball, but blows up on its third bounce. The number shows the bounces left. The blast still takes out birds.', size: 1.05, grav: 1.1, bounce: 0.95, wind: 0.6, drag: 0, speed: 1.05, noShine: true, meters: { bounce: 3, weight: 4, wind: 1 } },
+    chicken:    { name: 'Rubber chicken', note: 'Floppy and draggy, flips about on every bounce, and squawks when it lands.', size: 1, grav: 0.95, bounce: 0.95, wind: 1.4, drag: 0.15, speed: 1.08, wobble: 1.2, noShine: true, meters: { bounce: 3, weight: 2, wind: 3 } },
+    egg:        { name: 'Egg', note: 'It has to go in clean. Any touch of the rim, the board or the ground cracks it.', size: 0.75, grav: 1, bounce: 0.5, wind: 1, drag: 0.02, speed: 1, noShine: true, meters: { bounce: 1, weight: 2, wind: 2 } },
+    firework:   { name: 'Firework', note: 'Leaves a sparkly rainbow trail and bursts into colours when it goes in.', size: 0.8, grav: 0.9, bounce: 0.8, wind: 0.8, drag: 0.02, speed: 1.05, glow: 'rainbow', noShine: true, meters: { bounce: 3, weight: 2, wind: 2 } },
+    ghost:      { name: 'Ghost', note: 'Fades in and out as it floats. While it is see-through it drifts straight through the rim and backboard.', size: 1.05, grav: 0.75, bounce: 0.6, wind: 1.8, drag: 0.18, speed: 0.98, noShine: true, meters: { bounce: 2, weight: 1, wind: 4 } },
+    dynamite:   { name: 'Dynamite', note: 'A lit bundle of sticks. Sink it before the fuse burns down for a +2 blast bonus. Too slow and it goes off where it is, but the blast still knocks out nearby birds.', size: 1, grav: 1.15, bounce: 0.4, wind: 0.5, drag: 0.02, speed: 1.08, wobble: 0.6, glow: '#ff9a3c', fuse: 2.6, noShine: true, meters: { bounce: 1, weight: 4, wind: 1 } },
     bauble:     { name: 'Christmas bauble', note: 'A shiny glass tree ornament. Light and bouncy, and it clinks like a bell on every bounce.', size: 0.85, grav: 0.9, bounce: 1.1, wind: 1.6, drag: 0.08, speed: 1.02, glow: '#ffe9a8', meters: { bounce: 3, weight: 2, wind: 4 } },
   };
   // wobble: how far (radians) an odd-shaped ball can kick off line when it bounces
@@ -382,6 +396,8 @@
   try { const saved = localStorage.getItem('hoopshot-ball'); if (BALLS[saved]) ballType = nextBall = saved; } catch (e) {}
   const ballDef = () => BALLS[ballType];
   const br = () => R * ballDef().size;
+  const rad = b => br() * (b.scale || 1);   // a snowball shrinks, so each ball can have its own size
+  const ghostAlpha = () => 0.55 + 0.45 * Math.sin(shot.t * 4.2);
   const launchK = () => maxSpeed * ballDef().speed / maxPull;
 
   // ---- courts (level backgrounds) ----
@@ -410,6 +426,14 @@
     rugby:      { body: [130, 75, 0.14],  slap: [700, 1, 0.06],    ring: null,         level: 0.95, mass: 0.9, double: true },
     pingpong:   { body: [1300, 1150, 0.045], slap: [4500, 3, 0.015], ring: [2600, 0.05], level: 0.55, mass: 0.08 },
     pumpkin:    { body: [100, 55, 0.22],  slap: [450, 0.8, 0.09],  ring: [190, 0.18],  level: 1.1,  mass: 1.4 },
+    snowball:   { body: [170, 100, 0.08], slap: [1600, 0.5, 0.09], ring: null,         level: 0.6,  mass: 0.5 },
+    balloon:    { body: [110, 70, 0.14],  slap: [600, 0.6, 0.08],  ring: null,         level: 0.8,  mass: 0.9 },
+    bomb:       { body: [130, 65, 0.15],  slap: [850, 1.2, 0.05],  ring: [640, 0.12],  level: 1,    mass: 1.3 },
+    chicken:    { body: [260, 180, 0.06], slap: [900, 0.8, 0.05],  ring: null,         level: 0.8,  mass: 0.4, squawk: true },
+    egg:        { body: [520, 420, 0.04], slap: [2600, 2, 0.02],   ring: null,         level: 0.5,  mass: 0.3 },
+    firework:   { body: [380, 260, 0.06], slap: [1800, 1.5, 0.03], ring: [900, 0.06],  level: 0.7,  mass: 0.5 },
+    ghost:      { body: [190, 120, 0.12], slap: [700, 0.6, 0.06],  ring: [520, 0.35],  level: 0.5,  mass: 0.3 },
+    dynamite:   { body: [140, 70, 0.12],  slap: [800, 1, 0.05],    ring: null,         level: 1,    mass: 1.3, double: true },
     bauble:     { body: [620, 520, 0.04], slap: [5200, 2, 0.02],   ring: [2350, 0.4],  level: 0.6,  mass: 0.45, chime: [2350, 3520, 4980] },
   };
 
@@ -461,6 +485,7 @@
       if (p.chime) metal(p.chime, 0.6, 0.14 * v, at);   // glass rings like a little bell
       if (p.rumble) noise(140, 60, 0.7, 0.5, 0.5 * v, at, 'lowpass');
       if (p.double) bounce({ ...p, double: false }, v * 0.45, at + 0.045 + Math.random() * 0.03);
+      if (p.squawk) { tone(950, 620, 0.13, 0.35 * v, at, 'sawtooth'); tone(1250, 800, 0.1, 0.25 * v, at + 0.13, 'square'); }
     }
     return {
       unlock,
@@ -511,6 +536,21 @@
         tone(880, 880, 0.25, 0.12, 0.22, 'triangle');
         tone(1320, 1320, 0.3, 0.12, 0.32, 'triangle');
       },
+      boom() {
+        if (!ready()) return;
+        noise(900, 50, 0.7, 1.2, 1.1, 0, 'lowpass');
+        tone(110, 32, 0.7, 1);
+        noise(2600, 400, 0.8, 0.3, 0.5);
+      },
+      splash() { if (!ready()) return; noise(1800, 300, 0.6, 0.35, 0.7); noise(5000, 3000, 1, 0.08, 0.5, 0, 'highpass'); tone(500, 150, 0.12, 0.3); },
+      crack() { if (!ready()) return; for (let i = 0; i < 3; i++) noise(3500 - i * 500, 2500, 3, 0.03, 0.5, i * 0.03); },
+      crackle() { if (!ready()) return; tone(200, 60, 0.3, 0.4); for (let i = 0; i < 14; i++) noise(2500 + Math.random() * 3000, 1500, 2, 0.03, 0.25, 0.15 + Math.random() * 0.7); },
+      smash() { if (!ready()) return; noise(1400, 150, 0.6, 0.35, 0.8, 0, 'lowpass'); for (let i = 0; i < 4; i++) noise(900 + Math.random() * 900, 600, 2, 0.05, 0.4, 0.03 + i * 0.05); },
+      fizz() { if (!ready()) return; noise(5000, 3000, 0.5, 0.6, 0.25, 0, 'highpass'); },
+      fuse(dur) {
+        if (!ready()) return;
+        noise(6500, 5200, 1.2, dur, 0.07, 0, 'highpass');
+      },
       fire() {
         if (!ready()) return;
         noise(200, 900, 0.6, 0.5, 0.3, 0, 'lowpass');
@@ -522,7 +562,7 @@
 
   let W, H, R, G, floorY, launch, maxPull, maxSpeed;
   let hoop = null, shot = null, drag = null, phase = 'aim', phaseT = 0, clock = 0, paused = false;
-  let flash = null, particles = [], netSway = 0, stars = [], birds = [], birdTimer = 2.5;
+  let flash = null, shake = 0, blasts = [], targets = [], particles = [], netSway = 0, stars = [], birds = [], birdTimer = 2.5;
   let active = {}, toastTimer = null;
   const st = { score: 0, streak: 0, best: 0, makes: 0 };   // best = this player's longest streak (their record)
 
@@ -557,6 +597,8 @@
         clearTimeout(streakPost);
         streakPost = setTimeout(() => FamilyScores.submit('hoopshot', 'streak', p.bestStreak, { player: p.name }), 4000);
       }
+      if (mode === 'potato') p.bestPotato = Math.max(p.bestPotato || 0, st.score);
+      if (mode === 'demo') p.bestDemo = Math.max(p.bestDemo || 0, st.score);
     }
     try { localStorage.setItem(FAMILY_KEY, JSON.stringify(fam)); } catch (e) {}
   }
@@ -571,6 +613,7 @@
   function loadPlayer(p) {
     st.best = p.bestStreak || 0;
     if (mode === 'timed') resetRound();
+    else if (mode !== 'free') freshRun();
     else {
       st.score = p.score || 0; st.streak = 0; st.makes = p.makes || 0;
       active = {}; birds = []; flash = null;
@@ -579,17 +622,32 @@
     updateHud(false);
   }
 
+  // Hot potato and Demolition start from zero each time; only the player's best is kept
+  function freshRun() {
+    st.score = 0; st.streak = 0; st.makes = 0;
+    active = {}; birds = []; flash = null; targets = [];
+    if (launch) { newHoop(); resetShot(); if (mode === 'demo') newTargets(); }
+  }
+  const MODES = { free: 'Free play', timed: '60s challenge', potato: 'Hot potato', demo: 'Demolition' };
+  const MODE_ORDER = Object.keys(MODES);
+
   function setMode(m) {
     if (m === mode) return;
     saveFamily();
     mode = m;
     document.getElementById('timer-stat').hidden = mode !== 'timed';
     document.getElementById('best-stat').hidden = mode === 'timed';
-    document.getElementById('mode-name').textContent = mode === 'timed' ? '60s challenge' : 'Free play';
+    document.getElementById('mode-name').textContent = MODES[mode];
     const p = me();
     if (mode === 'timed') {
       resetRound();
       showToast('60-second challenge', 'The clock starts on your first shot', COL.gold);
+    } else if (mode === 'potato') {
+      freshRun();
+      showToast('Hot potato', `Every ball has a lit fuse that gets shorter as your streak grows${p && p.bestPotato ? `. Best: ${p.bestPotato}` : ''}`, COL.fire);
+    } else if (mode === 'demo') {
+      freshRun();
+      showToast('Demolition', `Smash crates and pumpkins for +3${p && p.bestDemo ? `. Best: ${p.bestDemo}` : ''}`, '#ffb347');
     } else if (p) {
       st.score = p.score || 0; st.streak = 0; st.makes = p.makes || 0;
       active = {}; birds = []; flash = null;
@@ -678,6 +736,7 @@
     bgCache = null;
     if (hoop) layoutHoop(); else newHoop();
     if (phase === 'aim') resetShot();
+    if (mode === 'demo') newTargets();
   }
 
   // ---- hoop ----
@@ -779,23 +838,33 @@
     });
     shot.fire = onFire();
     sfx.throw(Math.min(1, Math.hypot(vx, vy) / (maxSpeed * ballDef().speed)));
+    shot.fuse = fuseFor();
+    if (shot.fuse) sfx.fuse(shot.fuse);
     phase = 'flying'; phaseT = 0; shot.t = 0;
+  }
+
+  // dynamite always has a fuse; in Hot potato every ball gets one, shorter as the streak grows
+  function fuseFor() {
+    let f = ballDef().fuse || 0;
+    if (mode === 'potato') { const p = Math.max(1.3, 3.2 - st.streak * 0.15); f = f ? Math.min(f, p) : p; }
+    return f;
   }
 
   // ---- physics ----
   function hitPoint(b, px, py, pr, e, kind) {
     const dx = b.x - px, dy = b.y - py;
-    const d = Math.hypot(dx, dy), min = br() + pr;
+    const d = Math.hypot(dx, dy), min = rad(b) + pr;
     if (d >= min || d === 0) return false;
     const nx = dx / d, ny = dy / d;
     b.x = px + nx * min; b.y = py + ny * min;
     const vn = b.vx * nx + b.vy * ny;
-    if (vn < 0) { sfx.hit(kind, -vn, b); b.vx -= (1 + e) * vn * nx; b.vy -= (1 + e) * vn * ny; wobble(b); }
+    if (vn < 0) { sfx.hit(kind, -vn, b); b.vx -= (1 + e) * vn * nx; b.vy -= (1 + e) * vn * ny; wobble(b); contact(b, kind, -vn); }
     return true;
   }
 
   function step(b, dt) {
-    const bd = ballDef(), r = br();
+    if (b.hidden) { b.rest = true; return; }
+    const bd = ballDef(), r = rad(b);
     b.prevY = b.y;
     b.vy += G * bd.grav * dt;
     b.vx += windAccel() * bd.wind * dt;
@@ -811,12 +880,16 @@
 
     const rimR = Math.max(2, R * 0.2);
     const e = k => Math.min(0.92, k * bd.bounce);
-    if (hitPoint(b, hoop.l, hoop.y, rimR, e(0.5), 'rim')) b.touched = true;
-    if (hitPoint(b, hoop.r, hoop.y, rimR, e(0.5), 'rim')) b.touched = true;
-    const px = Math.max(hoop.bx, Math.min(b.x, hoop.bx + hoop.bw));
-    const py = Math.max(hoop.bt, Math.min(b.y, hoop.bb));
-    if (hasBoard() && hitPoint(b, px, py, 0, e(0.6), 'board')) b.touched = true;
-    if (b.y > poleTop()) hitPoint(b, hoop.bx + hoop.bw / 2, b.y, R * 0.2, e(0.4), 'pole');
+    const solid = ballType !== 'ghost' || ghostAlpha() >= 0.4;   // a faded ghost floats through the hoop
+    if (solid) {
+      if (hitPoint(b, hoop.l, hoop.y, rimR, e(0.5), 'rim')) b.touched = true;
+      if (hitPoint(b, hoop.r, hoop.y, rimR, e(0.5), 'rim')) b.touched = true;
+      const px = Math.max(hoop.bx, Math.min(b.x, hoop.bx + hoop.bw));
+      const py = Math.max(hoop.bt, Math.min(b.y, hoop.bb));
+      if (hasBoard() && hitPoint(b, px, py, 0, e(0.6), 'board')) b.touched = true;
+      if (b.y > poleTop()) hitPoint(b, hoop.bx + hoop.bw / 2, b.y, R * 0.2, e(0.4), 'pole');
+    }
+    if (b.hidden) { b.rest = true; return; }
 
     if (!b.scored && b.prevY < hoop.y && b.y >= hoop.y && b.vy > 0 && b.x > hoop.l && b.x < hoop.r) {
       b.scored = true;
@@ -827,19 +900,27 @@
     for (const bird of birds) {
       if (!bird.hit && Math.hypot(b.x - bird.x, b.y - bird.y) < r + bird.s * 1.2) hitBird(bird);
     }
+    if (mode === 'demo') for (const t of targets) {
+      if (!t.dead && Math.hypot(b.x - t.x, b.y - t.y) < r + t.s) { smash(t); b.vx *= 0.8; b.vy *= 0.8; contact(b, 'target', H); }
+    }
+    if (b.hidden) { b.rest = true; return; }
 
     if (b.y + r > floorY) {
       b.floored = true;
-      if (b.vy > 0) sfx.hit('floor', b.vy, b);
+      if (b.vy > 0) { sfx.hit('floor', b.vy, b); contact(b, 'floor', b.vy); }
       b.y = floorY - r;
       b.vy *= -e(0.55);
       b.vx *= 0.8;
       if (b.vy < -G * 0.04) wobble(b);
       if (Math.abs(b.vy) < G * 0.04) b.vy = 0;
     }
-    if (b.x - r < 0) { if (b.vx < 0) sfx.hit('wall', -b.vx, b); b.x = r; b.vx = Math.abs(b.vx) * e(0.6); }
-    if (b.x + r > W) { if (b.vx > 0) sfx.hit('wall', b.vx, b); b.x = W - r; b.vx = -Math.abs(b.vx) * e(0.6); }
-    b.rest = b.vy === 0 && Math.abs(b.vx) < R * 0.5 && b.y >= floorY - r - 0.5;
+    if (ballType === 'snowball' && b.y >= floorY - r - 1) {   // rolling on the ground melts it
+      b.scale = (b.scale || 1) - dt * 0.35;
+      if (b.scale < 0.35) pop(b, 'snowball');
+    }
+    if (b.x - r < 0) { if (b.vx < 0) { sfx.hit('wall', -b.vx, b); contact(b, 'wall', -b.vx); } b.x = r; b.vx = Math.abs(b.vx) * e(0.6); }
+    if (b.x + r > W) { if (b.vx > 0) { sfx.hit('wall', b.vx, b); contact(b, 'wall', b.vx); } b.x = W - r; b.vx = -Math.abs(b.vx) * e(0.6); }
+    b.rest = b.hidden || b.vy === 0 && Math.abs(b.vx) < R * 0.5 && b.y >= floorY - r - 0.5;
   }
 
   // ---- scoring and power-ups ----
@@ -862,14 +943,16 @@
       }
     }
     st.makes++;
-    const base = b.touched ? 2 : 3;
+    const base = (b.touched ? 2 : 3) + (ballDef().fuse ? 2 : 0);
     const mult = (has('double') ? 2 : 1) * (shot.fire ? 2 : 1);
     addPoints(base * mult);
-    const label = (b.touched ? 'Bucket! +' : 'Swish! +') + base * mult;
+    const label = (ballDef().fuse ? 'KABOOM! +' : b.touched ? 'Bucket! +' : 'Swish! +') + base * mult;
     flash = { text: label, t: 0, x: (hoop.l + hoop.r) / 2, y: hoop.y - R * 6.5, color: b.touched ? COL.ink : COL.gold };
     netSway = 1;
     sfx.swish(!b.touched);
     burst((hoop.l + hoop.r) / 2, hoop.y, 26, [COL.gold, COL.rim, COL.paint, COL.ball]);
+    if (ballDef().fuse) explode(b);
+    if (ballType === 'firework') { ringBurst(b.x, b.y); sfx.crackle(); }
     if (first && st.streak === 3) sfx.fire();
     if (!toasted && first && st.streak === 3) showToast('On fire!', 'Points x2 until you miss', COL.fire);
     if (first && st.streak === MOVE_STREAK) showToast('Streak of 20', 'The hoop starts moving. Keep the streak going.', COL.gold);
@@ -896,7 +979,78 @@
     updateHud(true);
   }
 
+  // what each ball does when it touches something: pop, shrink, or count down to a blast
+  function contact(b, kind, speed) {
+    if (b.hidden) return;
+    if (ballType === 'balloon') pop(b, 'balloon');
+    else if (ballType === 'egg') pop(b, 'egg');
+    else if (ballType === 'snowball' && speed > H * 0.1) {
+      b.scale = (b.scale || 1) * 0.86;
+      if (b.scale < 0.35) pop(b, 'snowball');
+    } else if (ballType === 'bomb' && speed > H * 0.08) {
+      const now = performance.now();
+      if (b.lastBounce && now - b.lastBounce < 90) return;
+      b.lastBounce = now; b.bounces = (b.bounces || 0) + 1;
+      if (b.bounces >= 3) explode(b);
+    }
+  }
+
+  const POP = {
+    balloon:  { text: 'SPLASH!', color: '#5fb8ff', parts: ['#5fb8ff', '#a8dcff', '#e6f5ff', '#2f7fe0'], snd: 'splash' },
+    egg:      { text: 'CRACK!', color: '#ffd36b', parts: ['#fbf2df', '#ffd36b', '#ffb000', '#f3e3c3'], snd: 'crack' },
+    snowball: { text: 'MELTED', color: '#cfe6ff', parts: ['#ffffff', '#cfe6ff', '#9cc8f0'], snd: 'fizz' },
+  };
+  function pop(b, kind) {
+    if (b.hidden) return;
+    const p = POP[kind];
+    b.hidden = b.rest = true; b.endText = p.text;
+    burst(b.x, b.y, 30, p.parts);
+    sfx[p.snd]();
+    if (!b.scored) flash = { text: p.text, t: 0, x: b.x, y: b.y - R * 3, color: p.color };
+  }
+
+  function ringBurst(x, y) {
+    if (reduceMotion) return;
+    const cols = ['#ff5a7a', '#ffd36b', '#6fd3ff', '#8fe36b', '#c58bff', '#ffffff'];
+    for (let ring = 0; ring < 2; ring++) for (let i = 0; i < 28; i++) {
+      const a = i / 28 * Math.PI * 2, sp = H * (0.35 + ring * 0.25);
+      particles.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1.1, t: 0, c: cols[(i + ring * 3) % cols.length] });
+    }
+  }
+
+  // ---- Demolition targets ----
+  function newTargets() {
+    targets = [];
+    const s = R * 1.15, minX = launch.x + R * 7, maxX = W - R * 3;
+    for (let i = 0; i < 4; i++) {
+      for (let tries = 0; tries < 30; tries++) {
+        const ledge = Math.random() < 0.5;
+        const x = minX + Math.random() * Math.max(1, maxX - minX);
+        const y = ledge ? floorY - H * (0.2 + Math.random() * 0.32) : floorY - s;
+        if (ledge && x > hoop.l - R * 4 && x < hoop.bx + R * 4) continue;
+        if (targets.some(t => Math.hypot(t.x - x, t.y - y) < s * 4)) continue;
+        targets.push({ x, y, s, ledge, kind: Math.random() < 0.5 ? 'crate' : 'pumpkin', dead: false });
+        break;
+      }
+    }
+  }
+
+  function smash(t) {
+    if (t.dead) return;
+    t.dead = true;
+    shot.smashed = (shot.smashed || 0) + 1;
+    const pts = 3 * (has('double') ? 2 : 1) * (shot.fire ? 2 : 1);
+    addPoints(pts);
+    flash = { text: 'SMASH! +' + pts, t: 0, x: t.x, y: t.y - R * 3, color: '#ffb347' };
+    burst(t.x, t.y, 22, t.kind === 'crate' ? ['#a0703f', '#7a5230', '#d6a76a'] : ['#e8761e', '#ffd36b', '#4c6b2a']);
+    sfx.smash();
+    if (targets.every(x => x.dead)) { addPoints(5); showToast('Wave cleared!', '+5 bonus. A new set is on its way.', '#ffb347'); }
+    saveFamily();
+    updateHud(true);
+  }
+
   function endShot(scored) {
+    if (mode === 'demo' && targets.every(t => t.dead)) newTargets();
     for (const k of Object.keys(active)) {
       const a = active[k];
       if (a.fresh) { a.fresh = false; continue; }   // a power-up caught mid-shot starts with the next one
@@ -909,14 +1063,34 @@
   }
 
   function miss() {
+    if (shot.smashed) { saveFamily(); updateHud(false); return; }   // Demolition: a smash is never a miss
     const b = shot.balls[0];
     if (st.streak >= MOVE_STREAK) showToast('Streak over', 'The hoop stops moving', COL.dim);
     else if (st.streak >= 3) showToast('Fire is out', 'Make 3 in a row to light it again', COL.dim);
     st.streak = 0;
     if (hoop.amp) { hoop.baseFx = hoop.fx; hoop.amp = 0; }
-    flash = { text: 'Miss', t: 0, x: b.x, y: b.y - R * 3, color: COL.dim };
+    flash = { text: b.endText ? b.endText + ' Miss' : 'Miss', t: 0, x: b.x, y: b.y - R * 3, color: b.endText ? (b.endText === 'BOOM!' ? '#ff9a3c' : POP[ballType] ? POP[ballType].color : COL.dim) : COL.dim };
     saveFamily();
     updateHud(false);
+  }
+
+  // Dynamite goes off: hides the ball, shakes the screen and takes out any birds in range
+  function explode(b) {
+    if (b.exploded) return;
+    b.exploded = true; b.hidden = true; b.rest = true; b.endText = 'BOOM!';
+    blasts.push({ x: b.x, y: b.y, t: 0 });
+    shake = 1;
+    sfx.boom();
+    burst(b.x, b.y, 44, ['#ffd36b', '#ff9a3c', '#e5432f', '#fff4d6', '#5a5a5a']);
+    const reach = R * 7;
+    for (const bird of birds) {
+      if (!bird.hit && Math.hypot(b.x - bird.x, b.y - bird.y) < reach) hitBird(bird);
+    }
+    let smashed = false;
+    if (mode === 'demo') for (const t of targets) {
+      if (!t.dead && Math.hypot(b.x - t.x, b.y - t.y) < reach + t.s) { smash(t); smashed = true; }
+    }
+    if (!b.scored && !smashed) flash = { text: 'BOOM!', t: 0, x: b.x, y: b.y - R * 3, color: '#ff9a3c' };
   }
 
   function burst(x, y, n, colors) {
@@ -1002,7 +1176,14 @@
   document.getElementById('home-player').addEventListener('click', () => openFamily());
   document.getElementById('home-ball').addEventListener('click', () => openPanel(picker, picker.querySelector(`[data-type="${nextBall}"]`)));
   document.getElementById('home-rules').addEventListener('click', () => openPanel(el.help, document.getElementById('help-close')));
-  document.getElementById('mode-btn').addEventListener('click', () => setMode(mode === 'timed' ? 'free' : 'timed'));
+  document.getElementById('mode-btn').addEventListener('click', () => setMode(MODE_ORDER[(MODE_ORDER.indexOf(mode) + 1) % MODE_ORDER.length]));
+  for (const m of ['potato', 'demo']) {
+    document.getElementById('home-' + m).addEventListener('click', () => {
+      if (mode === m) freshRun(); else setMode(m);
+      updateHud(false);
+      closePanels();
+    });
+  }
   document.getElementById('res-again').addEventListener('click', closePanels);
   document.getElementById('res-free').addEventListener('click', () => { setMode('free'); closePanels(); });
   document.getElementById('res-board').addEventListener('click', () => { boardSort = 'timed'; openFamily(); });
@@ -1195,8 +1376,24 @@
       const n = 6;
       for (const b of shot.balls) {
         if (b.rest) continue;
-        for (let i = 0; i < n; i++) step(b, sdt / n);
+        for (let i = 0; i < n && !b.hidden; i++) step(b, sdt / n);
+        if (ballType === 'firework' && !b.hidden && !reduceMotion) {   // sparkles
+          particles.push({ x: b.x, y: b.y, vx: (Math.random() - 0.5) * H * 0.12, vy: (Math.random() - 0.5) * H * 0.12, life: 0.45, t: 0, c: `hsl(${Math.floor(Math.random() * 360)}, 95%, 68%)` });
+        }
         if (shot.fire || has('slow') || ballDef().glow) { b.trail.push([b.x, b.y]); if (b.trail.length > 9) b.trail.shift(); }
+      }
+      const fuse = shot.fuse;
+      if (fuse) for (const b of shot.balls) {
+        if (b.hidden || b.scored) continue;
+        if (shot.t >= fuse) { explode(b); continue; }
+        if (!reduceMotion) {   // sparks spitting off the fuse tip
+          const left = 1 - shot.t / fuse, r = rad(b);
+          const tip = ballType === 'dynamite' ? fuseTip(b.x, b.y, b.spin, r, left) : { x: b.x + R * 0.1, y: b.y - r - R * 1.1 * left };
+          for (let i = 0; i < 2; i++) {
+            const a = Math.random() * Math.PI * 2, sp = H * (0.05 + Math.random() * 0.12);
+            particles.push({ x: tip.x, y: tip.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - H * 0.05, life: 0.2 + Math.random() * 0.25, t: 0, c: Math.random() < 0.5 ? '#ffd36b' : '#ff9a3c' });
+          }
+        }
       }
       if (shot.scoredAt !== null) {
         if (shot.t - shot.scoredAt > 1.2) endShot(true);
@@ -1208,6 +1405,8 @@
     }
 
     netSway = Math.max(0, netSway - dt * 1.4);
+    shake = Math.max(0, shake - dt * 2.5);
+    blasts = blasts.filter(x => (x.t += dt) < 0.6);
     particles = particles.filter(p => (p.t += dt) < p.life);
     for (const p of particles) { p.vy += G * 0.6 * dt; p.x += p.vx * dt; p.y += p.vy * dt; }
     if (flash && (flash.t += dt) > 1.1) flash = null;
@@ -1616,7 +1815,7 @@
     ctx.fillText(p.tag, b.x, b.y - s * 1.6);
   }
 
-  function drawBall(x, y, rot, type = ballType, r = br(), g = ctx) {
+  function drawBall(x, y, rot, type = ballType, r = br(), g = ctx, ball = null) {
     const TAU = Math.PI * 2;
     const disc = color => { g.fillStyle = color; g.beginPath(); g.arc(0, 0, r, 0, TAU); g.fill(); };
     const line = (color, w) => { g.strokeStyle = color; g.lineWidth = Math.max(1, r * w); };
@@ -1698,6 +1897,101 @@
       g.beginPath(); g.arc(r * 0.25, r * 0.2, r * 0.28, 0, TAU); g.fill();
       g.fillStyle = '#fbf8ef';
       g.beginPath(); g.arc(r * 0.25, r * 0.2, r * 0.13, 0, TAU); g.fill();
+    } else if (type === 'dynamite') {
+      const left = g === ctx && phase === 'flying' && shot.fuse ? Math.max(0, 1 - shot.t / shot.fuse) : 1;
+      for (const [sx, sy] of [[-0.62, 0.06], [0.62, 0.06], [0, -0.06]]) {
+        const w = r * 0.6, h = r * 1.9, x0 = r * sx - w / 2, y0 = r * sy - h / 2;
+        const sg = g.createLinearGradient(x0, 0, x0 + w, 0);
+        sg.addColorStop(0, '#8e1414'); sg.addColorStop(0.35, '#e0352b'); sg.addColorStop(1, '#7a1010');
+        g.fillStyle = sg; g.fillRect(x0, y0, w, h);
+        g.fillStyle = '#f2d9a8'; g.fillRect(x0, y0, w, r * 0.12);
+        g.strokeStyle = 'rgba(40, 8, 8, 0.6)'; g.lineWidth = Math.max(1, r * 0.04); g.strokeRect(x0, y0, w, h);
+      }
+      g.fillStyle = '#2a2a2a';
+      for (const ty of [-0.45, 0.4]) g.fillRect(-r * 0.95, r * ty, r * 1.9, r * 0.2);
+      g.fillStyle = '#f5efe6'; g.font = `${Math.max(6, r * 0.32)}px ${C('--font-display')}`;
+      g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('TNT', 0, r * 0.05);
+      const top = -r * 1.01, len = r * 0.9 * left;
+      g.strokeStyle = '#d8c79a'; g.lineWidth = Math.max(1.5, r * 0.1); g.lineCap = 'round';
+      g.beginPath(); g.moveTo(0, top);
+      g.quadraticCurveTo(r * 0.35, top - len * 0.5, r * 0.1, top - len); g.stroke();
+      const tip = { x: r * 0.1 * (len ? 1 : 0), y: top - len };
+      const flick = 0.7 + Math.random() * 0.5;
+      g.fillStyle = '#fff4b0'; g.shadowColor = '#ff9a3c'; g.shadowBlur = r * 0.8;
+      g.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const a = i * Math.PI / 5, rr = (i % 2 ? 0.12 : 0.3) * r * flick;
+        g.lineTo(tip.x + Math.cos(a) * rr, tip.y + Math.sin(a) * rr);
+      }
+      g.closePath(); g.fill(); g.shadowBlur = 0;
+    } else if (type === 'snowball') {
+      const sh = g.createRadialGradient(-r * 0.3, -r * 0.35, r * 0.1, 0, 0, r);
+      sh.addColorStop(0, '#ffffff'); sh.addColorStop(0.7, '#e3eef9'); sh.addColorStop(1, '#a9c4e0');
+      g.fillStyle = sh; g.beginPath(); g.arc(0, 0, r, 0, TAU); g.fill();
+      g.fillStyle = 'rgba(150, 180, 215, 0.6)';
+      for (const [sx, sy, sr] of [[0.3, 0.2, 0.12], [-0.35, 0.35, 0.09], [0.1, -0.45, 0.07], [-0.2, -0.05, 0.06], [0.5, -0.2, 0.06]]) { g.beginPath(); g.arc(r * sx, r * sy, r * sr, 0, TAU); g.fill(); }
+    } else if (type === 'balloon') {
+      const sh = g.createRadialGradient(-r * 0.35, -r * 0.4, r * 0.08, 0, 0, r * 1.05);
+      sh.addColorStop(0, '#bfe6ff'); sh.addColorStop(0.5, '#3aa0e8'); sh.addColorStop(1, '#1c5f9e');
+      g.fillStyle = sh; g.beginPath(); g.ellipse(0, -r * 0.05, r * 0.95, r * 1.02, 0, 0, TAU); g.fill();
+      g.fillStyle = '#1c5f9e'; g.beginPath(); g.moveTo(-r * 0.16, r * 1.1); g.lineTo(0, r * 0.9); g.lineTo(r * 0.16, r * 1.1); g.closePath(); g.fill();
+      g.fillStyle = 'rgba(255, 255, 255, 0.55)'; g.beginPath(); g.ellipse(-r * 0.38, -r * 0.45, r * 0.16, r * 0.26, -0.5, 0, TAU); g.fill();
+    } else if (type === 'bomb') {
+      const sh = g.createRadialGradient(-r * 0.35, -r * 0.35, r * 0.05, 0, 0, r);
+      sh.addColorStop(0, '#6a7080'); sh.addColorStop(0.5, '#262a32'); sh.addColorStop(1, '#0c0d10');
+      g.fillStyle = sh; g.beginPath(); g.arc(0, 0, r, 0, TAU); g.fill();
+      g.fillStyle = '#7a8090'; g.fillRect(-r * 0.28, -r * 1.15, r * 0.56, r * 0.26);
+      line('#d8c79a', 0.09); g.lineCap = 'round';
+      g.beginPath(); g.moveTo(0, -r * 1.15); g.quadraticCurveTo(r * 0.35, -r * 1.45, r * 0.15, -r * 1.6); g.stroke();
+      g.fillStyle = '#fff4b0'; g.shadowColor = '#ff9a3c'; g.shadowBlur = r * 0.6;
+      g.beginPath(); g.arc(r * 0.15, -r * 1.6, r * (0.12 + Math.random() * 0.08), 0, TAU); g.fill(); g.shadowBlur = 0;
+      const left = ball ? Math.max(0, 3 - (ball.bounces || 0)) : 3;
+      g.fillStyle = left === 1 ? '#ff5a4a' : '#f5efe6';
+      g.font = `${Math.max(7, r * 0.8)}px ${C('--font-display')}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(left, 0, r * 0.1);
+    } else if (type === 'chicken') {
+      g.fillStyle = '#f3e7a8'; g.strokeStyle = 'rgba(120, 95, 30, 0.45)'; g.lineWidth = Math.max(1, r * 0.05);
+      g.beginPath(); g.moveTo(r * 0.45, -r * 0.05); g.lineTo(r * 0.7, -r * 0.5); g.lineTo(r * 0.98, -r * 0.3); g.lineTo(r * 0.75, r * 0.15); g.closePath(); g.fill();
+      g.beginPath(); g.ellipse(-r * 0.15, r * 0.1, r * 1.05, r * 0.55, 0.1, 0, TAU); g.fill(); g.stroke();
+      g.beginPath(); g.ellipse(r * 0.88, -r * 0.4, r * 0.3, r * 0.3, 0, 0, TAU); g.fill(); g.stroke();
+      g.fillStyle = '#e5432f';
+      for (const cx of [0.72, 0.86, 1.0]) { g.beginPath(); g.arc(r * cx, -r * 0.7, r * 0.11, 0, TAU); g.fill(); }
+      g.beginPath(); g.ellipse(r * 1.08, -r * 0.12, r * 0.08, r * 0.13, 0, 0, TAU); g.fill();
+      g.fillStyle = '#f2a33a'; g.beginPath(); g.moveTo(r * 1.13, -r * 0.48); g.lineTo(r * 1.45, -r * 0.36); g.lineTo(r * 1.13, -r * 0.26); g.fill();
+      line('#2a2030', 0.06);
+      const ex = r * 0.92, ey = -r * 0.45, es = r * 0.07;
+      g.beginPath(); g.moveTo(ex - es, ey - es); g.lineTo(ex + es, ey + es); g.moveTo(ex + es, ey - es); g.lineTo(ex - es, ey + es); g.stroke();
+      line('#f2a33a', 0.08); g.lineCap = 'round';
+      g.beginPath(); g.moveTo(-r * 0.35, r * 0.6); g.lineTo(-r * 0.5, r * 1.0); g.moveTo(0, r * 0.62); g.lineTo(r * 0.1, r * 1.0); g.stroke();
+    } else if (type === 'egg') {
+      const sh = g.createRadialGradient(-r * 0.3, -r * 0.4, r * 0.08, 0, 0, r * 1.05);
+      sh.addColorStop(0, '#fffaf0'); sh.addColorStop(0.6, '#f6e9cf'); sh.addColorStop(1, '#d9c39c');
+      g.fillStyle = sh; g.beginPath(); g.ellipse(0, 0, r * 0.82, r * 1.05, 0, 0, TAU); g.fill();
+      g.fillStyle = 'rgba(150, 110, 60, 0.45)';
+      for (const [sx, sy] of [[0.25, 0.3], [-0.3, 0.1], [0.1, -0.5], [-0.15, 0.6], [0.4, -0.1]]) { g.beginPath(); g.arc(r * sx, r * sy, Math.max(0.8, r * 0.05), 0, TAU); g.fill(); }
+    } else if (type === 'firework') {
+      const sh = g.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.05, 0, 0, r);
+      sh.addColorStop(0, '#5a4aa0'); sh.addColorStop(0.55, '#2a1e5e'); sh.addColorStop(1, '#120c2c');
+      g.fillStyle = sh; g.beginPath(); g.arc(0, 0, r, 0, TAU); g.fill();
+      const star = (sx, sy, sr, c) => {
+        g.fillStyle = c; g.beginPath();
+        for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = (i % 2 ? 0.45 : 1) * sr; g.lineTo(sx + Math.cos(a) * rr, sy + Math.sin(a) * rr); }
+        g.fill();
+      };
+      star(-r * 0.35, -r * 0.2, r * 0.28, '#ffd36b'); star(r * 0.35, r * 0.25, r * 0.24, '#ff6fa8'); star(r * 0.1, -r * 0.55, r * 0.16, '#6fd3ff'); star(-r * 0.2, r * 0.5, r * 0.16, '#8fe36b');
+      line('#d8c79a', 0.1); g.beginPath(); g.moveTo(0, -r); g.lineTo(r * 0.12, -r * 1.35); g.stroke();
+      g.fillStyle = '#fff4b0'; g.shadowColor = '#ff6fa8'; g.shadowBlur = r * 0.6;
+      g.beginPath(); g.arc(r * 0.12, -r * 1.35, r * (0.1 + Math.random() * 0.08), 0, TAU); g.fill(); g.shadowBlur = 0;
+    } else if (type === 'ghost') {
+      g.rotate(-rot);   // ghosts stay upright
+      g.globalAlpha = g === ctx && phase === 'flying' ? ghostAlpha() : 1;
+      g.fillStyle = '#f4f1ff'; g.shadowColor = '#b9a8ff'; g.shadowBlur = r * 0.7;
+      g.beginPath(); g.moveTo(-r * 0.9, r * 0.85); g.lineTo(-r * 0.9, -r * 0.1); g.arc(0, -r * 0.1, r * 0.9, Math.PI, 0); g.lineTo(r * 0.9, r * 0.85);
+      for (let k = 0; k < 4; k++) { const x0 = r * (0.9 - k * 0.45); g.quadraticCurveTo(x0 - r * 0.11, r * 1.15, x0 - r * 0.225, r * 0.85); g.quadraticCurveTo(x0 - r * 0.34, r * 0.6, x0 - r * 0.45, r * 0.85); }
+      g.closePath(); g.fill(); g.shadowBlur = 0;
+      g.fillStyle = '#1d1630';
+      g.beginPath(); g.ellipse(-r * 0.3, -r * 0.2, r * 0.13, r * 0.2, 0, 0, TAU); g.ellipse(r * 0.3, -r * 0.2, r * 0.13, r * 0.2, 0, 0, TAU); g.fill();
+      g.beginPath(); g.ellipse(0, r * 0.28, r * 0.14, r * 0.2, 0, 0, TAU); g.fill();
     } else if (type === 'super') {
       disc('#e04fd0');
       line('#ffc9f4', 0.22);
@@ -1711,23 +2005,71 @@
       g.beginPath(); g.arc(r * 1.25, 0, r * 0.85, Math.PI - 0.85, Math.PI + 0.85); g.stroke();
     }
     g.restore();
+    if (BALLS[type].noShine) return;
     g.fillStyle = type === 'bowling' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.18)';
     g.beginPath(); g.arc(x - r * 0.35, y - r * 0.35, r * 0.35, 0, TAU); g.fill();
   }
 
+  // a lit fuse sticking up out of any ball (Hot potato)
+  function drawFuse(x, y, r, left) {
+    const len = R * 1.1 * left, top = y - r;
+    ctx.strokeStyle = '#d8c79a'; ctx.lineWidth = Math.max(1.5, R * 0.12); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x, top + r * 0.15); ctx.quadraticCurveTo(x + R * 0.4, top - len * 0.5, x + R * 0.1, top - len); ctx.stroke();
+    ctx.lineCap = 'butt';
+    ctx.fillStyle = '#fff4b0'; ctx.shadowColor = '#ff9a3c'; ctx.shadowBlur = R * 0.8;
+    ctx.beginPath(); ctx.arc(x + R * 0.1, top - len, R * (0.22 + Math.random() * 0.12), 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  function drawTargets() {
+    if (mode !== 'demo') return;
+    for (const t of targets) {
+      if (t.dead) continue;
+      const s = t.s;
+      if (t.ledge) { ctx.fillStyle = '#4a5466'; ctx.fillRect(t.x - s * 1.5, t.y + s, s * 3, Math.max(3, R * 0.28)); }
+      if (t.kind === 'crate') {
+        ctx.fillStyle = '#a0703f'; ctx.fillRect(t.x - s, t.y - s, s * 2, s * 2);
+        ctx.strokeStyle = '#6b4523'; ctx.lineWidth = Math.max(1.5, s * 0.14);
+        ctx.strokeRect(t.x - s, t.y - s, s * 2, s * 2);
+        ctx.beginPath(); ctx.moveTo(t.x - s, t.y - s); ctx.lineTo(t.x + s, t.y + s); ctx.moveTo(t.x + s, t.y - s); ctx.lineTo(t.x - s, t.y + s); ctx.stroke();
+      } else {
+        ctx.fillStyle = '#e8761e'; ctx.beginPath(); ctx.ellipse(t.x, t.y + s * 0.1, s * 1.15, s * 0.9, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(120, 45, 8, 0.5)'; ctx.lineWidth = Math.max(1, s * 0.08);
+        for (const w of [0.4, 0.8]) { ctx.beginPath(); ctx.ellipse(t.x, t.y + s * 0.1, s * w, s * 0.88, 0, 0, Math.PI * 2); ctx.stroke(); }
+        ctx.fillStyle = '#4c6b2a'; ctx.fillRect(t.x - s * 0.1, t.y - s * 1.05, s * 0.2, s * 0.35);
+      }
+    }
+  }
+
+  // where the burning end of the dynamite's fuse is, in court coordinates
+  function fuseTip(x, y, rot, r, left) {
+    const len = r * 0.9 * left, lx = r * 0.1 * (len ? 1 : 0), ly = -r * 1.01 - len;
+    return { x: x + lx * Math.cos(rot) - ly * Math.sin(rot), y: y + lx * Math.sin(rot) + ly * Math.cos(rot) };
+  }
+
+  function drawBlasts() {
+    for (const x of blasts) {
+      const k = x.t / 0.6, rad = R * (2 + easeOut(k) * 12);
+      const gr = ctx.createRadialGradient(x.x, x.y, 0, x.x, x.y, rad);
+      gr.addColorStop(0, 'rgba(255, 244, 214, 0.95)'); gr.addColorStop(0.35, 'rgba(255, 170, 60, 0.8)'); gr.addColorStop(1, 'rgba(229, 67, 47, 0)');
+      ctx.globalAlpha = Math.max(0, 1 - k);
+      ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(x.x, x.y, rad, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
   function drawTrail(b) {
     const color = shot.fire ? COL.fire : has('slow') ? POWERS.slow.color : ballDef().glow;
-    const r = br();
+    const r = rad(b);
     b.trail.forEach(([x, y], i) => {
       const k = (i + 1) / b.trail.length;
-      ctx.globalAlpha = k * 0.45; ctx.fillStyle = color;
+      ctx.globalAlpha = k * 0.45; ctx.fillStyle = color === 'rainbow' ? `hsl(${(i * 40 + clock * 300) % 360}, 90%, 65%)` : color;
       ctx.beginPath(); ctx.arc(x, y, r * (0.4 + k * 0.6), 0, Math.PI * 2); ctx.fill();
     });
     ctx.globalAlpha = 1;
   }
 
-  function drawShadow(x, y) {
-    const r = br();
+  function drawShadow(x, y, r = br()) {
     const h = Math.max(0, floorY - (y + r));
     const s = Math.max(0.25, 1 - h / H);
     ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
@@ -1769,6 +2111,7 @@
     ctx.beginPath(); ctx.arc(launch.x, launch.y, ring, -Math.PI / 2, -Math.PI / 2 + power * Math.PI * 2); ctx.stroke();
     drawShadow(bx, by);
     drawBall(bx, by, 0);
+    if (mode === 'potato' && ballType !== 'dynamite') drawFuse(bx, by, br(), 1);
   }
 
   function drawIdleHint() {
@@ -1809,13 +2152,25 @@
 
   function draw() {
     ctx.clearRect(0, 0, W, H);
+    ctx.save();
+    if (shake && !reduceMotion) ctx.translate((Math.random() - 0.5) * shake * R * 1.6, (Math.random() - 0.5) * shake * R * 1.6);
     drawBackground();
     drawWind();
     drawHoopBack();
     for (const b of birds) drawBird(b);
+    drawTargets();
     if (phase === 'aim' && drag) drawAim();
-    else for (const b of shot.balls) { drawTrail(b); drawShadow(b.x, b.y); drawBall(b.x, b.y, b.spin); }
+    else for (const b of shot.balls) {
+      if (b.hidden) continue;
+      const r = rad(b);
+      drawTrail(b); drawShadow(b.x, b.y, r); drawBall(b.x, b.y, b.spin, ballType, r, ctx, b);
+      if (ballType !== 'dynamite' && !b.scored) {
+        if (phase === 'flying' && shot.fuse) drawFuse(b.x, b.y, r, Math.max(0, 1 - shot.t / shot.fuse));
+        else if (phase === 'aim' && mode === 'potato') drawFuse(b.x, b.y, r, 1);
+      }
+    }
     drawHoopFront();
+    drawBlasts();
     for (const p of particles) {
       ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.c;
       ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
@@ -1824,6 +2179,7 @@
     drawIdleHint();
     drawResetHint();
     drawFlash();
+    ctx.restore();
   }
 
   let last = 0;
@@ -1849,7 +2205,7 @@
     buildPicker();
     const today = new Date();
     if (!spooky() && ((today.getMonth() === 9 && today.getDate() >= 15) || (today.getMonth() === 10 && today.getDate() === 1))) {
-      setTimeout(() => showToast('Halloween court is open', 'Pick it under Ball, along with the jack-o\'-lantern', '#ff9a2e'), 1200);
+      setTimeout(() => showToast('Halloween court is open', 'Pick it under Ball, along with the jack-o\'-lantern and the ghost', '#ff9a2e'), 1200);
     } else if (!festive() && today.getMonth() === 11 && today.getDate() <= 26) {
       setTimeout(() => showToast('Christmas court is open', 'Pick it under Ball, along with the Christmas bauble', '#e8f4ff'), 1200);
     }
