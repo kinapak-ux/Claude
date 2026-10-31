@@ -1,0 +1,344 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:dark;box-sizing:border-box}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#07040d;color:#f5ead8}[hidden]{display:none!important}</style>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#07040d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pumpkin">
+<title>Blow Out the Pumpkin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Creepster&display=swap">
+<style>
+  /* Layout: a full-screen night-sky canvas with the pumpkin, a title floating at the top and one hint line at the bottom. */
+  :root {
+    --sky: #07040d;
+    --ink: #f5ead8;
+    --ink-dim: #b9a98f;
+    --glow: #ffb43c;
+    --font-display: "Creepster", "Impact", fantasy;
+  }
+  html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+  body { background: var(--sky); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  header {
+    position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 18px);
+    text-align: center; pointer-events: none; padding: 0 16px;
+  }
+  h1 {
+    margin: 0; font: 400 clamp(30px, 9vw, 54px)/1 var(--font-display); letter-spacing: 1px;
+    color: var(--glow); text-shadow: 0 0 18px rgba(255, 140, 30, .55);
+  }
+  #count { margin-top: 6px; color: var(--ink-dim); font-size: 14px; min-height: 1.2em; }
+  footer {
+    position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 22px);
+    display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 0 16px; text-align: center;
+  }
+  #hint { font-size: 17px; color: var(--ink); max-width: 28em; min-height: 1.3em; pointer-events: none; }
+  #wind { width: min(220px, 60vw); height: 6px; border-radius: 3px; background: rgba(255,255,255,.12); overflow: hidden; pointer-events: none; }
+  #wind i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #8fd3ff, #e8f6ff); border-radius: 3px; }
+  #start {
+    font: 400 26px/1 var(--font-display); letter-spacing: 1px; color: #1d0c00; cursor: pointer;
+    background: linear-gradient(#ffd27a, #ff9a2a); border: 0; border-radius: 999px; padding: 16px 30px;
+    box-shadow: 0 0 28px rgba(255, 150, 40, .5);
+  }
+  #start:active { transform: scale(.97); }
+</style>
+</head><body>
+<canvas id="c"></canvas>
+<header><h1>Blow Out the Pumpkin</h1><div id="count"></div></header>
+<footer>
+  <div id="hint">Light the candle, then blow on your phone.</div>
+  <div id="wind" hidden><i></i></div>
+  <button id="start">🔥 Light the candle</button>
+</footer>
+<script>
+(() => {
+  const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+  const hintEl = document.getElementById('hint'), countEl = document.getElementById('count');
+  const startBtn = document.getElementById('start'), windEl = document.getElementById('wind'), windBar = windEl.firstElementChild;
+
+  // ---- Saved count of blow-outs (per phone, optional) ----
+  let blownCount = 0;
+  try { blownCount = +localStorage.getItem('pumpkin-blown') || 0; } catch (e) {}
+  const showCount = () => { countEl.textContent = blownCount ? `Blown out ${blownCount} time${blownCount === 1 ? '' : 's'}` : ''; };
+  showCount();
+
+  // ---- Canvas sizing ----
+  let W = 0, H = 0, DPR = 1, stars = [];
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = innerWidth; H = innerHeight;
+    cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    stars = Array.from({ length: Math.round(W * H / 6000) }, () => ({
+      x: Math.random() * W, y: Math.random() * H * 0.6, r: Math.random() * 1.2 + 0.3, p: Math.random() * 6.28
+    }));
+  }
+  addEventListener('resize', resize); resize();
+
+  // ---- Game state ----
+  // state: 'unlit' (before the first light), 'lit', 'out'
+  let state = 'unlit';
+  let I = 0;              // light intensity 0..~1.3
+  let target = 0;         // flicker target
+  let flickerT = 0;       // time until next flicker target
+  let flare = 0;          // extra brightness right after lighting
+  let blowAcc = 0;        // how long it's been blown hard
+  let blow = 0;           // smoothed wind strength 0..1
+  let lean = 0;           // which way the light is being pushed
+  let outAt = 0;          // time it went out
+  let smoke = [];
+  let holding = false, holdB = 0;
+
+  // ---- Microphone ----
+  let analyser = null, buf = null, floor = 0.02, micOk = false;
+  async function startMic() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        // Noise suppression would filter out the very sound we want to hear.
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+      });
+      const ac = new (window.AudioContext || window.webkitAudioContext)();
+      if (ac.state === 'suspended') await ac.resume();
+      analyser = ac.createAnalyser();
+      analyser.fftSize = 1024;
+      ac.createMediaStreamSource(stream).connect(analyser);
+      buf = new Float32Array(analyser.fftSize);
+      micOk = true;
+    } catch (e) { micOk = false; }
+  }
+  function micWind() {
+    if (!analyser) return 0;
+    analyser.getFloatTimeDomainData(buf);
+    let s = 0;
+    for (let i = 0; i < buf.length; i++) s += buf[i] * buf[i];
+    const rms = Math.sqrt(s / buf.length);
+    // Learn the room's background noise slowly, so a noisy room doesn't count as blowing.
+    if (rms < floor * 2.5) floor = floor * 0.99 + rms * 0.01;
+    const thr = Math.max(0.1, floor * 4);
+    return Math.max(0, Math.min(1, (rms - thr) / 0.25));
+  }
+
+  // ---- Wake lock: keep the screen on while playing ----
+  let wakeLock = null;
+  async function keepAwake() { try { wakeLock = await navigator.wakeLock?.request('screen'); } catch (e) {} }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && state !== 'unlit') keepAwake(); });
+
+  // ---- Hints ----
+  function setHint() {
+    if (state === 'lit') hintEl.textContent = micOk ? 'Blow on your phone to blow it out! 🌬️' : 'Hold your finger on the pumpkin to blow it out 🌬️';
+    else if (state === 'out') hintEl.textContent = 'Tap to light it again';
+  }
+
+  function light() {
+    state = 'lit'; flare = 0.45; blowAcc = 0; target = 1; flickerT = 0;
+    setHint();
+  }
+  function blowOut(now) {
+    state = 'out'; outAt = now; blowAcc = 0;
+    for (let i = 0; i < 26; i++) setTimeout(() => puff(), i * 70);
+    try { navigator.vibrate?.([25, 40, 70]); } catch (e) {}
+    blownCount++;
+    try { localStorage.setItem('pumpkin-blown', blownCount); } catch (e) {}
+    showCount(); setHint();
+  }
+
+  startBtn.addEventListener('click', async () => {
+    startBtn.disabled = true;
+    hintEl.textContent = 'Lighting…';
+    await startMic();
+    startBtn.hidden = true;
+    windEl.hidden = false;
+    keepAwake();
+    light();
+  });
+
+  // Hold to blow (backup for no microphone); tap to relight.
+  cv.addEventListener('pointerdown', e => {
+    if (state === 'lit') holding = true;
+    else if (state === 'out' && performance.now() - outAt > 700) light();
+  });
+  const release = () => { holding = false; };
+  addEventListener('pointerup', release); addEventListener('pointercancel', release);
+
+  // ---- Geometry (in units of S, relative to the pumpkin's centre) ----
+  const RIBS = [[-0.30, 0.22], [0.30, 0.22], [-0.15, 0.24], [0.15, 0.24], [0, 0.25]];
+  const RY = 0.39;
+  const EYE_L = [[-0.30, -0.02], [-0.10, -0.02], [-0.20, -0.20]];
+  const EYE_R = EYE_L.map(([x, y]) => [-x, y]);
+  const NOSE = [[-0.05, 0.085], [0.05, 0.085], [0, 0.01]];
+  const MOUTH = [[-0.34, 0.12], [-0.2, 0.18], [-0.16, 0.13], [-0.1, 0.19], [0.1, 0.19], [0.16, 0.13], [0.2, 0.18], [0.34, 0.12],
+                 [0.24, 0.29], [0.06, 0.34], [0.03, 0.28], [-0.03, 0.28], [-0.06, 0.34], [-0.24, 0.29]];
+
+  function layout() {
+    const S = Math.min(W * 0.86, H * 0.55);
+    return { S, cx: W / 2, cy: H * 0.54 };
+  }
+  function bodyPath(S, cx, cy) {
+    const p = new Path2D();
+    for (const [ox, rx] of RIBS) { p.moveTo(cx + ox * S + rx * S, cy); p.ellipse(cx + ox * S, cy, rx * S, RY * S, 0, 0, Math.PI * 2); }
+    return p;
+  }
+  function facePath(S, cx, cy, dy = 0) {
+    const p = new Path2D();
+    for (const shape of [EYE_L, EYE_R, NOSE, MOUTH]) {
+      shape.forEach(([x, y], i) => (i ? p.lineTo : p.moveTo).call(p, cx + x * S, cy + y * S + dy));
+      p.closePath();
+    }
+    return p;
+  }
+
+  function puff() {
+    const { S, cx, cy } = layout();
+    const fromStem = Math.random() < 0.75;
+    smoke.push({
+      x: cx + (fromStem ? (Math.random() - 0.5) * 0.06 : (Math.random() < 0.5 ? -0.2 : 0.2) + (Math.random() - 0.5) * 0.06) * S,
+      y: cy + (fromStem ? -RY - 0.06 : -0.1) * S,
+      r: S * (0.05 + Math.random() * 0.04), vy: -S * (0.12 + Math.random() * 0.08),
+      ph: Math.random() * 6.28, life: 0, max: 2.2 + Math.random() * 1.2
+    });
+  }
+
+  const mix = (a, b, t) => a + (b - a) * t;
+  const rgb = (c1, c2, t, a = 1) => `rgba(${Math.round(mix(c1[0], c2[0], t))},${Math.round(mix(c1[1], c2[1], t))},${Math.round(mix(c1[2], c2[2], t))},${a})`;
+
+  // ---- Main loop ----
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+
+    // Wind: the stronger of the microphone and a held finger.
+    holdB = holding ? Math.min(1, holdB + dt / 0.5) : Math.max(0, holdB - dt * 4);
+    const mic = micWind();  // always read, so the background-noise level keeps learning
+    const raw = Math.max(state === 'lit' ? mic : 0, holdB);
+    blow += (raw - blow) * Math.min(1, dt * 15);
+    windBar.style.width = (state === 'lit' ? blow * 100 : 0) + '%';
+
+    if (state === 'lit') {
+      flickerT -= dt;
+      if (flickerT <= 0) {
+        // Random timing is what makes it look like a flame.
+        const calm = 0.72 + Math.random() * 0.28;
+        target = calm * (1 - 0.7 * blow) + (blow > 0.2 ? (Math.random() - 0.5) * 0.3 * blow : 0);
+        flickerT = blow > 0.2 ? 0.02 + Math.random() * 0.06 : 0.04 + Math.random() * 0.26;
+        lean = blow > 0.2 ? (Math.random() - 0.5) * 2 * blow : lean * 0.5;
+      }
+      flare = Math.max(0, flare - dt * 0.9);
+      blowAcc = Math.max(0, blowAcc + dt * (blow > 0.35 ? blow * 2 : -1));
+      if (blowAcc > 0.6) blowOut(now);
+    } else {
+      target = 0; flare = 0; lean *= 0.9;
+    }
+    I += (target + flare - I) * Math.min(1, dt * (state === 'lit' ? 18 : 7));
+    if (I < 0.003) I = 0;
+
+    draw(now / 1000, dt);
+    requestAnimationFrame(frame);
+  }
+
+  function draw(t, dt) {
+    const { S, cx, cy } = layout();
+    const L = Math.max(0, Math.min(1.3, I));
+
+    // Sky
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#0b0617'); sky.addColorStop(1, '#170a1c');
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+    for (const s of stars) {
+      ctx.globalAlpha = 0.35 + 0.35 * Math.sin(t * 1.3 + s.p);
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 6.28); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // Ground
+    ctx.fillStyle = '#0d0710';
+    ctx.fillRect(0, cy + RY * S * 0.85, W, H);
+
+    // Halo of light around the pumpkin
+    if (L > 0) {
+      const halo = ctx.createRadialGradient(cx, cy, S * 0.2, cx, cy, S * (1 + 0.3 * L));
+      halo.addColorStop(0, `rgba(255,140,30,${0.32 * L})`);
+      halo.addColorStop(1, 'rgba(255,120,20,0)');
+      ctx.fillStyle = halo; ctx.fillRect(0, 0, W, H);
+      // Light pooled on the ground
+      ctx.save(); ctx.translate(cx, cy + RY * S * 0.95); ctx.scale(1, 0.22);
+      const pool = ctx.createRadialGradient(0, 0, 0, 0, 0, S * 0.9);
+      pool.addColorStop(0, `rgba(255,150,40,${0.35 * L})`); pool.addColorStop(1, 'rgba(255,150,40,0)');
+      ctx.fillStyle = pool; ctx.beginPath(); ctx.arc(0, 0, S * 0.9, 0, 6.28); ctx.fill(); ctx.restore();
+    }
+
+    // Shadow under the pumpkin
+    ctx.save(); ctx.translate(cx, cy + RY * S * 0.93); ctx.scale(1, 0.18);
+    ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.beginPath(); ctx.arc(0, 0, S * 0.5, 0, 6.28); ctx.fill(); ctx.restore();
+
+    // Stem
+    ctx.fillStyle = '#4a5a22'; ctx.strokeStyle = '#2b3412'; ctx.lineWidth = S * 0.008;
+    ctx.beginPath();
+    ctx.moveTo(cx - S * 0.045, cy - RY * S + S * 0.03);
+    ctx.quadraticCurveTo(cx - S * 0.04, cy - RY * S - S * 0.08, cx + S * 0.03, cy - RY * S - S * 0.13);
+    ctx.lineTo(cx + S * 0.065, cy - RY * S - S * 0.1);
+    ctx.quadraticCurveTo(cx + S * 0.02, cy - RY * S - S * 0.06, cx + S * 0.045, cy - RY * S + S * 0.03);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    // Body: outer ribs first, centre rib last
+    const lit = Math.min(1, L);
+    const glowF = Math.min(1, L * 1.3);  // the cut-outs reach full candle colour even on a calm flicker
+    for (const [ox, rx] of RIBS) {
+      const x = cx + ox * S;
+      const g = ctx.createRadialGradient(x - rx * S * 0.3, cy - RY * S * 0.35, S * 0.02, x, cy, RY * S * 1.05);
+      g.addColorStop(0, rgb([120, 52, 14], [255, 160, 60], lit));
+      g.addColorStop(0.65, rgb([88, 36, 8], [232, 110, 26], lit));
+      g.addColorStop(1, rgb([42, 15, 3], [150, 56, 8], lit));
+      ctx.fillStyle = g; ctx.strokeStyle = '#4a1a03'; ctx.lineWidth = S * 0.008;
+      ctx.beginPath(); ctx.ellipse(x, cy, rx * S, RY * S, 0, 0, 6.28); ctx.fill(); ctx.stroke();
+    }
+
+    // Candlelight glowing through the skin
+    const body = bodyPath(S, cx, cy);
+    if (L > 0) {
+      ctx.save(); ctx.clip(body);
+      const gx = cx + lean * S * 0.08, gy = cy + S * 0.05;
+      const sk = ctx.createRadialGradient(gx, gy, 0, gx, gy, S * 0.5);
+      sk.addColorStop(0, `rgba(255,210,110,${0.28 * L})`); sk.addColorStop(1, 'rgba(255,210,110,0)');
+      ctx.fillStyle = sk; ctx.fillRect(cx - S, cy - S, S * 2, S * 2);
+      ctx.restore();
+    }
+
+    // Carved lip: pumpkin flesh showing just below each cut
+    ctx.fillStyle = rgb([92, 52, 18], [255, 196, 110], lit);
+    ctx.fill(facePath(S, cx, cy, S * 0.012));
+
+    // The cut-outs: dark inside when out, candle-coloured when lit
+    const face = facePath(S, cx, cy);
+    const fx = cx + lean * S * 0.12, fy = cy + S * 0.1;
+    const fg = ctx.createRadialGradient(fx, fy, 0, fx, fy, S * 0.45);
+    fg.addColorStop(0, rgb([16, 6, 2], [255, 246, 170], glowF));
+    fg.addColorStop(0.45, rgb([14, 5, 2], [255, 196, 40], glowF));
+    fg.addColorStop(1, rgb([10, 4, 1], [255, 120, 10], glowF));
+    ctx.save();
+    if (L > 0) { ctx.shadowColor = `rgba(255,170,40,${Math.min(1, L)})`; ctx.shadowBlur = S * 0.08 * L; }
+    ctx.fillStyle = fg; ctx.fill(face);
+    ctx.restore();
+
+    // Smoke after it's blown out
+    for (const p of smoke) {
+      p.life += dt;
+      p.y += p.vy * dt; p.r += S * 0.03 * dt;
+      const k = p.life / p.max;
+      const x = p.x + Math.sin(p.life * 2 + p.ph) * S * 0.04 * (1 + p.life);
+      const a = 0.28 * (1 - k) * Math.min(1, p.life * 4);
+      const sg = ctx.createRadialGradient(x, p.y, 0, x, p.y, p.r);
+      sg.addColorStop(0, `rgba(200,195,210,${a})`); sg.addColorStop(1, 'rgba(200,195,210,0)');
+      ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(x, p.y, p.r, 0, 6.28); ctx.fill();
+    }
+    smoke = smoke.filter(p => p.life < p.max);
+  }
+
+  requestAnimationFrame(frame);
+})();
+</script>
+<script>if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));</script>
+</body></html>
