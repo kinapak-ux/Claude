@@ -200,6 +200,58 @@
   .home-btns .close-btn { font-size: 1rem; padding: 14px 24px; }
   .home-row { display: flex; flex-wrap: wrap; gap: 8px; }
 
+  /* Side games */
+  .sgbar {
+    position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    max-width: min(420px, calc(100% - 32px)); display: flex; flex-direction: column; gap: 3px;
+    background: rgba(12, 22, 40, 0.78); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; padding: 6px 10px;
+    font-size: 0.88rem; line-height: 1.25; color: var(--ink);
+  }
+  .sgbar b { font-family: var(--font-display); font-weight: 400; font-size: 0.85rem; letter-spacing: 0.02em; }
+  .sgbar span { color: var(--ink-dim); }
+  .sgbar span b { color: var(--ink); font-family: var(--font-body); font-weight: 700; font-size: inherit; }
+  .sgbar .hearts { font-style: normal; color: var(--rim); letter-spacing: 0.08em; margin-left: 4px; }
+  .sgbar .hp { height: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.12); overflow: hidden; min-width: 160px; }
+  .sgbar .hp i { display: block; height: 100%; background: var(--rim); transition: width 0.3s; }
+  .sgbar .pr { display: flex; align-items: baseline; gap: 8px; border-left: 4px solid var(--pc); padding-left: 6px; }
+  .sgbar .pr.up b { color: var(--gold); }
+  .sgbar .dots { letter-spacing: 0.15em; color: var(--ink-dim); }
+  .sgbar .dots i { font-style: normal; } .sgbar .dots .g { color: var(--p-triple); } .sgbar .dots .x { color: var(--rim); }
+  .sgbar .letters { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+  .sgbar .pl { border-left: 4px solid var(--pc); padding-left: 5px; color: var(--ink); font-weight: 700; }
+  .sgbar .pl i { font-style: normal; font-family: var(--font-display); color: var(--rim); letter-spacing: 0.1em; }
+  .sgbar .pl.up { color: var(--gold); } .sgbar .pl.out { opacity: 0.45; text-decoration: line-through; }
+  .tricks { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
+  .tricks button {
+    font: 700 0.75rem/1 var(--font-body); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer;
+    color: var(--ink); background: transparent; border: 1.5px solid var(--ink-dim); border-radius: 999px; padding: 7px 10px; min-height: 32px;
+  }
+  .tricks button[aria-pressed="true"] { background: var(--p-laser); border-color: var(--p-laser); color: var(--asphalt); }
+  .tricks button:focus-visible, .lvl:focus-visible, .who:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  .side-card { grid-template-columns: 56px 1fr; }
+  .side-tag {
+    width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--sc); color: var(--asphalt); font-family: var(--font-display); font-size: 1rem;
+  }
+  .who { border-left: 6px solid var(--pc) !important; }
+  .roster-list { display: flex; flex-wrap: wrap; gap: 8px; }
+  .close-btn:disabled { opacity: 0.45; cursor: default; }
+  .levels { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .lvl {
+    display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; gap: 2px 10px; align-items: center; text-align: left;
+    font: inherit; color: var(--ink); background: rgba(255, 255, 255, 0.04); border: 1.5px solid rgba(255, 255, 255, 0.12); border-radius: 8px; padding: 10px 12px; cursor: pointer;
+  }
+  .lvl:hover:not([disabled]) { border-color: var(--p-triple); }
+  .lvl b { grid-row: span 2; font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; color: var(--p-triple); }
+  .lvl span { font-weight: 700; font-size: 0.95rem; }
+  .lvl i { font-style: normal; color: var(--gold); letter-spacing: 0.1em; font-size: 0.9rem; }
+  .lvl[disabled] { opacity: 0.4; cursor: default; }
+  .lvl[disabled] b { color: var(--ink-dim); }
+  .lvl[disabled] i { color: var(--ink-dim); letter-spacing: 0.04em; }
+  @media (max-width: 520px) { .sgbar { font-size: 0.8rem; } .game.has-sg .powers { bottom: calc(66px + env(safe-area-inset-bottom, 0px)); } }
+  @media (max-height: 520px) { .sgbar { left: auto; right: max(16px, env(safe-area-inset-right, 0px)); } .game.has-sg .powers { justify-content: flex-start; } }
+  .exit-btn { white-space: nowrap; }
+
   @media (max-width: 520px) {
     .brand small { display: none; }
     .board { gap: 12px; }
@@ -236,6 +288,7 @@
     </div>
   </div>
   <div class="powers" id="powers" aria-live="polite"></div>
+  <div class="sgbar" id="sgbar" hidden aria-live="polite"></div>
   <div class="toast" id="toast" aria-live="polite"><strong></strong><span></span></div>
 
   <div class="help" id="help" hidden>
@@ -263,6 +316,7 @@
       <h3>Other modes</h3>
       <ul>
         <li><span class="tag" style="--c: var(--p-fire)">Fuse</span><span>Hot potato: every ball has a lit fuse. Score before it burns down or it blows up. The fuse gets shorter as your streak grows.</span></li>
+        <li><span class="tag" style="--c: var(--p-laser)">More</span><span>Side games (on the home screen): H-O-R-S-E, Trick Shot Ladder, Bird Hunter, Moving Hoop, Wind &amp; Weather, Daily Shot, Penalty Shoot-out and Boss Hoop.</span></li>
         <li><span class="tag" style="--c: #ffb347">Smash</span><span>Demolition: smash crates and pumpkins for +3 each and clear the set for +5. Explosions take out anything nearby, and a shot that smashes something never counts as a miss.</span></li>
       </ul>
       <h3>It gets harder</h3>
@@ -313,6 +367,7 @@
         <button class="close-btn" id="home-timed" type="button">60-second challenge</button>
         <button class="close-btn" id="home-potato" type="button">Hot potato</button>
         <button class="close-btn" id="home-demo" type="button">Demolition</button>
+        <button class="close-btn" id="home-side" type="button" style="background: var(--p-laser)">Side games: 8 more</button>
         <div class="home-row">
           <button class="help-btn" id="home-player" type="button">Change player</button>
           <button class="help-btn" id="home-ball" type="button">Ball &amp; court</button>
@@ -322,10 +377,41 @@
     </div>
   </div>
 
+  <div class="help" id="side" hidden>
+    <div class="help-inner">
+      <h2>Side games</h2>
+      <p class="sub">Eight more ways to play. H-O-R-S-E and the Shoot-out are pass-the-phone games for 2 or more.</p>
+      <div class="balls" id="side-list"></div>
+      <button class="close-btn" id="side-close" type="button">Back</button>
+    </div>
+  </div>
+
+  <div class="help" id="roster" hidden>
+    <div class="help-inner">
+      <h2 id="roster-title">Who's playing?</h2>
+      <p class="sub" id="roster-sub"></p>
+      <div class="roster-list" id="roster-list"></div>
+      <div class="res-btns">
+        <button class="close-btn" id="roster-start" type="button">Start</button>
+        <button class="help-btn" id="roster-add" type="button">Add players</button>
+        <button class="help-btn" id="roster-close" type="button">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="help" id="levels" hidden>
+    <div class="help-inner">
+      <h2>Trick Shot Ladder</h2>
+      <p class="sub" id="levels-sub"></p>
+      <div class="levels" id="level-list"></div>
+      <button class="close-btn" id="levels-close" type="button">Back</button>
+    </div>
+  </div>
+
   <div class="help" id="results" hidden>
     <div class="help-inner">
       <h2 id="res-title">Time!</h2>
-      <div class="res-score"><b id="res-score">0</b><small>points in 60 seconds</small></div>
+      <div class="res-score"><b id="res-score">0</b><small id="res-label">points in 60 seconds</small></div>
       <p class="sub" id="res-note"></p>
       <div class="res-btns">
         <button class="close-btn" id="res-again" type="button">Play again</button>
@@ -612,6 +698,7 @@
 
   function loadPlayer(p) {
     st.best = p.bestStreak || 0;
+    if (inSide()) { if (!turnBased()) sideStart(mode); updateHud(false); return; }
     if (mode === 'timed') resetRound();
     else if (mode !== 'free') freshRun();
     else {
@@ -632,7 +719,9 @@
   const MODE_ORDER = Object.keys(MODES);
 
   function setMode(m) {
+    if (SIDE[m]) { enterSide(m); return; }
     if (m === mode) return;
+    if (inSide()) leaveSide();
     saveFamily();
     mode = m;
     document.getElementById('timer-stat').hidden = mode !== 'timed';
@@ -658,11 +747,11 @@
   }
 
   function updateTimer() {
-    const secs = Math.ceil(round.left);
+    const secs = Math.ceil(mode === 'hunter' ? Math.max(0, sg.left) : round.left);
     if (secs === shownSecs) return;
     shownSecs = secs;
     document.getElementById('timer').textContent = secs;
-    document.getElementById('timer-stat').classList.toggle('low', round.running && secs <= 10);
+    document.getElementById('timer-stat').classList.toggle('low', (mode === 'hunter' ? sg.running : round.running) && secs <= 10);
   }
 
   function endRound() {
@@ -682,11 +771,7 @@
       else note = `Your best is ${prev}.`;
       if (fam.players.length > 1) note += ` ${p.name} is ${ordinal(ranked('timed').indexOf(p) + 1)} in the family.`;
     }
-    document.getElementById('res-title').textContent = beat && prev ? 'New best!' : 'Time!';
-    document.getElementById('res-score').textContent = st.score;
-    document.getElementById('res-note').textContent = note;
-    updateHud(false);
-    openPanel(results, document.getElementById('res-again'));
+    showResults({ title: beat && prev ? 'New best!' : 'Time!', score: st.score, label: 'points in 60 seconds', note });
   }
 
   function switchPlayer(id) {
@@ -714,6 +799,742 @@
       if (me()) loadPlayer(me()); else { st.score = 0; st.streak = 0; st.best = 0; st.makes = 0; updateHud(false); }
     }
     saveFamily();
+  }
+
+  // ---- side games: eight extra ways to play, picked from the Side games menu ----
+  const SIDE = {
+    horse:   { name: 'H-O-R-S-E',         tag: 'H',   color: '--p-laser',  blurb: 'Pass the phone. One player sets a trick shot, everyone else must copy it or take a letter. Spell HORSE and you are out.' },
+    ladder:  { name: 'Trick Shot Ladder', tag: '15',  color: '--p-triple', blurb: '15 puzzle levels with walls, bumpers, gates and a lift. Clear each one in as few shots as you can for 3 stars.' },
+    hunter:  { name: 'Bird Hunter',       tag: '45s', color: '--p-wide',   blurb: 'No hoop, just flocks of birds. 45 seconds. Hit several with one throw for a combo. Gold birds are worth +5.' },
+    moving:  { name: 'Moving Hoop',       tag: '3♥',  color: '--p-magnet', blurb: 'The hoop drifts and bobs, and speeds up with every basket. You have 3 lives.' },
+    weather: { name: 'Wind & Weather',    tag: '3♥',  color: '--p-slow',   blurb: 'New weather every shot: gales, swirling gusts, moon gravity, heavy air, a slippery rim in the rain. 3 lives.' },
+    daily:   { name: 'Daily Shot',        tag: '5',   color: '--p-double', blurb: 'Five set shots with a set ball, the same for the whole family today. Your first go is the one that counts.' },
+    penalty: { name: 'Penalty Shoot-out', tag: '1v1', color: '--p-fire',   blurb: 'Two players, five shots each from the same spots. Level after five? Sudden death.' },
+    boss:    { name: 'Boss Hoop',         tag: 'HP',  color: '--rim',      blurb: 'A goalie glove guards the hoop. Every basket knocks its health down. Beat bosses in a row with 5 lives.' },
+  };
+  const SIDE_ORDER = ['horse', 'ladder', 'hunter', 'moving', 'weather', 'daily', 'penalty', 'boss'];
+  // in these the side game judges every shot itself (no fire, streaks or records)
+  const JUDGED = { ladder: 1, daily: 1, horse: 1, penalty: 1 };
+  const NO_BIRDS = { ladder: 1, daily: 1, horse: 1, penalty: 1 };
+  let sg = {};
+  const inSide = () => !!SIDE[mode];
+  const turnBased = () => mode === 'horse' || mode === 'penalty';
+  const hoopOn = () => mode !== 'hunter';
+  const gravK = () => (inSide() && sg.grav) || 1;
+  const rimK = () => (inSide() && sg.rimK) || 1;
+  const nameOf = id => { const p = fam.players.find(x => x.id === id); return p ? p.name : '?'; };
+  const colorId = id => { const p = fam.players.find(x => x.id === id); return p ? colorOf(p) : COL.gold; };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const hearts = (n, max) => '♥'.repeat(Math.max(0, n)) + '♡'.repeat(Math.max(0, max - n));
+  const starStr = n => '★'.repeat(n) + '☆'.repeat(3 - n);
+
+  // ---- Trick Shot Ladder levels (positions are fractions of the court) ----
+  const VW = (cx, y1, y2, mv) => ({ t: 'v', cx, y1, y2, mv });
+  const HW = (x1, x2, cy, mv) => ({ t: 'h', x1, x2, cy, mv });
+  const BU = (x, y, r = 1.6) => ({ t: 'b', x, y, r });
+  const LEVELS = [
+    { name: 'Warm up',          hoop: [0.62, 0.45], cond: 'any',     obs: [] },
+    { name: 'Nothing but net',  hoop: [0.74, 0.4],  cond: 'swish',   obs: [] },
+    { name: 'Over the wall',    hoop: [0.8, 0.5],   cond: 'any',     obs: [VW(0.5, 0.4, 0.9)] },
+    { name: 'Bank job',         hoop: [0.7, 0.42],  cond: 'bank',    obs: [] },
+    { name: 'Under the bar',    hoop: [0.8, 0.56],  cond: 'any',     obs: [HW(0.28, 0.68, 0.42)] },
+    { name: 'Bounce pass',      hoop: [0.7, 0.72], cond: 'floor',   obs: [] },
+    { name: 'Bumper',           hoop: [0.75, 0.52], cond: 'bumper',  obs: [BU(0.6, 0.3, 2.8)] },
+    { name: 'Moving gate',      hoop: [0.82, 0.5],  cond: 'any',     obs: [VW(0.55, -3, 0.2), VW(0.55, 0.62, 0.9), VW(0.55, 0.3, 0.5, { dy: 0.1, sp: 1.3 })] },
+    { name: 'Moon shot',        hoop: [0.86, 0.34], cond: 'any',     grav: 0.45, obs: [VW(0.6, 0.55, 0.9)] },
+    { name: 'Off the wall',     hoop: [0.5, 0.42],  cond: 'wall',    obs: [] },
+    { name: 'Headwind',         hoop: [0.8, 0.45],  cond: 'any',     wind: -0.9, obs: [VW(0.52, 0.5, 0.9)] },
+    { name: 'Letterbox',        hoop: [0.8, 0.6],   cond: 'any',     obs: [VW(0.5, -3, 0.42), VW(0.5, 0.58, 0.9)] },
+    { name: 'Pinball',          hoop: [0.82, 0.5],  cond: 'bumper2', obs: [BU(0.36, 0.3, 1.4), BU(0.55, 0.18, 1.4), BU(0.52, 0.42, 1.4)] },
+    { name: 'The lift',         hoop: [0.78, 0.45], cond: 'any',     lift: 0.15, obs: [] },
+    { name: 'Grand finale',     hoop: [0.84, 0.5],  cond: 'any',     wind: 0.5, obs: [VW(0.58, -3, 0.16), VW(0.58, 0.64, 0.9), VW(0.58, 0.32, 0.46, { dy: 0.1, sp: 1.5 })] },
+  ];
+  const COND = {
+    any:     { rule: 'Any basket counts' },
+    swish:   { rule: 'Swish only: no rim, no board', fail: 'Not a swish!' },
+    bank:    { rule: 'Bank it in off the board', fail: 'Needs the board!' },
+    floor:   { rule: 'Bounce it off the ground first', fail: 'Bounce it first!' },
+    wall:    { rule: 'Hit a side wall of the screen first', fail: 'Hit a wall first!' },
+    bumper:  { rule: 'Hit the bumper on the way', fail: 'Use the bumper!' },
+    bumper2: { rule: 'Hit two bumpers on the way', fail: 'Two bumpers!' },
+    nohint:  { rule: 'No aim guide' },
+  };
+  function meets(b, c) {
+    const k = b.kinds || {};
+    if (c === 'swish') return !b.touched;
+    if (c === 'bank') return !!k.board;
+    if (c === 'floor') return !!k.floor;
+    if (c === 'wall') return !!k.wall;
+    if (c === 'bumper') return (b.bumpN || 0) >= 1;
+    if (c === 'bumper2') return (b.bumpN || 0) >= 2;
+    return true;
+  }
+  const ladderStars = p => (p && Array.isArray(p.ladder)) ? p.ladder : [];
+  const ladderOpen = (p, i) => i === 0 || (ladderStars(p)[i - 1] || 0) > 0;
+
+  // ---- weather ----
+  const WEATHER = {
+    calm:   { name: 'Calm',          note: 'Still air. Enjoy it while it lasts.' },
+    breeze: { name: 'Breeze',        note: 'A gentle push. The guide allows for it.', wind: 0.5 },
+    gale:   { name: 'Gale',          note: 'Strong wind. The guide allows for it.', wind: 1.15 },
+    gusty:  { name: 'Swirling gusts', note: 'The wind keeps changing direction. The guide cannot predict it.', wind: 0.95, gust: true },
+    moon:   { name: 'Moon gravity',  note: 'Half gravity. Everything floats.', grav: 0.5 },
+    heavy:  { name: 'Heavy air',     note: 'Gravity is up. Throw harder.', grav: 1.5 },
+    rain:   { name: 'Rain',          note: 'Slippery rim: the ball pops off it.', rim: 1.7, rain: true },
+    storm:  { name: 'Storm',         note: 'Wind, rain and a slippery rim all at once.', wind: 0.8, rim: 1.5, grav: 1.1, rain: true },
+  };
+  function applyWeather(k, sign) {
+    const w = WEATHER[k];
+    sg.weather = k;
+    sg.grav = w.grav || 1; sg.rimK = w.rim || 1;
+    sg.windBase = (w.wind || 0) * (sign || 1);
+    if (hoop) hoop.wind = sg.windBase;
+  }
+  function rollWeather() {
+    const keys = Object.keys(WEATHER).filter(k => k !== sg.weather);
+    const k = keys[Math.floor(Math.random() * keys.length)];
+    applyWeather(k, Math.random() < 0.5 ? 1 : -1);
+    showToast(WEATHER[k].name, WEATHER[k].note, POWERS.slow.color);
+  }
+
+  // ---- Daily Shot: everyone gets the same five shots today ----
+  function rng32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function hashStr(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+  const dayKey = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  function dailyPlan(key) {
+    const r = rng32(hashStr('hoopshot-daily-' + key));
+    const fair = ['basketball', 'tennis', 'netball', 'beach', 'bowling', 'rugby'];
+    const ball = fair[Math.floor(r() * fair.length)];
+    const pool = ['calm', 'calm', 'breeze', 'breeze', 'gale', 'moon', 'heavy', 'rain'];
+    const shots = Array.from({ length: 5 }, (_, i) => ({ fx: 0.5 + r() * 0.38, fy: 0.3 + r() * 0.3, weather: i === 0 ? 'calm' : pool[Math.floor(r() * pool.length)], sign: r() < 0.5 ? -1 : 1 }));
+    return { ball, shots };
+  }
+
+  // ---- Bird Hunter flocks ----
+  const HUNT = { plain: { color: '#d9e3ee', tag: '' }, gold: { color: '#ffc857', tag: '+5' } };
+  const HUNT_SECS = 45;
+  function spawnFlock() {
+    const dir = Math.random() < 0.5 ? 1 : -1, s = R * 0.8;
+    const baseY = H * (0.14 + Math.random() * 0.38);
+    const speed = Math.max(80, W * (0.1 + Math.random() * 0.06)) * (1 + Math.min(10, sg.wave) * 0.05);
+    const roll = Math.random();
+    const kind = roll < 0.18 ? 'gold' : roll < 0.45 ? 'line' : roll < 0.72 ? 'v' : 'wave';
+    const make = (dx, dy, extra = {}) => birds.push({ type: 'plain', x: dir > 0 ? -s * 3 - dx : W + s * 3 + dx, baseY: baseY + dy, y: baseY + dy, dir, s, speed, flap: Math.random() * 10, bob: 0, amp: R * 0.6, freq: 2, hit: false, ...extra });
+    if (kind === 'line') for (let i = 0; i < 5; i++) make(i * s * 4, 0);
+    else if (kind === 'v') { make(0, 0); for (let k = 1; k <= 2; k++) { make(k * s * 3.5, -k * s * 2.2); make(k * s * 3.5, k * s * 2.2); } }
+    else if (kind === 'wave') for (let i = 0; i < 5; i++) make(i * s * 4, 0, { amp: R * 3.5, freq: 2.2, bob: i * 0.7 });
+    else make(0, 0, { type: 'gold', speed: speed * 2.1, amp: R * 2, freq: 3 });
+    sg.wave++;
+  }
+  function huntHit(bird) {
+    bird.hit = true;
+    shot.birdHits = (shot.birdHits || 0) + 1;
+    const n = shot.birdHits, gold = bird.type === 'gold';
+    const pts = n + (gold ? 5 : 0);
+    addPoints(pts);
+    burst(bird.x, bird.y, gold ? 30 : 16, gold ? [COL.gold, '#fff4d6', COL.fire] : ['#d9e3ee', COL.paint, COL.gold]);
+    sfx.bird();
+    flash = { text: (n > 1 ? `COMBO x${n} +` : '+') + pts, t: 0, x: bird.x, y: bird.y - R * 2.5, color: gold || n > 2 ? COL.gold : COL.ink };
+    if (n === 3) showToast('Triple!', 'Three birds with one throw', COL.gold);
+    updateHud(true);
+  }
+
+  // ---- starting and ending side games ----
+  function enterSide(m, opts = {}) {
+    saveFamily();
+    mode = m;
+    document.getElementById('mode-name').textContent = SIDE[m].name;
+    sideStart(m, opts);
+  }
+
+  function leaveSide() {
+    sg = {};
+    ballType = nextBall;
+    boardEl.hidden = false;
+    sideBar.hidden = true;
+    birds = [];
+  }
+
+  function sideStart(m, opts = sg.opts || {}) {
+    sg = { opts, over: false, shots: 0, grav: 1, rimK: 1, windBase: 0 };
+    st.score = 0; st.streak = 0; st.makes = 0;
+    active = {}; birds = []; flash = null; targets = []; particles = [];
+    document.getElementById('timer-stat').hidden = m !== 'hunter';
+    document.getElementById('best-stat').hidden = m === 'hunter';
+    boardEl.hidden = turnBased();
+    const p = me();
+    if (m === 'ladder') {
+      sg.level = Math.max(0, Math.min(LEVELS.length - 1, opts.level || 0));
+      const L = LEVELS[sg.level];
+      sg.cond = L.cond; sg.grav = L.grav || 1;
+      showToast(`Level ${sg.level + 1}: ${L.name}`, COND[L.cond].rule, POWERS.triple.color);
+    } else if (m === 'hunter') {
+      sg.left = HUNT_SECS; sg.running = false; sg.wave = 0; sg.flockT = 0.6;
+      showToast('Bird Hunter', 'The clock starts on your first throw', POWERS.wide.color);
+    } else if (m === 'moving') {
+      sg.lives = sg.maxLives = 3;
+      showToast('Moving Hoop', 'It speeds up with every basket. 3 lives.', POWERS.magnet.color);
+    } else if (m === 'weather') {
+      sg.lives = sg.maxLives = 3;
+      applyWeather('calm');
+      showToast('Wind & Weather', 'New weather after every shot. 3 lives.', POWERS.slow.color);
+    } else if (m === 'daily') {
+      sg.key = dayKey(); sg.plan = dailyPlan(sg.key); sg.i = 0; sg.res = []; sg.cond = 'any';
+      sg.ball = sg.plan.ball;
+      sg.official = !(p && p.daily && p.daily.date === sg.key);
+      applyWeather(sg.plan.shots[0].weather, sg.plan.shots[0].sign);
+      showToast(`Daily Shot: ${BALLS[sg.ball].name}`, sg.official ? 'Your first go today counts. Good luck!' : 'Practice round. Your first score today is kept.', POWERS.double.color);
+    } else if (m === 'penalty') {
+      const [a, b] = opts.players;
+      sg.players = [a, b]; sg.res = { [a]: [], [b]: [] }; sg.turn = 0; sg.cond = 'any';
+      showToast('Penalty Shoot-out', `${nameOf(a)} shoots first`, COL.fire);
+    } else if (m === 'horse') {
+      sg.players = opts.players.slice(); sg.letters = {};
+      sg.players.forEach(id => { sg.letters[id] = 0; });
+      sg.setter = sg.players[0]; sg.shooter = sg.setter; sg.stage = 'set'; sg.trick = 'any'; sg.cond = 'any'; sg.queue = [];
+      showToast('H-O-R-S-E', `${nameOf(sg.setter)} sets the first shot. Pick a trick below.`, POWERS.laser.color);
+    } else if (m === 'boss') {
+      sg.lives = sg.maxLives = 5; sg.beaten = 0; sg.maxHp = sg.hp = 10; sg.hitT = 0;
+      showToast('Boss Hoop', 'Score past the glove to knock its health down', COL.rim);
+    }
+    if (launch) { newHoop(); resetShot(); }
+    updateHud(false);
+  }
+
+  // the side game picks where the hoop goes and what the air is doing
+  function sideHoop() {
+    hoop.amp = 0; hoop.wind = 0;
+    if (mode === 'ladder') {
+      const L = LEVELS[sg.level];
+      hoop.fx = hoop.baseFx = L.hoop[0]; hoop.fy = hoop.baseFy = L.hoop[1];
+      hoop.wind = L.wind || 0;
+    } else if (mode === 'daily') {
+      const s = sg.plan.shots[Math.min(sg.i, 4)];
+      hoop.fx = hoop.baseFx = s.fx; hoop.fy = hoop.baseFy = s.fy;
+      applyWeather(s.weather, s.sign);
+    } else if (mode === 'horse') {
+      if (Math.random() < 0.4) hoop.wind = (Math.random() < 0.5 ? -1 : 1) * (0.3 + Math.random() * 0.4);
+    } else if (mode === 'moving') {
+      const n = st.makes;
+      hoop.ax = Math.min(0.2, 0.07 + n * 0.012);
+      hoop.ay = Math.min(0.12, 0.03 + n * 0.008);
+      hoop.sp = Math.min(2.4, 0.7 + n * 0.1);
+      const minFx = Math.max(0.42, (launch.x + R * 12) / W) + hoop.ax;
+      const maxFx = Math.max(minFx, 1 - (R * 7) / W - hoop.ax);
+      hoop.fx = hoop.baseFx = minFx + Math.random() * (maxFx - minFx);
+      hoop.fy = hoop.baseFy = 0.22 + hoop.ay + Math.random() * (0.36 - hoop.ay);
+      hoop.ph = Math.random() * 6.3; hoop.ph2 = Math.random() * 6.3;
+    } else if (mode === 'weather') {
+      hoop.wind = sg.windBase;
+    } else if (mode === 'boss') {
+      hoop.fy = hoop.baseFy = Math.max(hoop.fy, 0.4);
+    }
+  }
+
+  // walls, bumpers and the boss's glove, in court pixels right now
+  function rectOf(o) {
+    const th = R * 0.9, m = o.mv ? Math.sin(clock * o.mv.sp) * o.mv.dy * H : 0;
+    if (o.t === 'v') return { x: o.cx * W - th / 2, y: o.y1 * H + m, w: th, h: (o.y2 - o.y1) * H };
+    return { x: o.x1 * W, y: o.cy * H - th / 2 + m, w: (o.x2 - o.x1) * W, h: th };
+  }
+  function obstacles() {
+    if (mode === 'ladder') return LEVELS[sg.level].obs;
+    return [];
+  }
+  function bossGlove() {
+    const cx = (hoop.l + hoop.r) / 2, w = (hoop.r - hoop.l) * 1.2, h = R * 1.4;
+    const sp = 1.3 + sg.beaten * 0.3 + (1 - sg.hp / sg.maxHp) * 0.7;
+    const k = 0.5 + 0.5 * Math.sin(clock * sp);
+    const y = hoop.y - R * 2.4 - k * R * 5;
+    return { x: cx - w / 2, y: y - h / 2, w, h };
+  }
+  function hitRect(b, r, e) {
+    const px = Math.max(r.x, Math.min(b.x, r.x + r.w)), py = Math.max(r.y, Math.min(b.y, r.y + r.h));
+    if (px === b.x && py === b.y) {   // centre got inside: push it out the nearest side
+      const d = [b.x - r.x, r.x + r.w - b.x, b.y - r.y, r.y + r.h - b.y], i = d.indexOf(Math.min(...d));
+      if (i === 0) { b.x = r.x - rad(b); b.vx = -Math.abs(b.vx) * e; } else if (i === 1) { b.x = r.x + r.w + rad(b); b.vx = Math.abs(b.vx) * e; }
+      else if (i === 2) { b.y = r.y - rad(b); b.vy = -Math.abs(b.vy) * e; } else { b.y = r.y + r.h + rad(b); b.vy = Math.abs(b.vy) * e; }
+      contact(b, 'block', H * 0.3);
+      return true;
+    }
+    return hitPoint(b, px, py, 0, e, 'block');
+  }
+  function sideCollide(b, e) {
+    for (const o of obstacles()) {
+      if (o.t === 'b') {
+        if (hitPoint(b, o.x * W, o.y * H, R * o.r, 1.08, 'bumper')) o.lit = 1;
+      } else hitRect(b, rectOf(o), e(0.55));
+    }
+    if (mode === 'boss') hitRect(b, bossGlove(), e(0.5));
+  }
+
+  function sideUpdate(dt) {
+    if (mode === 'moving') {
+      hoop.fx = hoop.baseFx + hoop.ax * Math.sin(clock * hoop.sp + hoop.ph);
+      hoop.fy = hoop.baseFy + hoop.ay * Math.sin(clock * hoop.sp * 1.37 + hoop.ph2);
+      layoutHoop();
+    } else if (mode === 'ladder' && LEVELS[sg.level].lift) {
+      hoop.fy = LEVELS[sg.level].hoop[1] + LEVELS[sg.level].lift * Math.sin(clock * 1.1);
+      layoutHoop();
+    } else if ((mode === 'weather' || mode === 'daily') && WEATHER[sg.weather] && WEATHER[sg.weather].gust) {
+      hoop.wind = sg.windBase * Math.cos(clock * 1.6);
+    } else if (mode === 'hunter' && sg.running) {
+      sg.left -= dt;
+      updateTimer();
+      if (sg.left <= 0) { huntOver(); return true; }
+    }
+    if (mode === 'boss') sg.hitT = Math.max(0, sg.hitT - dt);
+    for (const o of obstacles()) if (o.lit) o.lit = Math.max(0, o.lit - dt * 3);
+    return false;
+  }
+
+  // returns true when the side game looks after the birds itself
+  function sideBirds(dt) {
+    if (NO_BIRDS[mode]) { birds = []; return true; }
+    if (mode !== 'hunter') return false;
+    if (sg.running || shot.t > 0) {
+      sg.flockT -= dt;
+      if (sg.flockT <= 0 && birds.length < 14) { spawnFlock(); sg.flockT = 2.1 + Math.random() * 1.2; }
+    } else if (!birds.length) spawnFlock();
+    for (const b of birds) {
+      b.x += b.dir * b.speed * dt;
+      b.flap += dt;
+      b.y = b.baseY + Math.sin(b.flap * b.freq + b.bob) * b.amp;
+    }
+    birds = birds.filter(b => !b.hit && b.x > -b.s * 30 && b.x < W + b.s * 30 && !(b.dir > 0 ? b.x > W + b.s * 4 : b.x < -b.s * 4));
+    return true;
+  }
+
+  function sideShoot() {
+    sg.shots++;
+    if (mode === 'hunter' && !sg.running) sg.running = true;
+    renderBar();
+  }
+
+  function celebrate(b, label, color) {
+    flash = { text: label, t: 0, x: (hoop.l + hoop.r) / 2, y: hoop.y - R * 6.5, color };
+    netSway = 1;
+    sfx.swish(!b.touched);
+    burst((hoop.l + hoop.r) / 2, hoop.y, 26, [COL.gold, COL.rim, COL.paint, COL.ball]);
+    if (ballDef().fuse) explode(b);
+    if (ballType === 'firework') { ringBurst(b.x, b.y); sfx.crackle(); }
+  }
+
+  // a basket in a judged side game: the side game decides what it is worth
+  function sideScore(b) {
+    if (!JUDGED[mode]) return false;
+    if (shot.sgDone) return true;
+    const c = mode === 'horse' ? sg.trick : sg.cond;
+    if (!meets(b, c)) {
+      netSway = 0.6; sfx.swish(false);
+      shot.sgFail = true;
+      flash = { text: COND[c].fail || 'No good', t: 0, x: (hoop.l + hoop.r) / 2, y: hoop.y - R * 6.5, color: COL.rim };
+      return true;
+    }
+    shot.sgDone = shot.sgMade = true; shot.scoredAt = shot.t;
+    shot.sgPts = b.touched ? 2 : 3;
+    const label = mode === 'penalty' ? 'GOAL!' : mode === 'horse' ? 'Made it!' : b.touched ? `Bucket! +${shot.sgPts}` : `Swish! +${shot.sgPts}`;
+    if (mode === 'daily') addPoints(shot.sgPts);
+    celebrate(b, label, b.touched ? COL.ink : COL.gold);
+    updateHud(true);
+    return true;
+  }
+
+  // after the normal scoring has run (Moving Hoop, Weather, Boss)
+  function sideAfterScore(b, pts) {
+    if (mode !== 'boss' || shot.bossCounted) return;
+    shot.bossCounted = true;
+    sg.hp -= pts; sg.hitT = 1;
+    if (sg.hp <= 0) {
+      sg.beaten++;
+      addPoints(10);
+      sg.maxHp = sg.hp = 10 + sg.beaten * 6;
+      if (sg.lives < sg.maxLives) sg.lives++;
+      showToast(`Boss ${sg.beaten} beaten!`, `+10 bonus and a life back. Boss ${sg.beaten + 1} is faster.`, COL.gold);
+      shake = 0.6; sfx.boom();
+    }
+    renderBar();
+  }
+
+  // returns true when the side game has dealt with the miss
+  function sideMiss() {
+    if (JUDGED[mode]) {
+      if (!shot.sgFail) flash = { text: 'Miss', t: 0, x: shot.balls[0].x, y: shot.balls[0].y - R * 3, color: COL.dim };
+      return true;
+    }
+    if (mode === 'hunter') return !!shot.birdHits;
+    if (sg.lives != null) {
+      sg.lives--;
+      if (sg.lives > 0) showToast(sg.lives === 1 ? 'Last life!' : `${sg.lives} lives left`, mode === 'weather' ? 'The weather changes now' : 'Keep going', COL.rim);
+      renderBar();
+    }
+    return false;
+  }
+
+  // after each shot: returns 'stop' when the game is over, or whether to move the hoop
+  function sideEndShot(scored) {
+    if (mode === 'ladder') { if (shot.sgMade) { ladderClear(); return 'stop'; } return false; }
+    if (mode === 'daily') {
+      sg.res.push(shot.sgMade ? shot.sgPts : 0); sg.i++;
+      if (sg.i >= 5) { dailyDone(); return 'stop'; }
+      return true;
+    }
+    if (mode === 'horse') return horseTurn(!!shot.sgMade);
+    if (mode === 'penalty') return penaltyTurn(!!shot.sgMade);
+    if (mode === 'hunter') { if (shot.birdHits) st.streak++; return false; }
+    if (sg.lives != null && sg.lives <= 0) { livesOver(); return 'stop'; }
+    if (mode === 'weather') rollWeather();
+    return scored;
+  }
+
+  // ---- H-O-R-S-E ----
+  const alive = () => sg.players.filter(id => sg.letters[id] < 5);
+  function nextAlive(id) {
+    const i = sg.players.indexOf(id);
+    for (let k = 1; k <= sg.players.length; k++) { const n = sg.players[(i + k) % sg.players.length]; if (sg.letters[n] < 5) return n; }
+    return id;
+  }
+  function horseTurn(made) {
+    const who = sg.shooter;
+    if (sg.stage === 'set') {
+      if (made) {
+        sg.queue = [];
+        for (let n = nextAlive(who); n !== who; n = nextAlive(n)) sg.queue.push(n);
+        sg.stage = 'match'; sg.shooter = sg.queue.shift();
+        showToast(`${nameOf(who)} made it!`, `Pass to ${nameOf(sg.shooter)}: copy that shot${sg.trick !== 'any' ? ` (${COND[sg.trick].rule.toLowerCase()})` : ''}`, POWERS.laser.color);
+        renderBar();
+        return false;
+      }
+      sg.setter = sg.shooter = nextAlive(who); sg.trick = 'any';
+      showToast(`${nameOf(who)} missed`, `Pass to ${nameOf(sg.shooter)}: you set the next shot`, COL.dim);
+      renderBar();
+      return true;
+    }
+    if (!made) {
+      sg.letters[who]++;
+      const word = 'HORSE'.slice(0, sg.letters[who]);
+      showToast(sg.letters[who] >= 5 ? `${nameOf(who)} is out!` : `${nameOf(who)} gets ${'HORSE'[sg.letters[who] - 1]}`, sg.letters[who] >= 5 ? 'H-O-R-S-E spelt out' : `Letters so far: ${word.split('').join('-')}`, COL.rim);
+    }
+    if (alive().length <= 1) { horseWin(alive()[0] || sg.setter); return 'stop'; }
+    sg.queue = sg.queue.filter(id => sg.letters[id] < 5);
+    if (sg.queue.length) {
+      sg.shooter = sg.queue.shift();
+      if (made) showToast(`${nameOf(who)} copied it!`, `Pass to ${nameOf(sg.shooter)}`, COL.gold);
+      renderBar();
+      return false;
+    }
+    sg.stage = 'set'; sg.shooter = sg.setter; sg.trick = 'any';
+    if (made) showToast(`${nameOf(who)} copied it!`, `Back to ${nameOf(sg.setter)} to set a new shot`, COL.gold);
+    renderBar();
+    return true;
+  }
+  function horseWin(id) {
+    const p = fam.players.find(x => x.id === id);
+    if (p) { p.horseWins = (p.horseWins || 0) + 1; saveFamily(); }
+    const order = [...sg.players].sort((a, b) => sg.letters[a] - sg.letters[b]);
+    showResults({
+      title: `${nameOf(id)} wins!`, score: '🏆', label: 'H-O-R-S-E champion',
+      note: order.map(x => `${nameOf(x)}: ${sg.letters[x] ? 'HORSE'.slice(0, sg.letters[x]).split('').join('-') : 'no letters'}`).join(' · ') + (p ? `. ${p.name} has won ${p.horseWins} game${p.horseWins === 1 ? '' : 's'} of HORSE.` : ''),
+      again: ['Play again', () => sideStart('horse', sg.opts)],
+    });
+  }
+
+  // ---- Penalty shoot-out ----
+  function penaltyTurn(made) {
+    const [a, b] = sg.players, who = sg.players[sg.turn];
+    sg.res[who].push(made);
+    const goals = id => sg.res[id].filter(Boolean).length;
+    const na = sg.res[a].length, nb = sg.res[b].length;
+    let winner = null;
+    if (na <= 5 && nb <= 5) {
+      const leftA = 5 - na, leftB = 5 - nb;
+      if (goals(a) > goals(b) + leftB) winner = a;
+      else if (goals(b) > goals(a) + leftA) winner = b;
+    }
+    if (!winner && na === nb && na >= 5 && goals(a) !== goals(b)) winner = goals(a) > goals(b) ? a : b;
+    if (winner) { penaltyWin(winner); return 'stop'; }
+    sg.turn = 1 - sg.turn;
+    const next = sg.players[sg.turn];
+    if (na === nb && na === 5) showToast('Sudden death!', `Still level. ${nameOf(next)} goes first.`, COL.fire);
+    else showToast(made ? 'Goal!' : 'Saved!', `Pass to ${nameOf(next)}`, made ? COL.gold : COL.dim);
+    renderBar();
+    return sg.turn === 0;   // a new spot once both have shot
+  }
+  function penaltyWin(id) {
+    const p = fam.players.find(x => x.id === id);
+    if (p) { p.penaltyWins = (p.penaltyWins || 0) + 1; saveFamily(); }
+    const [a, b] = sg.players, g = x => sg.res[x].filter(Boolean).length;
+    showResults({
+      title: `${nameOf(id)} wins!`, score: `${g(a)}–${g(b)}`, label: `${nameOf(a)} v ${nameOf(b)}`,
+      note: p ? `${p.name} has won ${p.penaltyWins} shoot-out${p.penaltyWins === 1 ? '' : 's'}.` : '',
+      again: ['Rematch', () => sideStart('penalty', { players: [b, a] })],
+    });
+  }
+
+  // ---- results for the other side games ----
+  function ladderClear() {
+    const i = sg.level, n = sg.shots, stars = n <= 1 ? 3 : n <= 3 ? 2 : 1;
+    const p = me();
+    let note = '';
+    if (p) {
+      const arr = ladderStars(p).slice(); const was = arr[i] || 0;
+      arr[i] = Math.max(was, stars); p.ladder = arr; saveFamily();
+      note = stars > was && was ? `New best for this level, up from ${starStr(was)}.` : stars < 3 ? 'Clear it in 1 shot for 3 stars.' : 'Perfect!';
+      const total = arr.reduce((t, x) => t + (x || 0), 0);
+      note += ` ${p.name} has ${total} of ${LEVELS.length * 3} stars.`;
+    }
+    sg.over = true;
+    const last = i >= LEVELS.length - 1;
+    showResults({
+      title: last ? 'Ladder complete!' : `Level ${i + 1} cleared!`, score: starStr(stars), label: `${n} shot${n === 1 ? '' : 's'}`, note,
+      again: last ? ['Play it again', () => sideStart('ladder', { level: i })] : [`Level ${i + 2}`, () => sideStart('ladder', { level: i + 1 })],
+      board: ['All levels', () => openLevels(true)],
+    });
+  }
+  function dailyDone() {
+    const total = sg.res.reduce((a, b) => a + b, 0), p = me();
+    let note = '';
+    if (p && sg.official) { p.daily = { date: sg.key, score: total }; saveFamily(); note = 'That is your score for today. '; }
+    else if (p) note = `Practice round. Today's score is ${p.daily.score}. `;
+    const today = fam.players.filter(x => x.daily && x.daily.date === sg.key).sort((a, b) => b.daily.score - a.daily.score);
+    if (today.length) note += 'Today: ' + today.map(x => `${x.name} ${x.daily.score}`).join(', ') + '. New shots tomorrow.';
+    sg.over = true;
+    showResults({ title: sg.official ? 'Daily Shot done!' : 'Practice done', score: total, label: `points out of 15 (${sg.res.map(x => x || '·').join(' ')})`, note, again: ['Practise again', () => sideStart('daily')] });
+  }
+  function huntOver() {
+    sg.running = false; sg.left = 0; sg.over = true;
+    drag = null; cv.classList.remove('dragging');
+    const p = me(), prev = p ? (p.bestHunter || 0) : 0, beat = !!p && st.score > prev;
+    if (beat) { p.bestHunter = st.score; saveFamily(); }
+    showResults({ title: beat && prev ? 'New best!' : 'Time!', score: st.score, label: `points in ${HUNT_SECS} seconds`, note: p ? (beat ? (prev ? `Up from ${prev}.` : 'Your first Bird Hunter score.') : `Your best is ${prev}.`) : '', again: ['Play again', () => sideStart('hunter')] });
+  }
+  function livesOver() {
+    const key = { moving: 'bestMoving', weather: 'bestWeather', boss: 'bestBoss' }[mode];
+    const p = me(), prev = p ? (p[key] || 0) : 0, beat = !!p && st.score > prev;
+    if (beat) { p[key] = st.score; saveFamily(); }
+    sg.over = true;
+    let note = p ? (beat ? (prev ? `New best, up from ${prev}.` : 'Your first score in this game.') : `Your best is ${prev}.`) : '';
+    if (mode === 'boss') note = `Bosses beaten: ${sg.beaten}. ` + note;
+    showResults({ title: beat && prev ? 'New best!' : 'Out of lives', score: st.score, label: 'points', note, again: ['Play again', () => sideStart(mode)] });
+  }
+
+  // ---- the strip at the bottom that shows how a side game is going ----
+  const sideBar = document.getElementById('sgbar');
+  const boardEl = document.querySelector('.board');
+  function renderBar() {
+    wrap.classList.toggle('has-sg', inSide());
+    if (!inSide()) { sideBar.hidden = true; return; }
+    sideBar.hidden = false;
+    let h = '';
+    const line = (b, s) => `<b>${b}</b>${s ? `<span>${s}</span>` : ''}`;
+    if (mode === 'ladder') {
+      const L = LEVELS[sg.level], best = ladderStars(me())[sg.level] || 0;
+      h = line(`Level ${sg.level + 1}: ${esc(L.name)}`, `${COND[L.cond].rule} · Shots ${sg.shots}${best ? ` · Best ${starStr(best)}` : ''}`);
+    } else if (mode === 'hunter') {
+      h = line('Bird Hunter', 'One throw, many birds: combos score more. Gold +5.');
+    } else if (mode === 'moving') {
+      h = line(`Moving Hoop <i class="hearts">${hearts(sg.lives, sg.maxLives)}</i>`, `Baskets ${st.makes} · it speeds up each time`);
+    } else if (mode === 'weather') {
+      const w = WEATHER[sg.weather];
+      h = line(`${w.name} <i class="hearts">${hearts(sg.lives, sg.maxLives)}</i>`, w.note);
+    } else if (mode === 'daily') {
+      const w = WEATHER[sg.weather], tot = sg.res.reduce((a, b) => a + b, 0);
+      h = line(`Daily Shot ${Math.min(sg.i + 1, 5)} of 5${sg.official ? '' : ' (practice)'}`, `${BALLS[sg.ball].name} · ${w.name} · ${tot} pts so far`);
+    } else if (mode === 'boss') {
+      const pct = Math.max(0, sg.hp / sg.maxHp * 100);
+      h = line(`Boss ${sg.beaten + 1} <i class="hearts">${hearts(sg.lives, sg.maxLives)}</i>`, '') + `<div class="hp" aria-label="Boss health ${Math.max(0, sg.hp)} of ${sg.maxHp}"><i style="width:${pct}%"></i></div>`;
+    } else if (mode === 'penalty') {
+      const dots = id => {
+        const r = sg.res[id], slots = Math.max(5, r.length + (sg.players[sg.turn] === id ? 1 : 0));
+        return Array.from({ length: slots }, (_, i) => i < r.length ? (r[i] ? '<i class="g">●</i>' : '<i class="x">✕</i>') : '<i>○</i>').join('');
+      };
+      h = sg.players.map(id => `<div class="pr${sg.players[sg.turn] === id ? ' up' : ''}" style="--pc:${colorId(id)}"><b>${esc(nameOf(id))}</b><span class="dots">${dots(id)}</span></div>`).join('') + `<span>${esc(nameOf(sg.players[sg.turn]))} to shoot</span>`;
+    } else if (mode === 'horse') {
+      h = `<div class="letters">${sg.players.map(id => `<span class="pl${id === sg.shooter ? ' up' : ''}${sg.letters[id] >= 5 ? ' out' : ''}" style="--pc:${colorId(id)}">${esc(nameOf(id))} <i>${'HORSE'.slice(0, sg.letters[id]) || '·'}</i></span>`).join('')}</div>`;
+      if (sg.stage === 'set') {
+        h += `<span><b>${esc(nameOf(sg.shooter))}</b>: set a shot. Pick a trick, then shoot.</span>`;
+        if (phase === 'aim') h += `<div class="tricks">${['any', 'swish', 'bank', 'wall', 'nohint'].map(k => `<button type="button" data-trick="${k}" aria-pressed="${sg.trick === k}">${{ any: 'Any', swish: 'Swish', bank: 'Bank', wall: 'Off a wall', nohint: 'No guide' }[k]}</button>`).join('')}</div>`;
+      } else h += `<span><b>${esc(nameOf(sg.shooter))}</b>: copy it${sg.trick !== 'any' ? ` · ${COND[sg.trick].rule}` : ''}</span>`;
+    }
+    sideBar.innerHTML = h;
+  }
+  sideBar.addEventListener('click', e => {
+    const t = e.target.closest('[data-trick]');
+    if (!t || mode !== 'horse' || sg.stage !== 'set' || phase !== 'aim') return;
+    sg.trick = t.dataset.trick;
+    renderBar();
+  });
+
+  // ---- results panel shared by the 60-second challenge and the side games ----
+  let resAgainFn = null, resBoardFn = null;
+  function showResults({ title, score, label, note, again, board }) {
+    drag = null; cv.classList.remove('dragging');
+    document.getElementById('res-title').textContent = title;
+    document.getElementById('res-score').textContent = score;
+    document.getElementById('res-label').textContent = label;
+    document.getElementById('res-note').textContent = note || '';
+    document.getElementById('res-again').textContent = again ? again[0] : 'Play again';
+    document.getElementById('res-board').textContent = board ? board[0] : 'Leaderboard';
+    resAgainFn = again ? again[1] : null;
+    resBoardFn = board ? board[1] : null;
+    updateHud(false);
+    hideSidePanels();
+    openPanel(results, document.getElementById('res-again'));
+  }
+
+  // ---- side game menus ----
+  const sidePanel = document.getElementById('side');
+  const rosterPanel = document.getElementById('roster');
+  const levelsPanel = document.getElementById('levels');
+  function hideSidePanels() { sidePanel.hidden = true; rosterPanel.hidden = true; levelsPanel.hidden = true; }
+  function startFromMenu(fn) { fn(); fromHome = false; closePanels(); }
+
+  function openSide() {
+    const list = document.getElementById('side-list');
+    const p = me();
+    const best = k => {
+      if (!p) return '';
+      if (k === 'ladder') { const s = ladderStars(p).reduce((t, x) => t + (x || 0), 0); return s ? `${s} of ${LEVELS.length * 3} stars` : ''; }
+      if (k === 'daily') return p.daily && p.daily.date === dayKey() ? `Today: ${p.daily.score} pts` : 'Not played today';
+      if (k === 'horse') return p.horseWins ? `${p.horseWins} win${p.horseWins === 1 ? '' : 's'}` : '';
+      if (k === 'penalty') return p.penaltyWins ? `${p.penaltyWins} win${p.penaltyWins === 1 ? '' : 's'}` : '';
+      const v = p[{ hunter: 'bestHunter', moving: 'bestMoving', weather: 'bestWeather', boss: 'bestBoss' }[k]];
+      return v ? `Best ${v}` : '';
+    };
+    list.innerHTML = SIDE_ORDER.map(k => {
+      const s = SIDE[k], b = best(k);
+      return `<button class="ball-card side-card" type="button" data-side="${k}" style="--sc:${C(s.color)}">
+        <span class="side-tag">${s.tag}</span>
+        <span class="bc-text"><strong>${s.name}</strong><span class="note">${s.blurb}</span>${b ? `<span class="meters"><span><i>${esc(b)}</i></span></span>` : ''}</span>
+      </button>`;
+    }).join('');
+    hideSidePanels(); results.hidden = true;
+    openPanel(sidePanel, list.querySelector('.side-card'));
+  }
+  document.getElementById('side-list').addEventListener('click', e => {
+    const card = e.target.closest('[data-side]');
+    if (!card) return;
+    const k = card.dataset.side;
+    if (k === 'horse' || k === 'penalty') openRoster(k);
+    else if (k === 'ladder') openLevels(false);
+    else startFromMenu(() => enterSide(k));
+  });
+  document.getElementById('side-close').addEventListener('click', closePanels);
+
+  let rosterFor = 'horse', picked = [];
+  function openRoster(k) {
+    rosterFor = k;
+    const exact = k === 'penalty';
+    picked = picked.filter(id => fam.players.some(p => p.id === id));
+    if (picked.length < 2) picked = fam.players.slice(0, exact ? 2 : 4).map(p => p.id);
+    if (exact) picked = picked.slice(0, 2);
+    renderRoster();
+    hideSidePanels();
+    rosterPanel.hidden = false;
+    openPanel(rosterPanel, document.getElementById('roster-start'));
+  }
+  function renderRoster() {
+    const exact = rosterFor === 'penalty';
+    document.getElementById('roster-title').textContent = SIDE[rosterFor].name;
+    const enough = fam.players.length >= 2;
+    document.getElementById('roster-sub').textContent = !enough
+      ? 'This needs at least 2 players. Add the family on the leaderboard first.'
+      : exact ? 'Pick the 2 players. The first one you pick shoots first. Pass the phone between turns.' : 'Pick who is playing (2 or more), in the order you will take turns. Pass the phone between turns.';
+    const list = document.getElementById('roster-list');
+    list.innerHTML = fam.players.map(p => {
+      const n = picked.indexOf(p.id);
+      return `<button class="tab who" type="button" data-id="${p.id}" aria-pressed="${n >= 0}" style="--pc:${colorOf(p)}">${n >= 0 ? `${n + 1}. ` : ''}${esc(p.name)}</button>`;
+    }).join('');
+    const ok = exact ? picked.length === 2 : picked.length >= 2;
+    const btn = document.getElementById('roster-start');
+    btn.disabled = !ok;
+    btn.textContent = ok ? 'Start' : exact ? 'Pick 2 players' : 'Pick at least 2';
+    document.getElementById('roster-add').hidden = enough;
+  }
+  document.getElementById('roster-list').addEventListener('click', e => {
+    const b = e.target.closest('[data-id]');
+    if (!b) return;
+    const id = b.dataset.id, i = picked.indexOf(id);
+    if (i >= 0) picked.splice(i, 1);
+    else { picked.push(id); if (rosterFor === 'penalty' && picked.length > 2) picked.shift(); }
+    renderRoster();
+  });
+  document.getElementById('roster-start').addEventListener('click', () => {
+    const exact = rosterFor === 'penalty';
+    if (exact ? picked.length !== 2 : picked.length < 2) return;
+    startFromMenu(() => enterSide(rosterFor, { players: picked.slice() }));
+  });
+  document.getElementById('roster-add').addEventListener('click', () => { hideSidePanels(); openFamily(); });
+  document.getElementById('roster-close').addEventListener('click', closePanels);
+
+  function openLevels(fromResults) {
+    const p = me(), stars = ladderStars(p);
+    const list = document.getElementById('level-list');
+    list.innerHTML = LEVELS.map((L, i) => {
+      const open = ladderOpen(p, i), s = stars[i] || 0;
+      return `<button class="lvl" type="button" data-level="${i}" ${open ? '' : 'disabled'} aria-label="Level ${i + 1}: ${esc(L.name)}${open ? '' : ' (locked)'}">
+        <b>${i + 1}</b><span>${esc(L.name)}</span><i>${open ? starStr(s) : 'Locked'}</i></button>`;
+    }).join('');
+    const total = stars.reduce((t, x) => t + (x || 0), 0);
+    document.getElementById('levels-sub').textContent = `${total} of ${LEVELS.length * 3} stars. Clear a level to unlock the next. 1 shot = 3 stars, 2 or 3 shots = 2 stars.`;
+    hideSidePanels(); results.hidden = true;
+    if (fromResults) fromHome = false;
+    openPanel(levelsPanel, list.querySelector('.lvl:not([disabled])'));
+  }
+  document.getElementById('level-list').addEventListener('click', e => {
+    const b = e.target.closest('[data-level]');
+    if (!b || b.disabled) return;
+    startFromMenu(() => enterSide('ladder', { level: +b.dataset.level }));
+  });
+  document.getElementById('levels-close').addEventListener('click', closePanels);
+
+  // ---- drawing for side games ----
+  function sideDraw() {
+    for (const o of obstacles()) {
+      if (o.t === 'b') {
+        const x = o.x * W, y = o.y * H, r = R * o.r, lit = o.lit || 0;
+        ctx.fillStyle = POWERS.laser.color; ctx.globalAlpha = 0.25 + lit * 0.5;
+        ctx.beginPath(); ctx.arc(x, y, r * (1.35 + lit * 0.3), 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = COL.paint; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(x, y, r * 0.62, 0, Math.PI * 2); ctx.stroke();
+      } else {
+        const r = rectOf(o);
+        ctx.fillStyle = o.mv ? '#7a4fd6' : '#4a5466';
+        ctx.fillRect(r.x, r.y, r.w, r.h);
+        ctx.fillStyle = COL.paint; ctx.globalAlpha = 0.5;
+        ctx.fillRect(r.x, r.y, o.t === 'v' ? 2 : r.w, o.t === 'v' ? r.h : 2);
+        ctx.globalAlpha = 1;
+      }
+    }
+    if (mode === 'boss') drawGlove(bossGlove());
+    if (inSide() && WEATHER[sg.weather] && WEATHER[sg.weather].rain && !reduceMotion) {
+      ctx.strokeStyle = '#9fc4ff'; ctx.globalAlpha = 0.35; ctx.lineWidth = 1.2;
+      const dx = (hoop.wind || 0) * R * 0.8;
+      ctx.beginPath();
+      for (let i = 0; i < 80; i++) {
+        const x = ((i * 137.5) % W + clock * 40 * (1 + (hoop.wind || 0))) % W, y = (i * 91.7 + clock * H * 1.3) % floorY;
+        ctx.moveTo(x, y); ctx.lineTo(x + dx, y + R * 1.3);
+      }
+      ctx.stroke(); ctx.globalAlpha = 1;
+    }
+  }
+  function drawGlove(g) {
+    const hurt = sg.hitT > 0 && Math.floor(sg.hitT * 12) % 2 === 0;
+    ctx.fillStyle = hurt ? '#ffffff' : COL.rim;
+    const fw = g.w / 4;
+    for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.ellipse(g.x + fw * (i + 0.5), g.y, fw * 0.42, g.h * 0.55, 0, Math.PI, 0); ctx.fill(); }
+    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(g.x, g.y, g.w, g.h, g.h * 0.4) : ctx.rect(g.x, g.y, g.w, g.h); ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    const ey = g.y + g.h * 0.5, ex = g.w * 0.16;
+    for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(g.x + g.w / 2 + s * ex, ey, g.h * 0.2, 0, Math.PI * 2); ctx.fill(); }
+    ctx.fillStyle = COL.asphalt;
+    for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(g.x + g.w / 2 + s * ex, ey + 1, g.h * 0.1, 0, Math.PI * 2); ctx.fill(); }
+    ctx.strokeStyle = COL.asphalt; ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (const s of [-1, 1]) { ctx.moveTo(g.x + g.w / 2 + s * ex * 1.7, ey - g.h * 0.36); ctx.lineTo(g.x + g.w / 2 + s * ex * 0.5, ey - g.h * 0.2); }
+    ctx.stroke();
   }
 
   const has = k => !!active[k];
@@ -771,6 +1592,7 @@
       amp, speed: Math.min(1.4, 0.35 + Math.max(0, over) * 0.04) + Math.random() * 0.15, ph: Math.random() * Math.PI * 2,
       wind: windOn ? (Math.random() * 2 - 1) * windMax : 0,
     };
+    if (inSide()) sideHoop();
     layoutHoop();
   }
 
@@ -786,7 +1608,7 @@
   }
 
   function resetShot() {
-    ballType = nextBall;
+    ballType = (inSide() && sg.ball) || nextBall;
     shot ={ balls: [makeBall(launch.x, launch.y)], t: 0, scoredAt: null, fire: false, hits: 0 };
     phase = 'aim'; phaseT = 0;
   }
@@ -802,7 +1624,7 @@
   const canTapReset = () => phase === 'missed' || (phase === 'flying' && shot.scoredAt === null && shot.balls.every(b => b.floored));
 
   cv.addEventListener('pointerdown', e => {
-    if (paused || (mode === 'timed' && round.over)) return;
+    if (paused || (mode === 'timed' && round.over) || sg.over) return;
     if (canTapReset()) {
       if (phase === 'flying') miss();
       endShot(false);
@@ -829,6 +1651,7 @@
 
   function shoot(vx, vy) {
     if (mode === 'timed' && !round.running && !round.over) round.running = true;
+    if (inSide()) sideShoot();
     const spread = has('triple') ? [-0.08, 0, 0.08] : [0];
     shot.balls = spread.map(a => {
       const b = makeBall(launch.x, launch.y);
@@ -866,7 +1689,7 @@
     if (b.hidden) { b.rest = true; return; }
     const bd = ballDef(), r = rad(b);
     b.prevY = b.y;
-    b.vy += G * bd.grav * dt;
+    b.vy += G * bd.grav * gravK() * dt;
     b.vx += windAccel() * bd.wind * dt;
     if (bd.drag) { const k = 1 - bd.drag * dt; b.vx *= k; b.vy *= k; }
     if (has('magnet') && !b.scored) {
@@ -881,17 +1704,18 @@
     const rimR = Math.max(2, R * 0.2);
     const e = k => Math.min(0.92, k * bd.bounce);
     const solid = ballType !== 'ghost' || ghostAlpha() >= 0.4;   // a faded ghost floats through the hoop
-    if (solid) {
-      if (hitPoint(b, hoop.l, hoop.y, rimR, e(0.5), 'rim')) b.touched = true;
-      if (hitPoint(b, hoop.r, hoop.y, rimR, e(0.5), 'rim')) b.touched = true;
+    if (solid && hoopOn()) {
+      if (hitPoint(b, hoop.l, hoop.y, rimR, e(0.5 * rimK()), 'rim')) b.touched = true;
+      if (hitPoint(b, hoop.r, hoop.y, rimR, e(0.5 * rimK()), 'rim')) b.touched = true;
       const px = Math.max(hoop.bx, Math.min(b.x, hoop.bx + hoop.bw));
       const py = Math.max(hoop.bt, Math.min(b.y, hoop.bb));
       if (hasBoard() && hitPoint(b, px, py, 0, e(0.6), 'board')) b.touched = true;
       if (b.y > poleTop()) hitPoint(b, hoop.bx + hoop.bw / 2, b.y, R * 0.2, e(0.4), 'pole');
     }
+    if (inSide() && solid) sideCollide(b, e);
     if (b.hidden) { b.rest = true; return; }
 
-    if (!b.scored && b.prevY < hoop.y && b.y >= hoop.y && b.vy > 0 && b.x > hoop.l && b.x < hoop.r) {
+    if (hoopOn() && !b.scored && b.prevY < hoop.y && b.y >= hoop.y && b.vy > 0 && b.x > hoop.l && b.x < hoop.r) {
       b.scored = true;
       b.vx *= 0.35; b.vy *= 0.55;  // the net grabs it
       scoreBall(b);
@@ -925,6 +1749,7 @@
 
   // ---- scoring and power-ups ----
   function scoreBall(b) {
+    if (inSide() && sideScore(b)) return;
     const first = shot.scoredAt === null;
     let toasted = false;
     if (first) {
@@ -957,6 +1782,7 @@
     if (!toasted && first && st.streak === 3) showToast('On fire!', 'Points x2 until you miss', COL.fire);
     if (first && st.streak === MOVE_STREAK) showToast('Streak of 20', 'The hoop starts moving. Keep the streak going.', COL.gold);
     if (st.makes === WIND_AT) showToast('Wind picks up', 'Watch the arrow at the top', COL.gold);
+    if (inSide()) sideAfterScore(b, base * mult);
     saveFamily();
     updateHud(true);
   }
@@ -966,6 +1792,7 @@
   }
 
   function hitBird(bird) {
+    if (mode === 'hunter') { huntHit(bird); return; }
     bird.hit = true;
     const p = POWERS[bird.type];
     if (active[bird.type]) { active[bird.type].left += p.shots; active[bird.type].fresh = true; }
@@ -981,6 +1808,8 @@
 
   // what each ball does when it touches something: pop, shrink, or count down to a blast
   function contact(b, kind, speed) {
+    (b.kinds || (b.kinds = {}))[kind] = true;
+    if (kind === 'bumper') b.bumpN = (b.bumpN || 0) + 1;
     if (b.hidden) return;
     if (ballType === 'balloon') pop(b, 'balloon');
     else if (ballType === 'egg') pop(b, 'egg');
@@ -1050,6 +1879,7 @@
   }
 
   function endShot(scored) {
+    if (inSide()) { const r = sideEndShot(scored); if (r === 'stop') return; scored = r; }
     if (mode === 'demo' && targets.every(t => t.dead)) newTargets();
     for (const k of Object.keys(active)) {
       const a = active[k];
@@ -1063,6 +1893,7 @@
   }
 
   function miss() {
+    if (inSide() && sideMiss()) { saveFamily(); updateHud(false); return; }
     if (shot.smashed) { saveFamily(); updateHud(false); return; }   // Demolition: a smash is never a miss
     const b = shot.balls[0];
     if (st.streak >= MOVE_STREAK) showToast('Streak over', 'The hoop stops moving', COL.dim);
@@ -1119,6 +1950,7 @@
       chips.push(`<span class="chip" style="--c:${POWERS[k].color}">${POWERS[k].name} <b>${n}</b></span>`);
     }
     el.powers.innerHTML = chips.join('');
+    renderBar();
   }
 
   function showToast(title, text, color) {
@@ -1142,11 +1974,12 @@
   function closePanels() {
     if (!me()) { openFamily(); return; }   // someone has to be playing
     const backHome = fromHome && home.hidden;
-    el.help.hidden = true; picker.hidden = true; family.hidden = true; results.hidden = true; home.hidden = true;
+    el.help.hidden = true; picker.hidden = true; family.hidden = true; results.hidden = true; home.hidden = true; hideSidePanels();
     fromHome = false;
     if (backHome) { showHome(); return; }
     paused = false;
     if (mode === 'timed' && round.over) { resetRound(); updateHud(false); }
+    if (inSide() && sg.over) sideStart(mode);
   }
 
   function showHome() {
@@ -1163,6 +1996,7 @@
 
   document.getElementById('exit-btn').addEventListener('click', () => {
     if (mode === 'timed' && !round.over) resetRound();   // leaving a challenge part-way abandons that round
+    if (mode === 'hunter' && !sg.over) sideStart('hunter');
     saveFamily();
     updateHud(false);
     showHome();
@@ -1174,6 +2008,7 @@
     closePanels();
   });
   document.getElementById('home-player').addEventListener('click', () => openFamily());
+  document.getElementById('home-side').addEventListener('click', openSide);
   document.getElementById('home-ball').addEventListener('click', () => openPanel(picker, picker.querySelector(`[data-type="${nextBall}"]`)));
   document.getElementById('home-rules').addEventListener('click', () => openPanel(el.help, document.getElementById('help-close')));
   document.getElementById('mode-btn').addEventListener('click', () => setMode(MODE_ORDER[(MODE_ORDER.indexOf(mode) + 1) % MODE_ORDER.length]));
@@ -1184,9 +2019,9 @@
       closePanels();
     });
   }
-  document.getElementById('res-again').addEventListener('click', closePanels);
+  document.getElementById('res-again').addEventListener('click', () => { const f = resAgainFn; if (f) { fromHome = false; f(); } closePanels(); });
   document.getElementById('res-free').addEventListener('click', () => { setMode('free'); closePanels(); });
-  document.getElementById('res-board').addEventListener('click', () => { boardSort = 'timed'; openFamily(); });
+  document.getElementById('res-board').addEventListener('click', () => { if (resBoardFn) { resBoardFn(); return; } boardSort = 'timed'; openFamily(); });
   document.getElementById('help-open').addEventListener('click', () => openPanel(el.help, document.getElementById('help-close')));
   document.getElementById('help-close').addEventListener('click', closePanels);
   document.getElementById('picker-open').addEventListener('click', () => {
@@ -1254,7 +2089,7 @@
   document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => { boardSort = t.dataset.sort; renderRanks(); }));
 
   function openFamily() {
-    el.help.hidden = true; picker.hidden = true; results.hidden = true;
+    el.help.hidden = true; picker.hidden = true; results.hidden = true; hideSidePanels();
     renderRanks();
     openPanel(family, me() ? (ranksEl.querySelector('[aria-pressed="true"]') || addName) : addName);
   }
@@ -1342,6 +2177,7 @@
   }
 
   function updateBirds(dt) {
+    if (inSide() && sideBirds(dt)) return;
     birdTimer -= dt;
     if (birdTimer <= 0) {
       if (birds.length < 2) spawnBird();
@@ -1366,6 +2202,7 @@
     }
     if (hoop.appear < 1) hoop.appear = Math.min(1, hoop.appear + dt * 3);
     if (hoop.amp) { hoop.fx = hoop.baseFx + hoop.amp * Math.sin(clock * hoop.speed + hoop.ph); layoutHoop(); }
+    if (inSide() && sideUpdate(dt)) return;
 
     const timeScale = has('slow') && phase === 'flying' ? 0.5 : 1;
     updateBirds(dt * timeScale);
@@ -1756,7 +2593,7 @@
   }
 
   function drawBat(b) {
-    const p = POWERS[b.type], s = b.s;
+    const p = POWERS[b.type] || HUNT[b.type], s = b.s;
     const up = Math.sin(b.flap * 16);
     ctx.save();
     ctx.translate(b.x, b.y); ctx.scale(b.dir, 1);
@@ -1785,7 +2622,7 @@
 
   function drawBird(b) {
     if (spooky()) { drawBat(b); return; }
-    const p = POWERS[b.type], s = b.s;
+    const p = POWERS[b.type] || HUNT[b.type], s = b.s;
     const wing = Math.sin(b.flap * 14);
     ctx.save();
     ctx.translate(b.x, b.y); ctx.scale(b.dir, 1);
@@ -2088,12 +2925,12 @@
     const laser = has('laser');
     const dots = laser ? 70 : 16, dt = laser ? 0.03 : 0.045;
     const angles = has('triple') ? [-0.08, 0, 0.08] : [0];
-    for (const a of angles) {
+    for (const a of (mode === 'horse' && sg.trick === 'nohint' ? [] : angles)) {
       let x = launch.x, y = launch.y;
       let vx = (p.dx * Math.cos(a) - p.dy * Math.sin(a)) * k, vy = (p.dx * Math.sin(a) + p.dy * Math.cos(a)) * k;
       for (let i = 1; i <= dots; i++) {
         for (let j = 0; j < 3; j++) {
-          vy += G * bd.grav * dt / 3; vx += windAccel() * bd.wind * dt / 3;
+          vy += G * bd.grav * gravK() * dt / 3; vx += windAccel() * bd.wind * dt / 3;
           if (bd.drag) { const f = 1 - bd.drag * dt / 3; vx *= f; vy *= f; }
           x += vx * dt / 3; y += vy * dt / 3;
         }
@@ -2123,7 +2960,7 @@
     ctx.globalAlpha = 1;
     ctx.fillStyle = COL.ink; ctx.font = `700 ${Math.max(13, R * 0.9)}px ${C('--font-body')}`;
     ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    const hint = mode === 'timed' && !round.running ? 'Shoot to start the clock' : 'Pull back and release';
+    const hint = (mode === 'timed' && !round.running) || (mode === 'hunter' && !sg.running) ? 'Shoot to start the clock' : 'Pull back and release';
     ctx.fillText(hint, Math.min(launch.x + R * 3, W - 170), launch.y - R * 3.2);
   }
 
@@ -2132,7 +2969,7 @@
     ctx.fillStyle = festive() ? '#1d3a5f' : COL.ink; ctx.globalAlpha = 0.85;
     ctx.font = `700 ${Math.max(14, R * 1.05)}px ${C('--font-body')}`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('Tap to reset', W / 2, floorY + (H - floorY) * 0.45);
+    ctx.fillText('Tap to reset', inSide() ? W * 0.75 : W / 2, floorY + (H - floorY) * 0.45);
     ctx.globalAlpha = 1;
   }
 
@@ -2156,7 +2993,8 @@
     if (shake && !reduceMotion) ctx.translate((Math.random() - 0.5) * shake * R * 1.6, (Math.random() - 0.5) * shake * R * 1.6);
     drawBackground();
     drawWind();
-    drawHoopBack();
+    if (hoopOn()) drawHoopBack();
+    if (inSide()) sideDraw();
     for (const b of birds) drawBird(b);
     drawTargets();
     if (phase === 'aim' && drag) drawAim();
@@ -2169,7 +3007,7 @@
         else if (phase === 'aim' && mode === 'potato') drawFuse(b.x, b.y, r, 1);
       }
     }
-    drawHoopFront();
+    if (hoopOn()) drawHoopFront();
     drawBlasts();
     for (const p of particles) {
       ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.c;
@@ -2221,6 +3059,32 @@
     if (!p) openFamily();
   }
 
+  if (/[?&]test\b/.test(location.search)) window.__hs = {
+    LEVELS, enter: (m, o) => enterSide(m, o), get sg() { return sg; }, get mode() { return mode; }, get phase() { return phase; }, get hoop() { return hoop; },
+    get shot() { return shot; }, get st() { return st; }, get dims() { return { W, H, R, maxSpeed, launch }; }, update, endShot, resetShot, setMode,
+    get paused() { return paused; }, get clock() { return clock; },
+    play(vx, vy) { shoot(vx, vy); for (let i = 0; i < 900 && !paused && phase !== 'aim'; i++) update(1 / 60); return { paused, phase }; },
+    find() {   // a launch that scores from here, if one exists (test only)
+      const d = { maxSpeed }, keep = { t: clock, birds: birds.map(b => ({ ...b })) }, sgk = { ...sg }, stk = { ...st }, act = JSON.stringify(active);
+      let hit = null;
+      outer: for (let a = -170; a <= -10; a += 2) for (let f = 0.3; f <= 1; f += 0.02) {
+        const sp = d.maxSpeed * f, vx = Math.cos(a * Math.PI / 180) * sp, vy = Math.sin(a * Math.PI / 180) * sp;
+        clock = keep.t; const r = this.sim(vx, vy);
+        if (r.sgMade || (r.made && !JUDGED[mode])) { hit = [vx, vy]; break outer; }
+      }
+      clock = keep.t; Object.assign(sg, sgk); Object.assign(st, stk); active = JSON.parse(act); birds = keep.birds; flash = null; resetShot();
+      return hit;
+    },
+    // fire one shot with a launch velocity and run the physics until it is settled; returns what happened
+    sim(vx, vy, t0) {
+      if (t0 != null) clock = t0;
+      resetShot(); shoot(vx, vy);
+      for (let i = 0; i < 480 && phase === 'flying' && shot.scoredAt === null && !shot.sgFail; i++) update(1 / 60);
+      const r = { made: shot.scoredAt !== null, sgMade: !!shot.sgMade, fail: !!shot.sgFail, birdHits: shot.birdHits || 0, kinds: Object.keys(shot.balls[0].kinds || {}) };
+      shot.balls.forEach(b => { b.rest = true; }); phase = 'aim';
+      return r;
+    },
+  };
   window.claude?.hot?.snapshot?.(() => ({ player: fam.current, score: st.score, streak: st.streak, best: st.best, makes: st.makes, active, ball: nextBall }));
   window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
