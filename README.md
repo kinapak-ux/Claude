@@ -74,7 +74,7 @@ A fantasy Top Trumps game that 2 to 6 players play on their own phones. It lives
 
 ## Family games (install them like apps)
 
-All nine games are published with the tracker and can be installed on a phone's home screen, where they open full screen with their own icon:
+All ten games are published with the tracker and can be installed on a phone's home screen, where they open full screen with their own icon:
 
 | Game | Address |
 |---|---|
@@ -87,12 +87,15 @@ All nine games are published with the tracker and can be installed on a phone's 
 | Battleships | https://kinapak-ux.github.io/Claude/battleships/ |
 | Snap Race | https://kinapak-ux.github.io/Claude/snap-race/ |
 | Times Table Blaster | https://kinapak-ux.github.io/Claude/times-tables/ |
+| Blow Out the Pumpkin | https://kinapak-ux.github.io/Claude/pumpkin/ |
 
 **To install:** on Android, open the game in Chrome, tap **⋮** and then **Install app** (or **Add to Home screen**). On iPhone, open it in Safari, tap **Share** and then **Add to Home Screen**.
 
 Once a game has been opened, it also works with no signal. The exception is anything that needs other phones, such as Card Battler multiplayer.
 
 Family Quiz Night, Battleships and Snap Race also work like Card Battler: one phone hosts and shows a 4-letter code, and the others join with it. Each also has a no-internet mode (pass-the-phone quiz, Battleships against the computer, Snap practice against computer racers). Their shared code is in `party.js` (connecting phones) and `kit.css` (the look).
+
+Blow Out the Pumpkin: tap **Light the candle**, allow the microphone, then blow on the phone and the candle flickers and goes out. Tap to light it again. Without a microphone, hold a finger on the pumpkin to blow instead. It doesn't send scores to the leaderboard.
 
 Online chess works like Card Battler: one player taps **Online** and then **Start a new game**, and the other types in the 5-character code. If either phone drops out, the game pauses until it reconnects. Whoever started the game can reopen it from **Online** and then **Resume**.
 
