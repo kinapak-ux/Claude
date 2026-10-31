@@ -77,10 +77,11 @@ const GAME = {
   battleships: {n: 'Battleships', i: '🚢', url: '../battleships/'},
   snaprace: {n: 'Snap Race', i: '⚡', url: '../snap-race/'},
   timestables: {n: 'Times Table Blaster', i: '🚀', url: '../times-tables/'},
+  pixelgaffer: {n: "Pixel Gaffer '96", i: '⚽', url: '../pixel-gaffer/'},
 };
 const ECHO_MODES = {classic: 'Classic', strict: 'Strict', turbo: 'Turbo', reverse: 'Reverse', scramble: 'Scramble', blitz: 'Blitz'};
 const POINTS = [5, 3, 2, 1];
-const S = {rows: null, err: null, tab: {hoop: 'timed', echo: 'classic', chess: 'computer', quiz: 'wins', ships: 'friend', snap: 'wins', tt: 'blast'}, level: null, loading: false};
+const S = {rows: null, err: null, tab: {hoop: 'timed', echo: 'classic', chess: 'computer', quiz: 'wins', ships: 'friend', snap: 'wins', tt: 'blast', pg: 'career'}, level: null, loading: false};
 const key = n => String(n).trim().toLowerCase();
 const meKey = () => key(FamilyScores.name());
 
@@ -127,12 +128,13 @@ function boards(rows) {
     ships: {friend: winsOf(g('battleships').filter(r => r.b === 'friend')), computer: winsOf(g('battleships').filter(r => r.b === 'computer'))},
     shipsAll: winsOf(g('battleships')),
     snap: {wins: winsOf(g('snaprace').filter(r => r.b === 'wins')), fastest: bestBy(g('snaprace').filter(r => r.b === 'fastest'), true)},
+    pg: {career: bestBy(g('pixelgaffer').filter(r => r.b === 'career')), keepy: bestBy(g('pixelgaffer').filter(r => r.b === 'keepy')), freekick: bestBy(g('pixelgaffer').filter(r => r.b === 'freekick'))},
     tt: {blast: bestBy(g('timestables').filter(r => r.b === 'blast')), bubble: bestBy(g('timestables').filter(r => r.b === 'bubble')), stars: bestBy(g('timestables').filter(r => r.b === 'stars'))},
   };
 }
 // Family Champion: 5, 3, 2 and 1 points for the top four on each game's main board.
 function champion(B) {
-  const champs = [B.card, B.hoop.timed, B.hoop.streak, B.echoBest, B.scootTotal, B.quiz.wins, B.shipsAll, B.snap.wins, B.tt.blast, B.chess.computer.concat(B.chess.online).reduce((acc, x) => { const e = acc.find(a => a.k === x.k); if (e) e.value += x.value; else acc.push(Object.assign({}, x)); return acc; }, []).sort((a, b) => b.value - a.value)];
+  const champs = [B.card, B.hoop.timed, B.hoop.streak, B.echoBest, B.scootTotal, B.quiz.wins, B.shipsAll, B.snap.wins, B.tt.blast, B.pg.career, B.chess.computer.concat(B.chess.online).reduce((acc, x) => { const e = acc.find(a => a.k === x.k); if (e) e.value += x.value; else acc.push(Object.assign({}, x)); return acc; }, []).sort((a, b) => b.value - a.value)];
   const pts = {};
   champs.forEach(list => list.filter(x => x.value > 0).slice(0, 4).forEach((x, i) => { pts[x.k] = pts[x.k] || {k: x.k, name: x.name, value: 0, firsts: 0}; pts[x.k].value += POINTS[i]; if (!i) pts[x.k].firsts++; }));
   return Object.values(pts).sort((a, b) => b.value - a.value || b.firsts - a.firsts);
@@ -156,6 +158,7 @@ function feedLine(r) {
     case 'familyquiz': return r.b === 'wins' ? (r.s >= 1 ? `❓ ${n} won Family Quiz Night!` : `❓ ${n} played Family Quiz Night${r.d ? ` (${esc(r.d)})` : ''}`) : `❓ ${n} scored ${r.s.toLocaleString()} in the quiz`;
     case 'battleships': return `🚢 ${n} ${r.s >= 1 ? 'won' : 'lost'} a sea battle${r.b === 'computer' ? ' against the computer' : r.d ? ' ' + esc(r.d) : ''}`;
     case 'timestables': return r.b === 'stars' ? `🚀 ${n} has ${r.s} times-table star${r.s === 1 ? '' : 's'} ⭐` : r.b === 'bubble' ? `🫧 ${n} popped ${r.s.toLocaleString()} points in Bubble Pop` : `🚀 ${n} blasted ${r.s.toLocaleString()} points in Times Table Blaster`;
+    case 'pixelgaffer': return r.b === 'career' ? `⚽ ${n} has ${r.s} manager points${r.d ? ` (${esc(r.d)})` : ''}` : r.b === 'keepy' ? `⚽ ${n} did ${r.s} keepy-uppies` : `⚽ ${n} scored ${r.s}/10 free kicks`;
     case 'snaprace': return r.b === 'fastest' ? `⚡ ${n} snapped in ${(r.s / 1000).toFixed(2)}s` : r.s >= 1 ? `⚡ ${n} won a Snap Race!` : `⚡ ${n} raced at Snap${r.d ? ` (${esc(r.d)})` : ''}`;
   }
   return '';
@@ -190,6 +193,7 @@ function render() {
     ${section('battleships', tabs('ships', {friend: 'Against a friend', computer: 'Against the computer'}) + rankHTML(B.ships[S.tab.ships], x => `${x.value} win${x.value === 1 ? '' : 's'}`, x => `${x.played} battle${x.played === 1 ? '' : 's'}`))}
     ${section('snaprace', tabs('snap', {wins: 'Race wins', fastest: 'Fastest snap'}) + (S.tab.snap === 'wins' ? rankHTML(B.snap.wins, x => `${x.value} win${x.value === 1 ? '' : 's'}`, x => `${x.played} race${x.played === 1 ? '' : 's'}`) : rankHTML(B.snap.fastest, x => `${(x.value / 1000).toFixed(2)}s`)))}
     ${section('timestables', tabs('tt', {blast: 'Blast off', bubble: 'Bubble Pop', stars: 'Star chart'}) + (S.tab.tt !== 'stars' ? rankHTML(B.tt[S.tab.tt], x => `${x.value.toLocaleString()} pts`) : rankHTML(B.tt.stars, x => `⭐ ${x.value} of 78`)))}
+    ${section('pixelgaffer', tabs('pg', {career: 'Manager points', keepy: 'Keepy-uppy', freekick: 'Free kicks'}) + rankHTML(B.pg[S.tab.pg], x => S.tab.pg === 'career' ? `${x.value} pts` : S.tab.pg === 'keepy' ? `${x.value} touches` : `${x.value}/10`))}
     <div class="panel"><h2>📰 Latest</h2><div class="feed">${S.rows.slice(-12).reverse().map(r => `<div>${feedLine(r)}<time>${ago(r.t)}</time></div>`).join('') || '<div class="empty">Nothing yet.</div>'}</div></div>`;
 }
 

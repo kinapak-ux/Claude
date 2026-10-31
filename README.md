@@ -74,7 +74,7 @@ A fantasy Top Trumps game that 2 to 6 players play on their own phones. It lives
 
 ## Family games (install them like apps)
 
-All ten games are published with the tracker and can be installed on a phone's home screen, where they open full screen with their own icon:
+All eleven games are published with the tracker and can be installed on a phone's home screen, where they open full screen with their own icon:
 
 | Game | Address |
 |---|---|
@@ -88,6 +88,7 @@ All ten games are published with the tracker and can be installed on a phone's h
 | Snap Race | https://kinapak-ux.github.io/Claude/snap-race/ |
 | Times Table Blaster | https://kinapak-ux.github.io/Claude/times-tables/ |
 | Blow Out the Pumpkin | https://kinapak-ux.github.io/Claude/pumpkin/ |
+| Pixel Gaffer '96 | https://kinapak-ux.github.io/Claude/pixel-gaffer/ |
 
 **To install:** on Android, open the game in Chrome, tap **⋮** and then **Install app** (or **Add to Home screen**). On iPhone, open it in Safari, tap **Share** and then **Add to Home Screen**.
 
@@ -103,14 +104,22 @@ The shared high-score boards in Scoot City and Echo Wheel only work in the claud
 
 Each game folder holds the page (`index.html`), the app details (`manifest.webmanifest`), the icons, and `sw.js`, which keeps a copy of the game on the phone for offline play.
 
+Pixel Gaffer '96 is a 90s-style football management game with pixel graphics. Pick one of 48 made-up UK clubs across four divisions (Division Three is the easiest place to start) and press **PLAY ▶** each week. Your assistant picks the team until you change it.
+
+- **Matches** play out on a top-down pixel pitch with a camera that follows the ball and teletext-style commentary. You can also take a quick result. At half time you give a team talk, and you can pause to make subs or change formation and style.
+- **Mini-games:** when your team gets a penalty or a free kick, you take it yourself: tap to aim, tap for power (and for curl on free kicks). When the other team gets a penalty, you tap where your keeper dives. Cup ties that end level go to a shoot-out you play. You can switch this off in **CLUB → Settings**.
+- **The depth:** six playing styles that beat each other like rock-paper-scissors (the scout report before each game tells you which to pick), training focus and intensity, a weekly drill (keepy-uppy or free-kick practice) for a training bonus, young players who grow, transfers where you haggle with chairmen, bids for your players, contracts, ticket prices, the board's target, the Old Tin Cup, promotion and relegation, youth intakes and job offers.
+- **Arcade** (from the title screen) has keepy-uppy, a ten-kick free-kick challenge and a penalty shoot-out on their own.
+- The career saves on the phone after every week. Manager points (sent at the end of each season), keepy-uppy and free-kick scores go to the family leaderboard.
+
 ## Family leaderboard
 
-All nine games send their results to one shared leaderboard at
+Every game except Blow Out the Pumpkin sends its results to one shared leaderboard at
 **https://kinapak-ux.github.io/Claude/leaderboard/**. It shows each game's best scores, plus an overall Family Champion (5, 3, 2 and 1 points for the top four on each game's board).
 
 - The scores are kept in a Google Sheet in your own Google Drive, through a small Google Apps Script (`leaderboard/apps-script.txt`). The leaderboard page shows the setup steps until it's connected. Once deployed, its web app address goes into `ENDPOINT` in `scores.js`.
 - Each phone keeps its results until they've been sent, so nothing is lost while it's offline or before the sheet is connected.
 - Names come from the game (Card Battler, Hoop Shot) or are asked for once per phone. Each phone's name can be changed on the leaderboard page.
-- The newer games (Family Quiz, Battleships, Snap Race, Times Table Blaster) need version 2 of the script. To update it, paste the new `leaderboard/apps-script.txt` into the Apps Script editor, then **Deploy → Manage deployments → ✏️ → Version: New version → Deploy**. The address stays the same. Until then, those games' scores wait on the phones.
+- The newer games (Family Quiz, Battleships, Snap Race, Times Table Blaster, Pixel Gaffer) need version 2 of the script. To update it, paste the new `leaderboard/apps-script.txt` into the Apps Script editor, then **Deploy → Manage deployments → ✏️ → Version: New version → Deploy**. The address stays the same. Until then, those games' scores wait on the phones.
 - To fix or remove a score, edit or delete its row in the sheet's **Scores** tab.
 - The web app address is in this public repository, so anyone who found it could read or add scores. First names or nicknames are best.
