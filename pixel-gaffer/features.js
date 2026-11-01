@@ -116,7 +116,7 @@ function achAfterMatch(rep) {
   if (r.cup && r.comp === 'tin' && W.cup.winner === c.id) { ach('cup'); if (c.div === 3) ach('cup_d3'); }
   if (r.cup && r.final && r.win === c.id && r.comp !== 'tin') ach(r.comp === 'ecc' || r.comp === 'fairs' ? 'euro_win' : 'silverware');
   if (c.cash >= 1e7) ach('rich');
-  if (c.squad.map(P).some(p => p.age <= 20 && ovr(p) >= 70)) ach('wonderkid');
+  if (c.squad.map(P).some(p => p && p.age <= 20 && ovr(p) >= 70)) ach('wonderkid');
 }
 function achAfterSeason(S) {
   const u = S.user;

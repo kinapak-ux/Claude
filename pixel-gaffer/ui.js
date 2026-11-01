@@ -582,6 +582,7 @@ function answerBid(mid, yes) {
 
 // ---------- the weekly flow
 function go() {
+  cleanSquads();
   if (deadlineDue()) return startDeadline();
   // stale bids expire
   W.inbox.forEach(m => { if (m.act && m.act.type === 'bid' && !m.act.done && (m.s !== W.season || W.week - m.act.w > 2)) m.act.done = 'The offer expired.'; });
@@ -818,7 +819,7 @@ function fullTime(m) {
 function afterWeek(rep) {
   W.lastWeek = {cup: rep.cup, results: rep.results.map(r => ({h: r.h, a: r.a, hg: r.hg, ag: r.ag, pens: r.pens, d: r.d}))};
   if (rep.user && rep.gate != null) W.lastGate = {gate: rep.gate, att: rep.user.att};
-  if (rep.user) achAfterMatch(rep);
+  if (rep.user) { try { achAfterMatch(rep); } catch (e) { console.error(e); } }
   UI.rep = rep; UI.screen = 'week'; save(); render();
 }
 function weekHTML() {
@@ -968,7 +969,7 @@ const ACT = {
   loanOut(d) { const p = P(+d.id); if (!confirm(`Send ${pname(p)} out on loan until the end of the season? He'll play regularly and come back better.`)) return; loanOutPlayer(p); UI.ret = null; closeModal(); save(); rerender(); },
   highlights() { showHighlights(UI.match); },
   openMsgHome(d) { UI.open = d.id; const m = W.inbox.find(x => x.id === d.id); if (m) m.read = true; UI.tab = 'news'; save(); render(); },
-  continueGame() { W = loadSave(); if (!W) return toast('No saved career in that slot.'); NEXT_ID = W.nextId; if (!W.training) W.training = {focus: 'balanced', int: 1}; if (!W.clubs.some(c => c.foreign)) addForeignClubs(); if (!W.ko) W.ko = {}; UI.screen = W.pendingSeason ? 'season' : 'game'; UI.tab = 'home'; if (W.pendingSeason) { UI.season = W.pendingSeason; UI.offers = W.pendingOffers || []; } render(); },
+  continueGame() { W = loadSave(); if (!W) return toast('No saved career in that slot.'); NEXT_ID = W.nextId; if (!W.training) W.training = {focus: 'balanced', int: 1}; cleanSquads(); if (!W.clubs.some(c => c.foreign)) addForeignClubs(); if (!W.ko) W.ko = {}; UI.screen = W.pendingSeason ? 'season' : 'game'; UI.tab = 'home'; if (W.pendingSeason) { UI.season = W.pendingSeason; UI.offers = W.pendingOffers || []; } render(); },
   arcade() { UI.screen = 'arcade'; W = W || loadSave(); render(); },
   howto,
   toTitle() { save(); UI.screen = 'title'; render(); },
@@ -1061,7 +1062,14 @@ const ACT = {
     UI.msel = null; matchTactics();
   },
   talk(d) { teamTalk(d.k); },
-  ftContinue() { const m = UI.match; UI.match = m; const rep = finishWeek(m); afterWeek(rep); },
+  ftContinue() {
+    const m = UI.match;
+    if (!m) { UI.screen = 'game'; UI.tab = 'home'; return render(); }
+    let rep;
+    try { rep = finishWeek(m); }
+    catch (err) { console.error(err); cleanSquads(); fixTeam(me()); rep = finishWeek(m); }
+    try { afterWeek(rep); } catch (err) { console.error(err); UI.rep = rep; UI.screen = 'week'; save(); render(); }
+  },
   weekDone() {
     const rep = UI.rep;
     if (rep.seasonOver) {
@@ -1112,6 +1120,15 @@ document.addEventListener('change', e => {
   ACT[el.dataset.a](el.dataset, el);
 });
 document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+// if something unexpected goes wrong, say so (with a screenshot-able message) instead of failing silently
+let lastErr = 0;
+function showError(msg) {
+  if (Date.now() - lastErr < 4000) return; lastErr = Date.now();
+  try { save(); } catch (e) {}
+  toast(`⚠️ Something went wrong, gaffer. Your game is saved.<br><small>${esc(String(msg).slice(0, 140))}</small>`);
+}
+addEventListener('error', e => showError(e.message || e.error));
+addEventListener('unhandledrejection', e => showError(e.reason && e.reason.message || e.reason));
 
 render();
 if (document.fonts) document.fonts.ready.then(() => { if (UI.screen === 'title') {} });

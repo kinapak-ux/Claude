@@ -94,13 +94,13 @@ function fixTeam(club) {
     club.xi.forEach((id, i) => {
       if (!bad(id)) return;
       if (id != null && P(id)) out.push(pname(P(id)));
-      const pool = club.squad.map(P).filter(p => !bad(p.id) && !club.xi.includes(p.id));
+      const pool = club.squad.map(P).filter(p => p && !bad(p.id) && !club.xi.includes(p.id));
       pool.sort((a, b) => slotScore(b, slots[i]) - slotScore(a, slots[i]));
       club.xi[i] = pool[0] ? pool[0].id : null;
       club.bench = club.bench.filter(b => b !== club.xi[i]);
     });
   }
-  const pool = club.squad.filter(id => !bad(id) && !club.xi.includes(id) && !club.bench.includes(id)).map(P).sort((a, b) => ovrOf(b) - ovrOf(a));
+  const pool = club.squad.filter(id => P(id) && !bad(id) && !club.xi.includes(id) && !club.bench.includes(id)).map(P).sort((a, b) => ovrOf(b) - ovrOf(a));
   while (club.bench.length < 5 && pool.length) club.bench.push(pool.shift().id);
   return out;
 }
@@ -367,8 +367,19 @@ function weekFixtures() {
 function userFixture() { return weekFixtures().find(f => f.h === W.clubId || f.a === W.clubId) || null; }
 function cupRoundName(r) { return CUP_ROUNDS[r ?? W.cup.r]; }
 
+// Keeps every squad list in step with the players (repairs older saves and any odd states)
+function cleanSquads() {
+  W.clubs.forEach(c => {
+    const seen = new Set();
+    c.squad = (c.squad || []).filter(id => { const p = W.players[id]; if (!p || p.club !== c.id || seen.has(id)) return false; seen.add(id); return true; });
+    if (c.xi) c.xi = c.xi.map(id => id != null && seen.has(id) ? id : null);
+    if (c.bench) c.bench = c.bench.filter(id => seen.has(id));
+  });
+  Object.values(W.players).forEach(p => { const c = p.club >= 0 ? W.clubs[p.club] : null; if (p.club >= 0 && !c) p.club = -1; else if (c && !c.squad.includes(p.id)) c.squad.push(p.id); });
+}
 // Plays every other game of the week, then runs the club's week. Returns a report.
 function finishWeek(userMatch) {
+  cleanSquads();
   const e = W.cal[W.week], report = {results: [], cup: e.t !== 'L', msgs: []};
   const fx = weekFixtures();
   const played = new Set();
@@ -464,7 +475,7 @@ function weeklyClub(report, played) {
     }
   });
   // weekly morale drift for players not getting games
-  club.squad.map(P).forEach(p => { if (!p.s.ap && W.week > 6 && ovrOf(p) > 11 && R() < .1) p.mor = clamp(p.mor - 4, 5, 100); });
+  club.squad.map(P).filter(Boolean).forEach(p => { if (!p.s.ap && W.week > 6 && ovrOf(p) > 11 && R() < .1) p.mor = clamp(p.mor - 4, 5, 100); });
   // value refresh
   if (W.week % 4 === 0) Object.values(W.players).forEach(p => { if (p.club >= 0) p.val = valueOf(p); });
 }
