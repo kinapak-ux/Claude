@@ -155,6 +155,7 @@ class Match {
   pickShooter(s) {
     const slots = this.slots(s);
     const cand = s.on.map((id, k) => ({id, pos: slots[k]})).filter(x => x.id != null && P(x.id) && x.pos !== 'GK');
+    if (!cand.length) { const any = s.on.find(id => id != null && P(id)); return any ?? null; }
     return wpick(cand, x => { const p = P(x.id); return p.a.sho * ({FW: 3.2, MF: 1.2, DF: .3}[x.pos]) * (p.tr === 'poacher' ? 1.8 : 1); }).id;
   }
   pickOther(s, not) {
@@ -162,7 +163,7 @@ class Match {
     return cand.length ? wpick(cand, id => P(id).a.pas) : null;
   }
   keeper(s) { const slots = this.slots(s); return s.on.find((id, k) => id != null && slots[k] === 'GK') ?? s.on.find(id => id != null); }
-  bestTaker(s) { return s.on.filter(id => id != null && P(id)).map(P).sort((a, b) => (b.a.sho + (b.tr === 'deadball' ? 6 : 0)) - (a.a.sho + (a.tr === 'deadball' ? 6 : 0)))[0].id; }
+  bestTaker(s) { const l = s.on.filter(id => id != null && P(id)); if (!l.length) return null; return l.map(P).sort((a, b) => (b.a.sho + (b.tr === 'deadball' ? 6 : 0)) - (a.a.sho + (a.tr === 'deadball' ? 6 : 0)))[0].id; }
   ev(e) { e.m = this.minute; this.log.push(e); return e; }
   // One minute of football. Returns the events of that minute.
   step() {
@@ -246,6 +247,7 @@ class Match {
   }
   shot(at, r, forced) {
     const A = this.sides[at], D = this.sides[1 - at], sh = forced || this.pickShooter(A), p = P(sh);
+    if (!p) return this.ev({t: 'info', s: at, txt: `${A.c.short} can't get a shot away.`});
     const gkId = this.keeper(D), gk = gkId != null ? P(gkId) : null;
     const gkv = gk ? gk.a.gk * this.eff(D, gkId, 'GK') : 2;
     const shv = p.a.sho * this.eff(A, sh, p.pos === 'GK' ? 'GK' : 'FW');
@@ -270,6 +272,7 @@ class Match {
   }
   setPiece(at, type) {
     const A = this.sides[at], D = this.sides[1 - at], taker = this.bestTaker(A), gkId = this.keeper(D);
+    if (taker == null) return this.ev({t: 'info', s: at, txt: `${A.c.short} waste the set piece.`});
     const pre = this.ev({t: type, s: at, pid: taker, txt: type === 'pen' ? `PENALTY to ${A.c.short}! ${pname(P(taker))} steps up...` : `Free kick on the edge of the box for ${A.c.short}. ${pname(P(taker))} lines it up...`});
     if (this.live && W.settings.mini && (at === this.userSide || (type === 'pen' && 1 - at === this.userSide))) {
       this.pending = {type: type === 'pen' ? (at === this.userSide ? 'pen-shoot' : 'pen-save') : 'fk', at, taker, gk: gkId};
@@ -380,6 +383,21 @@ function cleanSquads() {
     if (c.bench) c.bench = c.bench.filter(id => seen.has(id));
   });
   Object.values(W.players).forEach(p => { const c = p.club >= 0 ? W.clubs[p.club] : null; if (p.club >= 0 && !c) p.club = -1; else if (c && !c.squad.includes(p.id)) c.squad.push(p.id); });
+  // new players must never reuse an existing player's number
+  const maxId = Object.keys(W.players).reduce((m, k) => Math.max(m, +k), 0);
+  W.nextId = Math.max(W.nextId || 0, NEXT_ID || 0, maxId + 1); NEXT_ID = W.nextId;
+  // every club keeps enough players to field a team
+  W.clubs.forEach(c => {
+    const need = {GK: 2, DF: 5, MF: 5, FW: 3}, added = [];
+    POS.forEach(pos => {
+      while (c.squad.map(P).filter(p => p && p.pos === pos).length < need[pos]) {
+        const lvl = c.foreign ? c.level - 1 : [13.2, 10.6, 8.4, 6.6][c.div] || 7;
+        const p = makePlayer(pos, lvl + (R() - .5) * 2, ri(18, 24), {div: c.foreign ? 0 : c.div});
+        p.club = c.id; p.con = 1; p.val = valueOf(p); W.players[p.id] = p; c.squad.push(p.id); added.push(p);
+      }
+    });
+    if (added.length) { W.nextId = NEXT_ID; if (c.id === W.clubId) inbox('Your Assistant', 'Emergency signings', `We were short of players, so I've brought in ${added.map(p => `${p.fn} ${p.ln} (${p.pos})`).join(', ')} on short deals.`); else if (c.xi) autoPick(c); }
+  });
 }
 // Plays every other game of the week, then runs the club's week. Returns a report.
 function finishWeek(userMatch) {
