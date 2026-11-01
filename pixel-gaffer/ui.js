@@ -802,7 +802,7 @@ function fullTime(m) {
   const won = m.winner() === us, lost = m.winner() === 1 - us;
   if (won) SND.good(); else if (lost) SND.bad();
   const goals = side => m.log.filter(e => e.t === 'goal' && e.s === side).map(e => `${esc(pname(P(e.pid)))} ${e.m}'${e.kind === 'pen' ? ' (pen)' : ''}`).join('<br>') || '&nbsp;';
-  const rated = [...mine.played].map(id => ({p: P(id), r: clamp(Math.round(mine.rt[id] * 10) / 10, 3, 10)})).sort((a, b) => b.r - a.r);
+  const rated = [...mine.played].filter(id => P(id)).map(id => ({p: P(id), r: clamp(Math.round(mine.rt[id] * 10) / 10, 3, 10)})).sort((a, b) => b.r - a.r);
   $('#app').innerHTML = `<div class="top-simple"><h2 class="px">FULL TIME</h2></div>
   <div class="panel ftbox"><div class="ftscore"><div>${badgeImg(S[0].c, 40)}<b>${esc(S[0].c.short)}</b></div><div class="big">${S[0].g} - ${S[1].g}</div><div>${badgeImg(S[1].c, 40)}<b>${esc(S[1].c.short)}</b></div></div>
     ${m.pens ? `<p class="c-y center">${m.pens[0]}-${m.pens[1]} on penalties</p>` : ''}
@@ -1067,7 +1067,7 @@ const ACT = {
     if (!m) { UI.screen = 'game'; UI.tab = 'home'; return render(); }
     let rep;
     try { rep = finishWeek(m); }
-    catch (err) { console.error(err); cleanSquads(); fixTeam(me()); rep = finishWeek(m); }
+    catch (err) { console.error(err); cleanSquads(); fixTeam(me()); try { rep = finishWeek(m); } catch (err2) { return showError(err2.message, err2); } }
     try { afterWeek(rep); } catch (err) { console.error(err); UI.rep = rep; UI.screen = 'week'; save(); render(); }
   },
   weekDone() {
@@ -1122,13 +1122,15 @@ document.addEventListener('change', e => {
 document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
 // if something unexpected goes wrong, say so (with a screenshot-able message) instead of failing silently
 let lastErr = 0;
-function showError(msg) {
+function showError(msg, err) {
   if (Date.now() - lastErr < 4000) return; lastErr = Date.now();
   try { save(); } catch (e) {}
-  toast(`⚠️ Something went wrong, gaffer. Your game is saved.<br><small>${esc(String(msg).slice(0, 140))}</small>`);
+  // where it happened, e.g. "engine.js:212 · ui.js:1013", so a screenshot pins it down
+  const where = String(err && err.stack || '').split('\n').map(l => (/([a-z]+\.js):(\d+)/.exec(l) || [])).filter(m => m[1]).slice(0, 3).map(m => m[1] + ':' + m[2]).join(' · ');
+  toast(`⚠️ Something went wrong, gaffer. Your game is saved.<br><small>${esc(String(msg).slice(0, 120))}${where ? '<br>' + esc(where) : ''} · v${esc(window.APP_VERSION || 'family')}</small>`);
 }
-addEventListener('error', e => showError(e.message || e.error));
-addEventListener('unhandledrejection', e => showError(e.reason && e.reason.message || e.reason));
+addEventListener('error', e => showError(e.message || e.error, e.error));
+addEventListener('unhandledrejection', e => showError(e.reason && e.reason.message || e.reason, e.reason));
 
 render();
 if (document.fonts) document.fonts.ready.then(() => { if (UI.screen === 'title') {} });

@@ -91,6 +91,7 @@ function dateOf(season, week) {
 // ---------- players
 let NEXT_ID = 1;
 function ovrOf(p, pos) {
+  if (!p || !p.a) return 0;
   const a = p.a; pos = pos || p.pos;
   if (pos === 'GK') return a.gk;
   if (pos === 'DF') return a.tkl * .55 + a.pac * .25 + a.pas * .2;
@@ -129,6 +130,7 @@ function wageFor(p, div) {
   return Math.max(150, Math.round(Math.pow(1.075, o) * 60 * [1.6, 1.1, .8, .6][div] / 10) * 10);
 }
 function valueOf(p) {
+  if (!p || !p.a) return 0;
   const o = ovr(p), potBoost = p.age <= 23 ? Math.max(0, p.pot * 5 - o) * .6 : 0;
   const ageF = p.age <= 21 ? 1.3 : p.age <= 26 ? 1.15 : p.age <= 29 ? 1 : p.age <= 31 ? .7 : .4;
   const v = 1500 * Math.pow(1.105, o + potBoost) * ageF * (.85 + p.form * .05);

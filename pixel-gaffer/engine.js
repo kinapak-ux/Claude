@@ -122,7 +122,7 @@ class Match {
     this.minute = 0; this.end = 90; this.done = false; this.log = []; this.pending = null; this.pens = null; this.half = 0;
     this.sides = [hId, aId].map(id => {
       const c = C(id); fixTeam(c);
-      return {id, c, on: c.xi.slice(), bench: c.bench.slice(), subsLeft: 3, style: c.style, form: c.formation, g: 0, sh: 0, sot: 0, poss: 0, rc: 0,
+      return {id, c, on: c.xi.map(x => x != null && P(x) ? x : null), bench: c.bench.filter(x => P(x)), subsLeft: 3, style: c.style, form: c.formation, g: 0, sh: 0, sot: 0, poss: 0, rc: 0,
         yc: {}, rt: {}, gl: {}, as: {}, fit: {}, played: new Set(c.xi.filter(x => x != null))};
     });
     this.sides.forEach(s => s.on.forEach(id => { if (id != null) { s.rt[id] = 6; s.fit[id] = P(id).fit; } }));
@@ -139,7 +139,7 @@ class Match {
     const s = this.sides[i], o = this.sides[1 - i], slots = this.slots(s), st = STYLES[s.style];
     let def = 0, mid = 0, att = 0, gk = 3, n = 0, maestro = 1, wall = 1;
     s.on.forEach((id, k) => {
-      if (id == null) return; const p = P(id), m = this.eff(s, id, slots[k]), a = p.a; n++;
+      if (id == null || !P(id)) return; const p = P(id), m = this.eff(s, id, slots[k]), a = p.a; n++;
       if (p.tr === 'maestro') maestro = 1.05; if (p.tr === 'wall') wall = 1.05;
       switch (slots[k]) {
         case 'GK': gk = a.gk * m; def += a.gk * 1.6 * m; break;
@@ -154,22 +154,24 @@ class Match {
   }
   pickShooter(s) {
     const slots = this.slots(s);
-    const cand = s.on.map((id, k) => ({id, pos: slots[k]})).filter(x => x.id != null && x.pos !== 'GK');
+    const cand = s.on.map((id, k) => ({id, pos: slots[k]})).filter(x => x.id != null && P(x.id) && x.pos !== 'GK');
     return wpick(cand, x => { const p = P(x.id); return p.a.sho * ({FW: 3.2, MF: 1.2, DF: .3}[x.pos]) * (p.tr === 'poacher' ? 1.8 : 1); }).id;
   }
   pickOther(s, not) {
-    const cand = s.on.filter(id => id != null && id !== not && P(id).pos !== 'GK');
+    const cand = s.on.filter(id => id != null && id !== not && P(id) && P(id).pos !== 'GK');
     return cand.length ? wpick(cand, id => P(id).a.pas) : null;
   }
   keeper(s) { const slots = this.slots(s); return s.on.find((id, k) => id != null && slots[k] === 'GK') ?? s.on.find(id => id != null); }
-  bestTaker(s) { return s.on.filter(id => id != null).map(P).sort((a, b) => (b.a.sho + (b.tr === 'deadball' ? 6 : 0)) - (a.a.sho + (a.tr === 'deadball' ? 6 : 0)))[0].id; }
+  bestTaker(s) { return s.on.filter(id => id != null && P(id)).map(P).sort((a, b) => (b.a.sho + (b.tr === 'deadball' ? 6 : 0)) - (a.a.sho + (a.tr === 'deadball' ? 6 : 0)))[0].id; }
   ev(e) { e.m = this.minute; this.log.push(e); return e; }
   // One minute of football. Returns the events of that minute.
   step() {
     if (this.done || this.pending) return [];
     const out = [];
     this.minute++;
-    const S = this.sides, pw = [this.power(0), this.power(1)];
+    const S = this.sides;
+    S.forEach(s => { s.on = s.on.map(id => id != null && P(id) ? id : null); s.bench = s.bench.filter(id => P(id)); });
+    const pw = [this.power(0), this.power(1)];
     const m3 = pw.map(x => Math.pow(Math.max(1, x.mid), 1.7)), pHome = m3[0] / (m3[0] + m3[1]);
     const at = R() < pHome ? 0 : 1, df = 1 - at, A = S[at], D = S[df];
     A.poss++;
@@ -225,7 +227,7 @@ class Match {
     out.push(this.ev({t: 'ft', txt: `FULL TIME: ${S[0].c.short} ${S[0].g}-${S[1].g} ${S[1].c.short}`}));
   }
   autoShootout() {
-    const sc = [0, 0], takers = this.sides.map(s => s.on.filter(id => id != null).map(P).sort((a, b) => b.a.sho - a.a.sho));
+    const sc = [0, 0], takers = this.sides.map(s => s.on.filter(id => id != null && P(id)).map(P).sort((a, b) => b.a.sho - a.a.sho));
     for (let k = 0; k < 30; k++) {
       for (let i = 0; i < 2; i++) {
         const t = takers[i][k % takers[i].length], gk = P(this.keeper(this.sides[1 - i]));
@@ -325,7 +327,9 @@ class Match {
   sim() { let guard = 0; while (!this.done && guard++ < 300) { this.step(); if (this.pending) { if (this.pending.type === 'shootout') { this.resolveShootout(this.autoShootout()); } else { const pd = this.pending; this.resolve(pd.type === 'fk' ? R() < .12 : R() < penChance(P(pd.taker), pd.gk != null ? P(pd.gk) : null)); } } } return this; }
   winner() { const S = this.sides; if (S[0].g !== S[1].g) return S[0].g > S[1].g ? 0 : 1; if (this.pens) return this.pens[0] > this.pens[1] ? 0 : 1; return -1; }
 }
-function penChance(t, gk) { return clamp(.72 + (t.a.sho - 10) * .012 + (t.tr === 'deadball' ? .08 : 0) - (gk ? (gk.a.gk - 10) * .01 + (gk.tr === 'cat' ? .08 : 0) : -.2), .45, .95); }
+function penChance(t, gk) {
+  t = t && t.a ? t : {a: {sho: 10}};
+  gk = gk && gk.a ? gk : null; return clamp(.72 + (t.a.sho - 10) * .012 + (t.tr === 'deadball' ? .08 : 0) - (gk ? (gk.a.gk - 10) * .01 + (gk.tr === 'cat' ? .08 : 0) : -.2), .45, .95); }
 
 // After the final whistle: stats, fitness, cards, morale.
 function applyMatch(m, info) {
@@ -347,10 +351,10 @@ function applyMatch(m, info) {
       p.fit = Math.round(s.fit[id] ?? p.fit);
       if (s.yc[id] === 1) { p.yc++; if (p.yc >= 5) { p.yc = 0; p.sus = Math.max(p.sus, 1); p.susNew = 1; } }
     });
-    Object.entries(s.reds || {}).forEach(([id, n]) => { P(id).sus = Math.max(P(id).sus, n); P(id).susNew = 1; P(id).s.rc = (P(id).s.rc || 0) + 1; });
+    Object.entries(s.reds || {}).filter(([id]) => P(id)).forEach(([id, n]) => { P(id).sus = Math.max(P(id).sus, n); P(id).susNew = 1; P(id).s.rc = (P(id).s.rc || 0) + 1; });
     const star = [...s.played].filter(id => P(id)).sort((a, b) => P(b).last - P(a).last)[0];
     if (star != null) P(star).s.mo = (P(star).s.mo || 0) + 1;
-    Object.entries(s.injured || {}).forEach(([id, n]) => { const p = P(id); p.inj = Math.max(p.inj, n * (p.tr === 'glass' ? 2 : 1)); p.injNew = 1; });
+    Object.entries(s.injured || {}).filter(([id]) => P(id)).forEach(([id, n]) => { const p = P(id); p.inj = Math.max(p.inj, n * (p.tr === 'glass' ? 2 : 1)); p.injNew = 1; });
     s.c.squad.forEach(id => { const p = P(id); if (!p) return; p.mor = clamp(p.mor + (res === 'W' ? 6 : res === 'L' ? -6 : 0) + (s.played.has(id) ? 1 : -1) + (p.tr === 'leader' && res === 'L' ? 4 : 0), 5, 100); });
     s.c.squad.forEach(id => { const p = P(id); if (p && p.sus && !p.susNew) p.sus--; if (p) delete p.susNew; });
   });
