@@ -210,6 +210,12 @@ function resLine(r) {
 }
 const ordinal = n => n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th');
 const formHTML = f => (f || '').slice(-5).split('').map(x => `<span class="fm ${x}">${x}</span>`).join('') || '<span class="c-d">-</span>';
+// league position and last five results, shown beside a club's name on match screens
+function teamTag(c) {
+  const row = c.foreign ? null : table(c.div).find(r => r.id === c.id);
+  const pos = row && row.p ? ordinal(posIn(c.id)) : c.foreign ? '' : '-';
+  return `<span class="ttag">${pos ? `<i>${pos}</i>` : ''}${formHTML(c.formStr)}</span>`;
+}
 const fansWord = f => f >= 80 ? 'Singing your name' : f >= 60 ? 'Right behind you' : f >= 40 ? 'Restless' : f >= 20 ? 'Grumbling' : 'Calling for your head';
 const confWord = c => c >= 80 ? 'Delighted' : c >= 60 ? 'Happy' : c >= 40 ? 'Watching closely' : c >= 20 ? 'Worried' : 'Your job is on the line';
 
@@ -617,7 +623,7 @@ function prematchHTML() {
   const tip = weBeat ? `<span class="c-g">Your ${STYLES[c.style].n} game should trouble their ${STYLES[opp.style].n}.</span>` : theyBeat ? `<span class="c-r">Careful: their ${STYLES[opp.style].n} game beats your ${STYLES[c.style].n}.</span> Try ${Object.keys(STYLES).filter(s => BEATS[s].includes(opp.style)).map(s => STYLES[s].n).join(' or ')}.` : `Styles cancel out. Try ${Object.keys(STYLES).filter(s => BEATS[s].includes(opp.style)).map(s => STYLES[s].n).join(' or ')} to get an edge.`;
   const pr = UI.press;
   return `<div class="top-simple"><button class="btn ghost small" data-a="backToGame">← Back</button><h2 class="px">MATCH DAY</h2></div>
-  <div class="panel"><div class="nextfx">${badgeImg(home ? c : opp, 44)}<div class="vs"><small>${fx.cup ? `${esc(fx.label)}${fx.neutral ? ' · neutral ground' : ''}` : DIVS[c.div]}</small><b>${esc((home ? c : opp).short)} v ${esc((home ? opp : c).short)}</b><small>${esc(C(fx.h).name)} v ${esc(C(fx.a).name)}</small></div>${badgeImg(home ? opp : c, 44)}</div></div>
+  <div class="panel"><div class="nextfx">${badgeImg(home ? c : opp, 44)}<div class="vs"><small>${fx.cup ? `${esc(fx.label)}${fx.neutral ? ' · neutral ground' : ''}` : DIVS[c.div]}</small><b>${esc((home ? c : opp).short)} v ${esc((home ? opp : c).short)}</b><small>${esc(C(fx.h).name)} v ${esc(C(fx.a).name)}</small><div class="ttags">${teamTag(C(fx.h))}<span>v</span>${teamTag(C(fx.a))}</div></div>${badgeImg(home ? opp : c, 44)}</div></div>
   <div class="panel"><h2>Scout report: ${esc(opp.name)}</h2>
     <p>${opp.formation}, plays <b class="c-y">${STYLES[opp.style].n}</b>. Form ${formHTML(opp.formStr)}. Danger man: <b>${key ? esc(pname(key)) + ' (' + ovrHTML(key) + ')' : '-'}</b></p>
     ${cmp('Defence', us.def, them.def)}${cmp('Midfield', us.mid, them.mid)}${cmp('Attack', us.att, them.att)}
@@ -662,7 +668,7 @@ function startMatch(live) {
   UI.screen = 'match'; render();
   const S = m.sides;
   $('#app').innerHTML = `<div class="match">
-    <div class="scorebar"><div class="tm">${badgeImg(S[0].c, 22)}<b>${esc(S[0].c.short)}</b></div><div class="sc"><b id="sc0">0</b>-<b id="sc1">0</b><small id="min">0'</small></div><div class="tm r"><b>${esc(S[1].c.short)}</b>${badgeImg(S[1].c, 22)}</div></div>
+    <div class="scorebar"><div class="tm">${badgeImg(S[0].c, 22)}<div class="tn"><b>${esc(S[0].c.short)}</b>${teamTag(S[0].c)}</div></div><div class="sc"><b id="sc0">0</b>-<b id="sc1">0</b><small id="min">0'</small></div><div class="tm r"><div class="tn"><b>${esc(S[1].c.short)}</b>${teamTag(S[1].c)}</div>${badgeImg(S[1].c, 22)}</div></div>
     <div class="pwrap"><canvas id="pitch"></canvas></div>
     <div class="mstats" id="mstats"></div>
     <div class="comm" id="comm"></div>
