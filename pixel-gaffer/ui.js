@@ -195,7 +195,8 @@ function homeHTML() {
   <div class="ttx"><div class="ttxh"><span>P302</span><span>PIXTEXT</span><span>FOOTBALL</span></div>
   ${W.news.slice(0, 6).map(n => `<div class="c-c">${esc(n.txt)}</div>`).join('') || '<div class="c-y">NO NEWS IS GOOD NEWS</div>'}
   ${lastResultsTTX()}
-  </div>`;
+  </div>
+  <button class="btn savequit wide" data-a="saveQuit">💾 Save &amp; quit to menu</button>`;
 }
 function lastResultsTTX() {
   const mine = W.lastWeek;
@@ -521,7 +522,7 @@ function signDeal() {
 function clubHTML() {
   const c = me(), wages = c.squad.reduce((s, id) => s + P(id).wage, 0), t = W.training, b = best();
   const drillDone = W.drillWeek === W.week + W.season * 100;
-  return `<div class="panel"><h2>The board</h2>${bar(W.board.conf, 100, W.board.conf > 60 ? 'g' : W.board.conf > 30 ? 'y' : 'r')}<p>${confWord(W.board.conf)}. Season target: <b class="c-y">${esc(W.board.txt)}</b>. You're ${ordinal(posIn(c.id))}.</p></div>
+  return `<button class="btn savequit wide" data-a="saveQuit">💾 Save &amp; quit to menu</button><div class="panel"><h2>The board</h2>${bar(W.board.conf, 100, W.board.conf > 60 ? 'g' : W.board.conf > 30 ? 'y' : 'r')}<p>${confWord(W.board.conf)}. Season target: <b class="c-y">${esc(W.board.txt)}</b>. You're ${ordinal(posIn(c.id))}.</p></div>
   <div class="panel"><h2>Training</h2><div class="chips">${Object.keys(TRAINING).map(k => `<button class="chip ${t.focus === k ? 'on' : ''}" data-a="train" data-k="${k}">${TRAINING[k].n}</button>`).join('')}</div>
     <p class="note">${TRAINING[t.focus].d} Young players improve fastest. Players who reach their potential stop improving.</p>
     <div class="chips small">${INTENSITY.map((n, i) => `<button class="chip ${t.int === i ? 'on' : ''}" data-a="intensity" data-i="${i}">${n}</button>`).join('')}</div>
@@ -543,7 +544,7 @@ function clubHTML() {
     <div class="chips small">Match speed: ${['Slow', 'Normal', 'Fast'].map((n, i) => `<button class="chip ${W.settings.speed === i + 1 ? 'on' : ''}" data-a="speed" data-s="${i + 1}">${n}</button>`).join('')}</div>
     <label class="tog"><input type="checkbox" data-a="musicSet" ${MUSIC.on ? 'checked' : ''}> Music on the title and season screens</label>
     <div class="acts"><button class="btn small" data-a="backup">💾 Back up this career</button><button class="btn small" data-a="slots">Saved careers</button><button class="btn small" data-a="tour">Replay the tour</button></div>
-    <div class="acts"><button class="btn small" data-a="toTitle">Save &amp; quit to menu</button><button class="btn small bad" data-a="resign">Resign</button></div>
+    <div class="acts"><button class="btn small bad" data-a="resign">Resign</button></div>
     <p class="note">Best: keepy-uppy ${b.keepy} · free-kick challenge ${b.fk}/10</p></div>`;
 }
 
@@ -969,6 +970,7 @@ const ACT = {
   arcade() { UI.screen = 'arcade'; W = W || loadSave(); render(); },
   howto,
   toTitle() { save(); UI.screen = 'title'; render(); },
+  saveQuit() { save(); UI.screen = 'title'; render(); toast(`💾 Career saved: <b>${esc(me().name)}</b>, ${dateOf(W.season, W.week)}`); },
   pickClub(d) { UI.newName = $('#mname').value; UI.newClub = +d.id; rerender(); },
   startCareer() {
     const name = ($('#mname').value || '').trim().slice(0, 16) || 'The Gaffer';
