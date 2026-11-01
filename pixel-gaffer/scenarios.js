@@ -200,12 +200,212 @@ const SCENARIOS = {
   ],
 };
 
+// ---------- the second set: they turn up once you've seen the first set for your division
+const SCENARIOS2 = {
+  3: [
+    {id: 'pothole', from: 'Club Secretary', q: "There's a pothole in the car park. The sponsor's car has just disappeared into it up to the axle.", a: [
+      ['Fill it in properly (£900)', {cash: -900, board: 2}, 'Smooth tarmac. The sponsor is mollified.'],
+      ['Get the squad to tow him out', {mor: 3, fit: -3, fans: 2}, 'Ten players, one rope, one very muddy car. Great photo.'],
+      ['Put a cone in it', {board: -3}, 'Somebody drives over the cone. Then into the pothole.']]},
+    {id: 'badger', from: 'Commercial Manager', q: "Moths have eaten Billy the Badger, our mascot costume. He's got a hole where his face should be.", a: [
+      ['New costume (£1,500)', {cash: -1500, fans: 4}, 'Billy is back and fluffier than ever.'],
+      ['Let the fans design a new mascot', {chance: .6, win: [{fans: 7}, 'Say hello to Captain Crumpet, a giant teacake. The kids adore him.'], lose: [{fans: -2}, "The winning design is a confusing purple blob. Nobody knows what it is."]}],
+      ['Patch it up with a tea towel', {fans: -2, mor: 1}, 'Billy now looks slightly terrifying.']]},
+    {id: 'typo', from: 'The Printers', q: "The match programme's gone out with our club name spelt wrong on the front. 2,000 copies.", a: [
+      ['Reprint them (£700)', {cash: -700}, 'Spelt right this time. Probably.'],
+      ['Sell them as collectors\' items', {chance: .5, win: [{cash: 1500, fans: 3}, 'They sell out! People love a misprint.'], lose: [{fans: -3}, 'Nobody buys them. The local paper has a laugh at your expense.']}],
+      ['Hand them out anyway', {fans: -1}, 'A few people notice. Most are reading the pie menu.']]},
+    {id: 'pigeon', from: 'The Groundsman', q: 'A pigeon has built a nest in the back of the home goal. There are eggs in it.', a: [
+      ['Move the nest carefully', {fans: 2, board: 1}, 'The RSPB sends a thank-you card.'],
+      ['Leave it. Lucky pigeon!', {chance: .5, win: [{mor: 4, fans: 4}, 'We keep a clean sheet. The pigeon is our new talisman.'], lose: [{mor: -2}, 'Our keeper spends the whole game worrying about the eggs.']}],
+      ['Play at the other end', {}, 'Easiest solution. Nobody minds.']]},
+    {id: 'showers', from: 'The Kit Man', q: "The showers only run cold. The lads are threatening to go home muddy.", a: [
+      ['Get a plumber in (£1,100)', {cash: -1100, mor: 3}, 'Piping hot showers. Happy players.'],
+      ['Cold showers are good for you!', {mor: -4, fit: 3}, 'Bracing. The lads are not convinced.'],
+      ['Ask the swimming baths if we can use theirs', {mor: 2, fans: 2}, 'The pensioners at aqua-aerobics get a surprise.']]},
+    {id: 'bigboots', who: 'young', from: 'The Kit Man', q: 'Young {p} has turned up in borrowed boots two sizes too big. He keeps falling over.', a: [
+      ['Buy him a proper pair (£80)', {cash: -80, pmor: 10}, '{p} nearly cries. Tidy.'],
+      ['Stuff the toes with newspaper', {pmor: 2, mor: 2}, 'Old-school fix. Works a treat.'],
+      ['Clown shoes build character', {pmor: -8}, '{p} trips over the ball in training. Again.']]},
+    {id: 'quiz', from: "Supporters' Club", q: 'The supporters have challenged the players to a quiz night at the clubhouse.', a: [
+      ['Accept! Players v fans', {chance: .5, win: [{mor: 5, fans: 4}, 'The players win on the tie-break: "Who won the 1966 World Cup?"'], lose: [{fans: 6, mor: -1}, 'The fans win easily. The lads are mocked for weeks. Everyone loves it.']}],
+      ['Send the coaching staff', {fans: 3}, 'Your assistant is a quiz machine.'],
+      ["No time for quizzes", {fans: -3}, 'The supporters feel snubbed.']]},
+    {id: 'veg', from: 'The Groundsman', q: 'Can I grow some vegetables in the spare patch behind the away goal?', a: [
+      ['Course you can', {fans: 2, mor: 1}, 'Prize-winning marrows by Easter.'],
+      ['Only if the players get some', {mor: 3, fit: 2}, 'Fresh veg in the canteen. Very healthy.'],
+      ['No. That patch is for warming up', {}, 'The groundsman sighs.']]},
+    {id: 'nickname', from: 'Local Paper', q: "We're running a poll to give the team a new nickname. Want to suggest one?", a: [
+      ['"The Mighty Ones"', {mor: 3, fans: 1}, 'Ambitious. The lads like it.'],
+      ['Let the readers choose', {chance: .6, win: [{fans: 5}, 'The readers pick "The Gaffer\'s Grafters". Brilliant.'], lose: [{fans: 2, mor: -2}, 'The readers pick "The Soggy Biscuits". It sticks.']}],
+      ["We don't need a nickname", {fans: -1}, 'The poll goes ahead anyway.']]},
+    {id: 'snow', from: 'The Groundsman', q: "It's snowed overnight. The game's off unless we clear the pitch.", a: [
+      ['Ask fans to bring shovels', {fans: 6, fit: -2, mor: 2}, 'A hundred fans turn up with shovels and flasks. The game goes ahead!'],
+      ['Players clear it', {fit: -6, mor: 4}, 'Hard graft. Real team spirit.'],
+      ['Call it off', {board: -2, cash: -1000}, 'Lost gate money. The chairman sighs.']]},
+    {id: 'shorts', from: 'Garden Centre', q: "A local garden centre will sponsor us, but they want their logo on the back of the shorts.", a: [
+      ['Deal (£5,000)', {cash: 5000, mor: -2, fans: -1}, '"BLOOMING MARVELLOUS" across every backside.'],
+      ['On the training kit only (£2,000)', {cash: 2000}, 'A sensible compromise.'],
+      ['Our shorts are sacred', {}, 'They sponsor the cricket club instead.']]},
+    {id: 'cake', who: 'old', from: 'The Tea Lady', q: "It's {p}'s 35th birthday tomorrow. Shall I make a cake?", a: [
+      ['A big one, with candles', {pmor: 10, mor: 3}, 'Happy birthday {p}! The cake is shaped like a football.'],
+      ['A small one. We have a game', {pmor: 4}, 'Very nice. Very sensible.'],
+      ['No cakes before a match', {pmor: -6, mor: -1}, '{p} feels his age.']]},
+  ],
+  2: [
+    {id: 'police', from: 'Local Police', q: 'We want the derby moved to an 11am kick-off to keep the peace.', a: [
+      ['Agree', {board: 3, fans: -4}, "Bacon rolls at the turnstiles. The fans are half asleep."],
+      ['Fight to keep 3pm', {chance: .5, win: [{fans: 6}, 'The police back down. Proper atmosphere!'], lose: [{fans: -2, board: -4}, 'The police win, and the club is fined for the fuss.']}],
+      ['Make it a family day', {fans: 4, cash: -3000}, 'Face painters and a bouncy castle. Lovely.']]},
+    {id: 'lottery', from: 'A Lucky Fan', q: "I've won the lottery! I'd like to pay the wages of a new player for you. No strings!", a: [
+      ['Yes please!', {sign: 1}, 'A new player arrives, courtesy of a very happy fan.'],
+      ['Put it into the youth team', {youth: 1, fans: 5}, 'A new academy coach finds a gem.'],
+      ['Keep your money, mate', {fans: 3}, 'The fan buys a season ticket for life instead.']]},
+    {id: 'academy', who: 'young', from: 'Your Assistant', q: "A big club's scout keeps watching young {p}. They might make an offer.", a: [
+      ['Lock him in with a new deal', {pwage: .5, pmor: 12}, '{p} signs a long contract. Delighted.'],
+      ['Sell if the money is right', {sell: 1.6}, '{p} is sold. Good money for a kid.'],
+      ['Ignore it', {pmor: -4}, "{p}'s head is a bit turned."]]},
+    {id: 'pundit', from: 'Regional TV', q: 'Want to be a pundit on our Saturday night football show?', a: [
+      ['Yes, and wear a loud jacket', {fans: 5, cash: 3000, board: -1}, 'Your jacket gets its own fan club.'],
+      ['Yes, but keep it serious', {cash: 3000, board: 2}, 'Wise words. People are impressed.'],
+      ['No. Saturday nights are for videos', {mor: 1}, 'You watch the opposition on tape instead.']]},
+    {id: 'cartoon', from: 'The Fanzine', q: "The fanzine has printed a cartoon of you as a confused penguin.", a: [
+      ['Frame it in your office', {fans: 6}, 'The fans love that you can laugh at yourself.'],
+      ['Ban the fanzine from the ground', {fans: -8, board: 2}, 'Sales of the fanzine double.'],
+      ['Write a reply for the next issue', {chance: .5, win: [{fans: 7}, 'Your piece is hilarious. Respect earned.'], lose: [{fans: -3}, 'It is very, very long and not funny.']}]]},
+    {id: 'physio', from: 'The Physio', q: "There's a fancy new treatment machine. It could get injured lads back quicker.", a: [
+      ['Buy it (£25,000)', {cash: -25000, heal: 2, fit: 4}, 'Space-age kit! The treatment room is emptying.'],
+      ['Ice packs have always worked', {}, 'Frozen peas it is.'],
+      ['Hire one for a month (£6,000)', {cash: -6000, heal: 1}, 'A short-term boost.']]},
+    {id: 'swap', who: 'p', from: 'Angry Supporter', q: "{p} swapped shirts with a rival player and kissed their badge on camera!", a: [
+      ['Make him apologise', {pmor: -6, fans: 5}, 'A grovelling apology. The fans forgive him. Mostly.'],
+      ['Defend him. Just a shirt swap', {pmor: 6, fans: -6}, '{p} is grateful. The terraces are not.'],
+      ['Fine him and donate it to charity', {pmor: -3, fans: 4, board: 2}, 'Everyone is happy-ish.']]},
+    {id: 'mascotrace', from: 'The League', q: 'Our mascot has been invited to the famous Mascot Derby, a race at a big cup final.', a: [
+      ['Train him hard', {chance: .4, win: [{fans: 9, cash: 5000}, 'Billy the Badger WINS by a whisker! National headlines!'], lose: [{fans: 3}, 'Billy trips over his own tail. Still, great publicity.']}],
+      ['Just enjoy the day out', {fans: 3}, 'He finishes fifth and waves to everyone.'],
+      ['Not interested', {}, 'Fair enough.']]},
+    {id: 'motorway', from: 'Coach Driver', q: "We're stuck on the motorway. We'll be at least 40 minutes late for kick-off.", a: [
+      ['Warm up in the services car park', {fit: -3, fans: 3}, 'The lads do stretches next to the petrol pumps. Fans love the photos.'],
+      ['Ask the league to delay kick-off', {board: -2}, 'Granted, but they are not pleased.'],
+      ['Get changed on the coach', {mor: 2}, 'Ready to go the second the doors open.']]},
+    {id: 'hairdye', who: 'p', from: 'Club Photographer', q: "{p} has dyed his hair in the club colours. It's quite something.", a: [
+      ['Love it. Club spirit!', {pmor: 8, fans: 5}, 'Half the kids in town copy him.'],
+      ['Get it sorted before Saturday', {pmor: -6}, '{p} spends Friday at the barber.'],
+      ['Everyone does it for the next home game!', {chance: .5, win: [{mor: 8, fans: 8}, 'An unforgettable day. The ground is a sea of colour.'], lose: [{mor: -4, fans: 3}, 'The dye runs in the rain. Pink sweat everywhere.']}]]},
+    {id: 'trialist', from: 'Your Assistant', q: "A lad turned up from abroad asking for a trial. Says he's a 'very good'. Speaks no English.", a: [
+      ['Give him a game in training', {chance: .4, win: [{sign: 1}, "He's brilliant! You sign him on the spot."], lose: [{mor: 2}, "He's a decent bloke but can't trap a bag of cement. Lovely lad though."]}],
+      ['Politely say no', {}, 'He heads off to try the next club.']]},
+    {id: 'ballboy', from: 'The League', q: 'Our ball boys have been reported for slowing the game down when we are winning.', a: [
+      ['Tell them to cut it out', {board: 2}, 'The ball boys sulk.'],
+      ['Deny everything', {chance: .5, win: [{fans: 3}, 'Nothing can be proved. The ball boys are heroes.'], lose: [{cash: -5000, board: -3}, 'Caught on camera. A fine.']}],
+      ['Give them a medal', {fans: 5, board: -3}, 'Cult heroes. The league is not amused.']]},
+  ],
+  1: [
+    {id: 'gameshow', who: 'top', from: '{p}', q: "Gaffer, I've been invited on a big Saturday night game show. It's filmed the day before a game.", a: [
+      ['Go for it', {chance: .5, win: [{pmor: 10, fans: 7, cash: 10000}, '{p} wins a speedboat! The nation loves him.'], lose: [{pmor: -4, pform: -1, fans: 3}, '{p} is knocked out in round one and gets home at 2am.']}],
+      ['Not the day before a game', {pmor: -6}, '{p} sulks but rests.'],
+      ['Only after the season', {pmor: 2}, 'Fair enough, says {p}.']]},
+    {id: 'europe', from: 'Foreign Club', q: 'A famous European club has invited us to a mid-season friendly abroad. Great money.', a: [
+      ['Go (£120,000)', {cash: 120000, fit: -8, mor: 4}, 'A taste of the big time. Tired legs, though.'],
+      ['Send the reserves (£50,000)', {cash: 50000, fans: 2}, 'The kids lose 7-0 but have the time of their lives.'],
+      ["Not in the middle of a promotion push", {board: 2}, 'Focus is everything.']]},
+    {id: 'leak', from: 'Your Assistant', q: "Someone in the boardroom is leaking our team news to the papers.", a: [
+      ['Feed them fake news', {chance: .6, win: [{mor: 4, fans: 3}, 'The papers print a team full of retired players. The leak is found!'], lose: [{board: -6}, 'Wrong director accused. Awkward.']}],
+      ['Confront the board', {board: -4, mor: 3}, 'Tense meeting. The leaking stops.'],
+      ["Let it go", {mor: -3}, 'The leaks continue.']]},
+    {id: 'forum', from: "Supporters' Trust", q: "Fans want an open forum to grill you about results. It'll be packed and probably angry.", a: [
+      ['Face the music', {chance: .6, win: [{fans: 9, board: 3}, 'You win them round. Standing ovation!'], lose: [{fans: -4, board: -2}, 'Someone throws a sausage roll. It goes badly.']}],
+      ['Send the chairman', {fans: -2, board: -3}, 'The chairman is not happy to be your human shield.'],
+      ['Write an open letter instead', {fans: 2}, 'Polite and measured.']]},
+    {id: 'diet', from: 'Club Nutritionist', q: 'I want to ban chips, cake and fizzy pop from the canteen.', a: [
+      ['Ban the lot', {mor: -6, fit: 8, train: .3}, 'Grumpy, but fitter than ever.'],
+      ['Chips on Fridays only', {mor: 2, fit: 3}, 'Chip Friday becomes a sacred ritual.'],
+      ["Leave the lads' grub alone", {mor: 4, fit: -3}, 'Happy players. Slightly heavier players.']]},
+    {id: 'helicopter', from: 'The Chairman', q: "I'd like to land my helicopter on the pitch before Saturday's game. Make an entrance!", a: [
+      ['Fine by me', {fans: 4, mor: -2, board: 4}, 'Spectacular. The groundsman weeps over the divots.'],
+      ['Not on my pitch', {board: -5, mor: 2}, 'The chairman walks in like everyone else. Grumpily.'],
+      ['Land in the car park', {board: 2}, 'Compromise. Still quite impressive.']]},
+    {id: 'retire', who: 'old', from: '{p}', q: "Gaffer, I'm thinking of retiring at the end of the season. My knees are shot.", a: [
+      ['Persuade him to give it one more year', {pmor: 8, pwage: .1}, '{p} agrees to one last season. Legend.'],
+      ['Offer him a coaching job for later', {pmor: 12, mor: 3, train: .2}, '{p} is touched. He starts mentoring the youngsters.'],
+      ['Wish him well', {pmor: -2}, 'Fair enough. The end of an era beckons.']]},
+    {id: 'bigbid', who: 'top', from: 'The Chairman', q: "A Premier club has bid double what {p} is worth. I want to sell. Do you?", a: [
+      ['Sell him (double value)', {sell: 2}, '{p} leaves for a fortune. Time to rebuild.'],
+      ['He stays', {board: -6, pmor: 6, fans: 5}, 'The fans love it. The chairman sulks.'],
+      ["Ask {p} what he wants", {chance: .5, win: [{pmor: 12, board: -2}, "{p} wants to stay. 'This is my club.'"], lose: [{sell: 2}, '{p} wants the move. Off he goes.']}]]},
+    {id: 'tunnelcam', from: 'TV Company', q: 'We want cameras in the tunnel and dressing room at half time for a new show.', a: [
+      ['Fine (£40,000)', {cash: 40000, mor: -4}, 'You have to keep the hairdryer treatment family friendly.'],
+      ['Tunnel only (£15,000)', {cash: 15000}, 'A tidy compromise.'],
+      ['No chance', {mor: 3}, 'What happens in the dressing room stays there.']]},
+    {id: 'shares', from: 'A Fan Who Won the Pools', q: 'I want to buy shares in the club and get a seat on the board.', a: [
+      ['Welcome aboard (£250,000)', {cash: 250000, board: -3, fans: 5}, 'A fan on the board! The supporters approve.'],
+      ['Shares, but no board seat (£100,000)', {cash: 100000}, 'A tidy sum.'],
+      ['No thanks', {}, 'Things stay as they are.']]},
+    {id: 'fruit', from: 'Delivery Man', q: "{rival}'s manager has sent you a fruit basket with a note: 'Enjoy it while you can'.", a: [
+      ['Pin the note on the dressing room wall', {mor: 7}, 'The lads are seething. Good.'],
+      ['Send back a bigger basket', {fans: 4, cash: -500}, 'The basket war is in all the papers.'],
+      ['Eat the fruit', {fit: 1}, 'Delicious grapes, to be fair.']]},
+    {id: 'academy2', from: 'The Chairman', q: 'We could finally build a proper youth academy. It will cost, but it is the future.', a: [
+      ['Build it (£300,000)', {cash: -300000, youth: 2, board: 4}, 'The academy opens. Two promising kids join straight away.'],
+      ['A smaller version (£100,000)', {cash: -100000, youth: 1}, 'A start.'],
+      ['Buy ready-made players instead', {}, 'The money stays in the transfer pot.']]},
+  ],
+  0: [
+    {id: 'videogame', who: 'top', from: 'Games Company', q: 'We want {p} on the cover of our new football computer game.', a: [
+      ['Yes! (£300,000)', {cash: 300000, pmor: 10, fans: 5}, 'The game flies off the shelves. Every kid in the country plays as {p}.'],
+      ['Only with the whole team on it', {cash: 200000, mor: 6}, 'A cracking cover.'],
+      ['The cover curse is real. No', {pmor: -5}, 'Better safe than sorry.']]},
+    {id: 'spy', from: 'Security', q: "{rival} have been spying on our training from a crane on the building site next door.", a: [
+      ['Train behind closed doors at a secret ground', {cash: -50000, mor: 4}, 'Top-secret tactics. Mysterious.'],
+      ['Practise a fake formation for them to see', {chance: .6, win: [{mor: 6, fans: 5}, 'They prepare for the wrong team. Ha!'], lose: [{mor: -3}, 'Your players get confused by the fake formation too.']}],
+      ['Complain to the league', {board: 2}, 'They get a slap on the wrist.']]},
+    {id: 'concert', from: 'Concert Promoter', q: 'The biggest band in the world wants to play our stadium this month. It will wreck the pitch.', a: [
+      ['Let them (£1,200,000)', {cash: 1200000, fit: -6, fans: 4}, 'Amazing gig. The pitch looks like a ploughed field.'],
+      ['Only after the season', {}, 'The band goes to a rival stadium.'],
+      ['Players get backstage passes too', {cash: 1200000, mor: 8, fit: -8}, 'Best night of their lives. Worst pitch of their lives.']]},
+    {id: 'satdoc', from: 'Satellite TV', q: "A satellite channel wants a weekly behind-the-scenes series about the club.", a: [
+      ['Yes (£800,000)', {chance: .6, win: [{cash: 800000, fans: 8}, "The show's a hit around the world!"], lose: [{cash: 800000, mor: -8, board: -4}, 'They film a training ground punch-up. Disaster.']}],
+      ['No cameras', {mor: 3}, 'The squad appreciates the privacy.']]},
+    {id: 'goldboots', who: 'top', from: '{p}', q: "My boot sponsor wants me to wear solid gold boots. They're very shiny.", a: [
+      ['Let him wear them', {chance: .5, win: [{pmor: 8, pform: 1, fans: 4}, '{p} scores a screamer in them. The Golden Boy!'], lose: [{pmor: 2, pform: -1, fans: -3}, '{p} skies three sitters. The fans are merciless.']}],
+      ['Black boots only at this club', {pmor: -6, board: 2}, 'Traditional. {p} grumbles.']]},
+    {id: 'float', from: 'The Chairman', q: "We're thinking of floating the club on the stock market. What do you think?", a: [
+      ['Do it', {chance: .55, win: [{cash: 4000000, board: 6}, 'Shares soar! A war chest for transfers.'], lose: [{cash: 500000, board: -8, fans: -5}, 'The shares flop. Everyone looks a bit silly.']}],
+      ["It's a football club, not a business", {fans: 8, board: -6}, 'The fans are with you. The suits are not.']]},
+    {id: 'national', who: 'top', from: 'The National Team Manager', q: 'I want {p} for a midweek friendly in South America. Long flight, mind.', a: [
+      ['Let him go. What an honour', {chance: .7, win: [{pmor: 12, fans: 4}, '{p} scores on his debut! The town is so proud.'], lose: [{pmor: 6, pinj: 3}, '{p} comes back with a knock. Gutted.']}],
+      ['Tell them he is injured', {pmor: -12, board: -3}, '{p} finds out. He is furious.']]},
+    {id: 'megabid', who: 'top', from: 'The Chairman', q: "A European giant has made a world-record bid for {p}. Three times what he's worth!", a: [
+      ['Sell him (3x value)', {sell: 3}, '{p} is gone. A world-record fee to rebuild with.'],
+      ['Not for sale. At any price', {fans: 10, board: -8, pmor: 4}, 'Banners everywhere: "WE LOVE YOU GAFFER".'],
+      ["Let {p} decide", {chance: .5, win: [{pmor: 15, fans: 6}, '{p} turns them down. "My heart is here."'], lose: [{sell: 3}, '{p} takes the move. Fair play.']}]]},
+    {id: 'pundit2', from: 'The Press Room', q: "A famous TV pundit called your team 'a load of overpaid show ponies'.", a: [
+      ['Invite him to watch training', {chance: .5, win: [{fans: 6, mor: 4}, 'He is converted! Says so on live TV.'], lose: [{mor: -3}, '"Exactly as I thought," he says.']}],
+      ['Pin his quote on the wall', {mor: 8}, 'The lads have a point to prove.'],
+      ['Ignore him', {}, 'Nobody remembers it by Tuesday.']]},
+    {id: 'fashion', from: 'Kit Manufacturer', q: 'We want to launch the new kit at a fashion show. Players on the catwalk!', a: [
+      ['Strut your stuff (£250,000)', {cash: 250000, mor: 3, fans: 3}, 'The centre-back trips over his own feet. Still, a triumph.'],
+      ['Models only, please', {cash: 150000}, 'Very glamorous. Not much to do with football.'],
+      ['Launch it at the ground for the fans', {fans: 8}, 'Thousands turn up. Proper football.']]},
+    {id: 'award', who: 'top', from: 'Football Writers', q: '{p} is shortlisted for Player of the Year. Shall we run a campaign?', a: [
+      ['Full campaign!', {chance: .5, win: [{pmor: 15, fans: 6}, '{p} WINS! The trophy goes in the club museum.'], lose: [{pmor: -4}, '{p} finishes second. Robbed!']}],
+      ['Let his football do the talking', {pmor: 4}, 'Classy.']]},
+    {id: 'charitysingle', from: 'Record Label', q: 'Will the squad record a charity Christmas single?', a: [
+      ['Into the studio', {chance: .5, win: [{fans: 9, mor: 6}, 'Christmas number one! A great cause and a great laugh.'], lose: [{fans: 4, mor: -2}, "It's dreadful, but it raises a fortune for charity."]}],
+      ['Donate instead (£100,000)', {cash: -100000, fans: 4, board: 2}, 'Generous and tuneful.'],
+      ['Footballers should not sing', {fans: -2}, 'Fair enough, honestly.']]},
+  ],
+};
+
 // Pick a scenario for this week, or null.
 function pickScenario() {
-  const c = me(), list = SCENARIOS[c.div] || SCENARIOS[3];
+  const c = me(), first = SCENARIOS[c.div] || SCENARIOS[3], second = SCENARIOS2[c.div] || [];
   W.scenSeen = W.scenSeen || [];
-  let pool = list.filter(s => !W.scenSeen.includes(s.id));
-  if (!pool.length) { W.scenSeen = W.scenSeen.filter(id => !list.some(s => s.id === id)); pool = list.slice(); }
+  // the first set, then the second set, then start again
+  let pool = first.filter(s => !W.scenSeen.includes(s.id));
+  if (!pool.length) pool = second.filter(s => !W.scenSeen.includes(s.id));
+  if (!pool.length) { W.scenSeen = W.scenSeen.filter(id => !first.concat(second).some(s => s.id === id)); pool = first.slice(); }
   const s = pick(pool);
   const squad = c.squad.map(P).filter(p => p && !p.inj);
   const by = {
@@ -236,6 +436,30 @@ function applyScenario(eff, sc) {
     if (eff.pwage) { const old = p.wage; p.wage = Math.round(p.wage * (1 + eff.pwage) / 10) * 10; p.con = Math.max(p.con, 3); out.push([`${p.ln} wage ${money(old)}→${money(p.wage)}`, false]); }
     if (eff.pskill) { p.a[eff.pskill] = clamp(p.a[eff.pskill] + 1, 1, 20); out.push([`${p.ln} ${({sho: 'shooting', pas: 'passing', tkl: 'tackling', pac: 'pace'})[eff.pskill]} +1`, true]); }
     if (eff.list) { p.listed = true; out.push([`${p.ln} listed`, false]); }
+  }
+  if (eff.heal) {
+    let n = 0; sq.forEach(x => { if (x.inj) { x.inj = Math.max(0, x.inj - eff.heal); n++; } });
+    out.push([n ? `${n} injured player${n > 1 ? 's' : ''} back sooner` : 'Physio ready for the next knock', true]);
+  }
+  if (eff.youth) {
+    NEXT_ID = W.nextId;
+    for (let i = 0; i < eff.youth && c.squad.length < 26; i++) {
+      const kid = makePlayer(pick(['DF', 'MF', 'FW', 'MF']), [10, 8.5, 7, 6][c.div] + R() * 1.5, 17, {div: c.div, pot: [17, 15.5, 14, 13][c.div] + R() * 2.5});
+      kid.club = c.id; kid.con = 3; kid.wage = Math.round(wageFor(kid, c.div) * .6 / 10) * 10; kid.val = valueOf(kid);
+      W.players[kid.id] = kid; c.squad.push(kid.id);
+      out.push([`Youngster ${pname(kid)} joins`, true]);
+    }
+    W.nextId = NEXT_ID;
+  }
+  if (eff.sell && p) {
+    if (c.squad.length <= 14) out.push([`${p.ln} stays: squad too small to sell`, false]);
+    else {
+      const fee = Math.round(valueOf(p) * eff.sell / 1000) * 1000;
+      const buyer = pick(W.clubs.filter(x => x.id !== c.id && x.div <= Math.max(0, c.div - (eff.sell >= 2 ? 1 : 0)) && x.squad.length < 24)) || pick(W.clubs.filter(x => x.id !== c.id));
+      moveP(p, buyer, 0); c.cash += fee; buyer.cash -= fee; fixTeam(c);
+      news(`${pname(p).toUpperCase()} JOINS ${buyer.name.toUpperCase()} FROM ${c.short} FOR ${money(fee)}`);
+      out.push([`${p.ln} sold to ${buyer.short}`, false]); out.push(['£', fee]);
+    }
   }
   if (eff.sign) {
     if (c.squad.length >= 26) out.push(['Squad full: he went elsewhere', false]);
