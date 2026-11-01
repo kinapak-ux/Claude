@@ -75,6 +75,7 @@ const ACHS = [
   ['scen20', '📰', 'Media darling', 'Answer 20 club dilemmas'],
   ['gambler', '🎲', 'Lucky gaffer', 'Win five gambles'],
   ['wonderkid', '💎', 'Wonderkid', 'Have a player aged 20 or under rated 70+'],
+  ['deadline', '⏰', 'Deadline day dealer', 'Do three deals on one deadline day'],
   ['bigspend', '💸', 'Big spender', 'Pay £1M or more for one player'],
   ['rich', '💰', 'Rolling in it', 'Have £10M in the bank'],
   ['veteran', '🧓', 'Old hand', 'Manage five seasons'],

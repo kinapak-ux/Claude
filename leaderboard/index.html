@@ -193,7 +193,7 @@ function render() {
     ${section('battleships', tabs('ships', {friend: 'Against a friend', computer: 'Against the computer'}) + rankHTML(B.ships[S.tab.ships], x => `${x.value} win${x.value === 1 ? '' : 's'}`, x => `${x.played} battle${x.played === 1 ? '' : 's'}`))}
     ${section('snaprace', tabs('snap', {wins: 'Race wins', fastest: 'Fastest snap'}) + (S.tab.snap === 'wins' ? rankHTML(B.snap.wins, x => `${x.value} win${x.value === 1 ? '' : 's'}`, x => `${x.played} race${x.played === 1 ? '' : 's'}`) : rankHTML(B.snap.fastest, x => `${(x.value / 1000).toFixed(2)}s`)))}
     ${section('timestables', tabs('tt', {blast: 'Blast off', bubble: 'Bubble Pop', stars: 'Star chart'}) + (S.tab.tt !== 'stars' ? rankHTML(B.tt[S.tab.tt], x => `${x.value.toLocaleString()} pts`) : rankHTML(B.tt.stars, x => `⭐ ${x.value} of 78`)))}
-    ${section('pixelgaffer', tabs('pg', {career: 'Manager points', keepy: 'Keepy-uppy', freekick: 'Free kicks', achievements: 'Achievements'}) + rankHTML(B.pg[S.tab.pg], x => S.tab.pg === 'career' ? `${x.value} pts` : S.tab.pg === 'keepy' ? `${x.value} touches` : S.tab.pg === 'achievements' ? `🏆 ${x.value} of 27` : `${x.value}/10`))}
+    ${section('pixelgaffer', tabs('pg', {career: 'Manager points', keepy: 'Keepy-uppy', freekick: 'Free kicks', achievements: 'Achievements'}) + rankHTML(B.pg[S.tab.pg], x => S.tab.pg === 'career' ? `${x.value} pts` : S.tab.pg === 'keepy' ? `${x.value} touches` : S.tab.pg === 'achievements' ? `🏆 ${x.value} of 28` : `${x.value}/10`))}
     <div class="panel"><h2>📰 Latest</h2><div class="feed">${S.rows.slice(-12).reverse().map(r => `<div>${feedLine(r)}<time>${ago(r.t)}</time></div>`).join('') || '<div class="empty">Nothing yet.</div>'}</div></div>`;
 }
 

@@ -52,6 +52,7 @@ function render() {
     case 'week': app.innerHTML = weekHTML(); break;
     case 'season': app.innerHTML = seasonHTML(); break;
     case 'sacked': app.innerHTML = sackedHTML(); break;
+    case 'deadline': app.innerHTML = deadlineHTML(); break;
   }
   if (UI.screen !== 'match') window.scrollTo(0, UI.keepScroll || 0);
   UI.keepScroll = 0;
@@ -70,7 +71,7 @@ function handleBack() {
     ACT.close(); return true;
   }
   switch (UI.screen) {
-    case 'match': case 'ft': case 'week': case 'season': return true;
+    case 'match': case 'ft': case 'week': case 'season': case 'deadline': return true;
     case 'prematch': ACT.backToGame(); return true;
     case 'new': case 'arcade': ACT.toTitle(); return true;
     case 'game': if (UI.tab !== 'home') { UI.tab = UI.tab === 'market' ? 'squad' : 'home'; render(); } else ACT.toTitle(); return true;
@@ -581,6 +582,7 @@ function answerBid(mid, yes) {
 
 // ---------- the weekly flow
 function go() {
+  if (deadlineDue()) return startDeadline();
   // stale bids expire
   W.inbox.forEach(m => { if (m.act && m.act.type === 'bid' && !m.act.done && (m.s !== W.season || W.week - m.act.w > 2)) m.act.done = 'The offer expired.'; });
   const fx = userFixture();
@@ -970,6 +972,8 @@ const ACT = {
   arcade() { UI.screen = 'arcade'; W = W || loadSave(); render(); },
   howto,
   toTitle() { save(); UI.screen = 'title'; render(); },
+  ddDo(d) { if (DD && DD.i < DD.deals.length) ddResolve(d.r); },
+  ddEnd() { clearInterval(ddTimer); DD = null; UI.screen = 'game'; UI.tab = 'home'; render(); go(); },
   saveQuit() { save(); UI.screen = 'title'; render(); toast(`💾 Career saved: <b>${esc(me().name)}</b>, ${dateOf(W.season, W.week)}`); },
   pickClub(d) { UI.newName = $('#mname').value; UI.newClub = +d.id; rerender(); },
   startCareer() {
