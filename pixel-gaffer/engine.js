@@ -574,7 +574,10 @@ function endSeason() {
   if (pos === 1 || (c.div > 0 && pos <= 2) || diff >= 0) { verdict = diff >= 3 || pos === 1 || (pos <= 2 && W.board.target > 2) ? 'Outstanding. The board are delighted.' : 'Target met. Well done, gaffer.'; W.board.conf = clamp(W.board.conf + 15 + diff * 3, 0, 100); }
   else if (diff >= -3) { verdict = 'Short of the target, but the board are patient.'; W.board.conf = clamp(W.board.conf - 12, 0, 100); }
   else { verdict = 'A poor season. The board are not happy.'; W.board.conf = clamp(W.board.conf - 22, 0, 100); }
-  if (W.board.conf < 10) { sacked = true; verdict = 'The board have lost patience.'; }
+  if (W.board.conf < 10) {
+    if (W.season > (W.joined ?? 0)) { sacked = true; verdict = 'The board have lost patience.'; }
+    else { W.board.conf = 22; verdict = "A poor first season. The board will give you one more year, but they expect better."; }
+  }
   S.user = {club: c.id, div: c.div, pos, pts, cupRound, ko: uc ? {name: uc.name, res: ucOut} : null, koWon: koWon.map(cp => cp.key), trophies: tro, careerAdd: career, best: best && best.id, top: topS && topS.s.gl ? [topS.id, topS.s.gl] : null, verdict, sacked};
   W.history.push({s: W.season, club: c.id, div: c.div, pos, pts, cup: cupRound, tro});
   // move clubs between divisions
@@ -651,7 +654,7 @@ function jobOffers(sacked) {
 }
 function takeJob(id) {
   const old = me(); autoPick(old);
-  W.clubId = id; W.career.clubs.push(id);
+  W.clubId = id; W.career.clubs.push(id); W.joined = W.season + (typeof UI !== 'undefined' && UI.screen === 'season' ? 1 : 0);
   const c = me(); c.squad.map(P).forEach(p => p.listed = false);
   W.board = {conf: 60}; setTarget(); fixTeam(c);
   W.tactics = null;
@@ -659,7 +662,7 @@ function takeJob(id) {
 function startCareer(name, clubId) {
   W = newWorld(name);
   addForeignClubs();
-  W.clubId = clubId; W.career.clubs = [clubId];
+  W.clubId = clubId; W.career.clubs = [clubId]; W.joined = 0;
   W.training = {focus: 'balanced', int: 1};
   W.fans = 60;
   Object.values(W.players).forEach(p => p.val = valueOf(p));
