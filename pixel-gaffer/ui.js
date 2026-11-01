@@ -201,17 +201,26 @@ function playerModal(id) {
 }
 
 // ---------- TACTICS
-function tacticsHTML() {
-  const c = me(); fixTeam(c);
+function pitchHTML(c, edit) {
   const slots = formSlots(c.formation), spots = FORMS[c.formation];
-  const st = STYLES[c.style];
-  const pitch = `<div class="tpitch2">${c.xi.map((id, k) => {
+  return `<div class="tpitch2">${c.xi.map((id, k) => {
     const p = id != null ? P(id) : null, [x, y] = spots[k];
     const off = p && p.pos !== slots[k];
-    return `<button class="slot ${UI.sel === k ? 'sel' : ''} ${off ? 'off' : ''}" style="left:${y * 100}%;top:${92 - x * 112}%" data-a="slot" data-k="${k}"><i style="background:${k ? c.c1 : '#33d17a'};border-color:${c.c2}"></i><span>${p ? esc(p.ln) : '???'}</span><b class="${p ? ovrCol(ovr(p, slots[k])) : ''}">${p ? ovr(p, slots[k]) : ''}</b></button>`;
+    return `<${edit ? 'button' : 'div'} class="slot ${edit && UI.sel === k ? 'sel' : ''} ${off ? 'off' : ''}" style="left:${y * 100}%;top:${92 - x * 112}%" ${edit ? `data-a="slot" data-k="${k}"` : `data-a="player" data-id="${id}"`}><i style="background:${k ? c.c1 : '#33d17a'};border-color:${c.c2}"></i><span>${p ? esc(p.ln) : '???'}</span><b class="${p ? ovrCol(ovr(p, slots[k])) : ''}">${p ? ovr(p, slots[k]) : ''}</b></${edit ? 'button' : 'div'}>`;
   }).join('')}</div>`;
-  return `<div class="panel"><h2>Formation</h2><div class="chips">${Object.keys(FORMS).map(f => `<button class="chip ${c.formation === f ? 'on' : ''}" data-a="form" data-f="${f}">${f}</button>`).join('')}</div>
-    ${pitch}
+}
+function tacticsTop() {
+  const fx = userFixture();
+  const fromPre = UI.fromPre === W.season * 100 + W.week && fx;
+  const opp = fx ? C(fx.h === W.clubId ? fx.a : fx.h) : null;
+  return `<div class="tacbar">${fromPre ? '<button class="btn go" data-a="tacBack">◀ Back to the game</button>' : fx ? '<button class="btn go" data-a="go">Play match ▶</button>' : '<button class="btn" data-a="tab" data-t="home">◀ Back</button>'}
+    <button class="btn" data-a="viewOpp" data-id="${opp ? opp.id : ''}">${opp ? `${badgeImg(opp, 14)} View ${esc(opp.short)}` : 'View opponents'}</button></div>`;
+}
+function tacticsHTML() {
+  const c = me(); fixTeam(c);
+  const st = STYLES[c.style];
+  return tacticsTop() + `<div class="panel"><h2>Formation</h2><div class="chips">${Object.keys(FORMS).map(f => `<button class="chip ${c.formation === f ? 'on' : ''}" data-a="form" data-f="${f}">${f}</button>`).join('')}</div>
+    ${pitchHTML(c, true)}
     <p class="note">Tap a shirt to change who plays there. <span class="c-r">Red</span> = out of position.</p>
     <div class="bench"><b>Subs:</b> ${c.bench.map((id, k) => `<button class="chip ${UI.sel === 'b' + k ? 'on' : ''}" data-a="slot" data-k="b${k}">${posTag(P(id).pos)} ${esc(P(id).ln)}</button>`).join('')} ${c.bench.length < 5 ? `<button class="chip" data-a="slot" data-k="b${c.bench.length}">+ add</button>` : ''}</div>
     <div class="acts"><button class="btn small" data-a="autoPick">Assistant: pick my best team</button>
@@ -219,6 +228,29 @@ function tacticsHTML() {
   </div>
   <div class="panel"><h2>Playing style</h2><div class="chips">${Object.keys(STYLES).map(k => `<button class="chip ${c.style === k ? 'on' : ''}" data-a="style" data-s="${k}">${STYLES[k].n}</button>`).join('')}</div>
     <p><b class="c-y">${st.n}:</b> ${st.d}</p><p class="note">Works well against: ${BEATS[c.style].map(s => STYLES[s].n).join(', ')}. Check the scout report before each game.</p></div>`;
+}
+// a look at any other club: their likely team, style and best players
+function oppModal(id) {
+  const c = me(), fx = userFixture(), nextId = fx ? (fx.h === c.id ? fx.a : fx.h) : null;
+  if (id == null || isNaN(id) || id === c.id) id = nextId ?? W.clubs.find(x => x.div === c.div && x.id !== c.id).id;
+  const o = C(id); autoPick(o);
+  const t = table(o.div), row = t.find(r => r.id === o.id), pos = t.indexOf(row) + 1;
+  const counters = Object.keys(STYLES).filter(s => BEATS[s].includes(o.style));
+  const weBeat = BEATS[c.style].includes(o.style), theyBeat = BEATS[o.style].includes(c.style);
+  const squad = o.squad.map(P).sort((a, b) => POS.indexOf(a.pos) - POS.indexOf(b.pos) || ovrOf(b) - ovrOf(a));
+  const key = o.xi.map(P).filter(Boolean).sort((a, b) => ovrOf(b) - ovrOf(a))[0];
+  const rivals = W.clubs.filter(x => x.div === c.div && x.id !== c.id).sort((a, b) => a.name.localeCompare(b.name));
+  if (o.div !== c.div && !rivals.includes(o)) rivals.unshift(o);
+  modal(`<div class="opp">
+    <div class="chips small">${nextId != null ? `<button class="chip ${id === nextId ? 'on' : ''}" data-a="viewOpp" data-id="${nextId}">Next opponent</button>` : ''}
+      <select class="oppsel" data-a="oppSel">${rivals.map(x => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
+    <div class="nextfx">${badgeImg(o, 40)}<div class="vs"><b>${esc(o.name)}</b><small>${DIVS[o.div]} · ${row && row.p ? ordinal(pos) : '-'} · form ${formHTML(o.formStr)}</small></div></div>
+    <p>${o.formation}, plays <b class="c-y">${STYLES[o.style].n}</b>. ${STYLES[o.style].d}</p>
+    <p class="note">${weBeat ? `<span class="c-g">Your ${STYLES[c.style].n} should trouble them.</span>` : theyBeat ? `<span class="c-r">Their style beats your ${STYLES[c.style].n}.</span>` : 'Your styles cancel out.'} Best against them: <b>${counters.map(s => STYLES[s].n).join(' or ')}</b>.${key ? ` Danger man: <b>${esc(pname(key))}</b> (${ovr(key)}).` : ''}</p>
+    <h3 class="divh">Their likely team</h3>${pitchHTML(o, false)}
+    <h3 class="divh">Squad</h3>
+    <table class="tbl"><tbody>${squad.map(p => `<tr data-a="player" data-id="${p.id}" class="${o.xi.includes(p.id) ? 'xi' : ''}"><td>${posTag(p.pos)}</td><td class="nm">${esc(pname(p))}${p.tr ? ' <span class="c-m">◆</span>' : ''} ${p.inj ? `<span class="tag r">INJ</span>` : ''}${p.sus ? '<span class="tag o">SUS</span>' : ''}</td><td>${p.age}</td><td class="${ovrCol(ovr(p))}">${ovr(p)}</td><td>${p.s.gl ? p.s.gl + '⚽' : ''}</td></tr>`).join('')}</tbody></table>
+    <div class="acts"><button class="btn go" data-a="close">Done</button></div></div>`);
 }
 function slotModal(k) {
   const c = me(), isBench = String(k)[0] === 'b', slots = formSlots(c.formation), pos = isBench ? null : slots[k];
@@ -452,7 +484,7 @@ function prematchHTML() {
     ${cmp('Defence', us.def, them.def)}${cmp('Midfield', us.mid, them.mid)}${cmp('Attack', us.att, them.att)}
     <p class="note">${tip}</p></div>
   <div class="panel"><h2>Your team · ${c.formation} · ${STYLES[c.style].n}</h2><div class="lineup">${c.xi.map((id, k) => id == null ? '' : `<span>${posTag(formSlots(c.formation)[k])} ${esc(P(id).ln)}</span>`).join('')}</div>
-    <div class="acts"><button class="btn small" data-a="tab" data-t="tactics">Change tactics</button></div></div>
+    <div class="acts"><button class="btn small" data-a="preTactics">Change tactics</button><button class="btn small" data-a="viewOpp" data-id="${opp.id}">View ${esc(opp.short)}</button></div></div>
   ${pr && !pr.done ? `<div class="panel press"><h2>📰 The press want a word</h2><p>"${esc(pr.q)}"</p><div class="answers">${pr.a.map((x, i) => `<button class="btn small" data-a="press" data-i="${i}">${esc(x[0])}</button>`).join('')}</div></div>` : pr ? `<div class="panel press"><p class="note">${esc(pr.done)}</p></div>` : ''}
   <div class="sticky two"><button class="btn big go" data-a="kickoff">KICK OFF ▶</button><button class="btn" data-a="quick">Quick result</button></div>`;
 }
@@ -750,6 +782,10 @@ const ACT = {
     startCareer(name, UI.newClub); save();
     UI.screen = 'game'; UI.tab = 'home'; render(); setTimeout(howto, 300);
   },
+  preTactics() { UI.fromPre = W.season * 100 + W.week; UI.screen = 'game'; UI.tab = 'tactics'; UI.sel = null; render(); },
+  tacBack() { fixTeam(me()); UI.screen = 'prematch'; render(); },
+  viewOpp(d) { oppModal(d.id === '' ? null : +d.id); },
+  oppSel(d, el) { oppModal(+el.value); },
   tab(d) { closeModal(); if (UI.screen !== 'game') UI.screen = 'game'; UI.tab = d.t; UI.sel = null; render(); },
   go() { go(); },
   backToGame() { UI.screen = 'game'; render(); },
@@ -862,13 +898,13 @@ function finishSummer() {
 }
 
 document.addEventListener('click', e => {
-  const el = e.target.closest('[data-a]'); if (!el || el.tagName === 'INPUT') return;
+  const el = e.target.closest('[data-a]'); if (!el || el.tagName === 'INPUT' || el.tagName === 'SELECT') return;
   const a = el.dataset.a; if (!a || !ACT[a]) return;
   SND.click();
   ACT[a](el.dataset, el);
 });
 document.addEventListener('change', e => {
-  const el = e.target; if (el.tagName !== 'INPUT' || !el.dataset.a || !ACT[el.dataset.a]) return;
+  const el = e.target; if ((el.tagName !== 'INPUT' && el.tagName !== 'SELECT') || !el.dataset.a || !ACT[el.dataset.a]) return;
   ACT[el.dataset.a](el.dataset, el);
 });
 document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
