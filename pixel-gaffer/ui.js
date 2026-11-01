@@ -147,7 +147,8 @@ function homeHTML() {
   ${act.length ? `<div class="panel alert" data-a="tab" data-t="news"><h2>✉ ${act.length} message${act.length > 1 ? 's' : ''} need${act.length > 1 ? '' : 's'} an answer</h2>${act.slice(0, 2).map(m => `<div>${esc(m.subj)}</div>`).join('')}</div>` : ''}
   <div class="grid2">
     <div class="panel stat"><h2>League</h2><div class="big ${pos <= 2 && c.div > 0 || pos === 1 ? 'c-g' : pos >= 11 && c.div < 3 ? 'c-r' : 'c-y'}">${row.p ? ordinal(pos) : '-'}</div><small>${row.pts} pts · P${row.p} · ${formHTML(row.form.slice(-5))}</small></div>
-    <div class="panel stat"><h2>Board</h2>${bar(conf, 100, conf > 60 ? 'g' : conf > 30 ? 'y' : 'r')}<small>${confWord(conf)}<br>Target: <b>${esc(W.board.txt)}</b></small></div>
+    <div class="panel stat"><h2>Board</h2>${bar(conf, 100, conf > 60 ? 'g' : conf > 30 ? 'y' : 'r')}<small>${confWord(conf)}<br>Target: <b>${esc(W.board.txt)}</b></small>
+      <h2 style="margin-top:10px">Fans</h2>${bar(W.fans ?? 60, 100, (W.fans ?? 60) > 60 ? 'g' : (W.fans ?? 60) > 30 ? 'y' : 'r')}<small>${fansWord(W.fans ?? 60)}</small></div>
   </div>
   ${injured.length ? `<div class="panel"><h2>Treatment room</h2>${injured.map(p => `<div class="row" data-a="player" data-id="${p.id}">${posTag(p.pos)} ${esc(pname(p))} ${status(p)}</div>`).join('')}</div>` : ''}
   <div class="ttx"><div class="ttxh"><span>P302</span><span>PIXTEXT</span><span>FOOTBALL</span></div>
@@ -166,6 +167,7 @@ function resLine(r) {
 }
 const ordinal = n => n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th');
 const formHTML = f => (f || '').slice(-5).split('').map(x => `<span class="fm ${x}">${x}</span>`).join('') || '<span class="c-d">-</span>';
+const fansWord = f => f >= 80 ? 'Singing your name' : f >= 60 ? 'Right behind you' : f >= 40 ? 'Restless' : f >= 20 ? 'Grumbling' : 'Calling for your head';
 const confWord = c => c >= 80 ? 'Delighted' : c >= 60 ? 'Happy' : c >= 40 ? 'Watching closely' : c >= 20 ? 'Worried' : 'Your job is on the line';
 
 // ---------- SQUAD
@@ -455,6 +457,9 @@ function go() {
   const c = me();
   if (W.settings.autoPick) autoPick(c); else { const out = fixTeam(c); if (out.length) toast(`Assistant: ${out.join(', ')} can't play, so I've changed the team.`); }
   if (c.xi.filter(x => x != null).length < 11) autoPick(c);
+  const key = W.season * 100 + W.week;
+  if (W.scenWeek !== key && W.week >= 1 && W.week - (W.lastScen ?? -9) >= 2 && R() < .45) { W.scenWeek = key; W.lastScen = W.week; return scenarioModal(); }
+  W.scenWeek = key;
   UI.fx = fx; UI.press = R() < .3 ? pressQ(fx) : null;
   UI.screen = 'prematch'; render();
 }
@@ -487,6 +492,29 @@ function prematchHTML() {
     <div class="acts"><button class="btn small" data-a="preTactics">Change tactics</button><button class="btn small" data-a="viewOpp" data-id="${opp.id}">View ${esc(opp.short)}</button></div></div>
   ${pr && !pr.done ? `<div class="panel press"><h2>📰 The press want a word</h2><p>"${esc(pr.q)}"</p><div class="answers">${pr.a.map((x, i) => `<button class="btn small" data-a="press" data-i="${i}">${esc(x[0])}</button>`).join('')}</div></div>` : pr ? `<div class="panel press"><p class="note">${esc(pr.done)}</p></div>` : ''}
   <div class="sticky two"><button class="btn big go" data-a="kickoff">KICK OFF ▶</button><button class="btn" data-a="quick">Quick result</button></div>`;
+}
+
+// ---------- quick-fire scenarios
+function scenarioModal() {
+  const sc = UI.scen = pickScenario();
+  const s = sc.s, p = sc.pid != null ? P(sc.pid) : null;
+  modal(`<div class="scen"><div class="scenh"><span>✉ ${esc(scenText(s.from, sc))}</span><small>${dateOf(W.season, W.week).replace(/ \d{4}$/, '')}</small></div>
+    <div class="scenq">${p ? portrait(p, 44) : ''}<p>"${esc(scenText(s.q, sc))}"</p></div>
+    <div class="answers">${s.a.map((a, i) => `<button class="btn" data-a="scen" data-i="${i}">${esc(scenText(a[0], sc))}${a[1].chance ? ' <span class="c-o">🎲</span>' : ''}</button>`).join('')}</div>
+    <p class="note">🎲 = a gamble. It could go either way.</p></div>`, true);
+}
+function answerScenario(i) {
+  const sc = UI.scen, a = sc.s.a[i];
+  let eff = a[1], txt = a[2], gamble = null;
+  if (eff.chance != null) { const win = R() < eff.chance; gamble = win; [eff, txt] = win ? eff.win : eff.lose; }
+  W.scenSeen = (W.scenSeen || []).concat(sc.s.id).slice(-60);
+  const out = applyScenario(eff, sc);
+  save();
+  if (gamble != null) (gamble ? SND.good() : SND.bad()); else SND.click();
+  modal(`<div class="scen"><div class="scenh"><span>${gamble == null ? 'You decided...' : gamble ? '🎲 It paid off!' : '🎲 It backfired!'}</span></div>
+    <p class="scenr">${esc(scenText(txt, sc))}</p>
+    <div class="effs">${out.map(([n, v]) => n === '£' ? `<span class="eff ${v > 0 ? 'up' : 'down'}">${v > 0 ? '+' : '−'}${money(Math.abs(v))}</span>` : typeof v === 'boolean' ? `<span class="eff ${v ? 'up' : 'down'}">${esc(n)}</span>` : `<span class="eff ${v > 0 ? 'up' : 'down'}">${esc(n)} ${v > 0 ? '▲' : '▼'}</span>`).join('') || '<span class="eff">No real change</span>'}</div>
+    <div class="acts"><button class="btn go big wide" data-a="scenDone">Continue ▶</button></div></div>`, true);
 }
 
 // ---------- LIVE MATCH
@@ -782,6 +810,8 @@ const ACT = {
     startCareer(name, UI.newClub); save();
     UI.screen = 'game'; UI.tab = 'home'; render(); setTimeout(howto, 300);
   },
+  scen(d) { answerScenario(+d.i); },
+  scenDone() { closeModal(); go(); },
   preTactics() { UI.fromPre = W.season * 100 + W.week; UI.screen = 'game'; UI.tab = 'tactics'; UI.sel = null; render(); },
   tacBack() { fixTeam(me()); UI.screen = 'prematch'; render(); },
   viewOpp(d) { oppModal(d.id === '' ? null : +d.id); },

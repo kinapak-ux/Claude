@@ -403,7 +403,8 @@ function finishWeek(userMatch) {
 function attendance(home, away, cup) {
   const pos = home.div >= 0 && W.res.length ? posIn(home.id) : 6;
   const f = .42 + home.rep / 260 + (12 - pos) * .015 + (home.formStr || '').split('').filter(x => x === 'W').length * .02 + (cup ? .1 + W.cup.r * .05 : 0) + (away.rep - home.rep) / 400;
-  return Math.round(home.cap * clamp((f + (R() - .5) * .08) * Math.pow(BASE_TICKET[home.div] / home.ticket, .7), .15, 1));
+  const fanF = home.id === W.clubId ? .8 + (W.fans ?? 60) / 250 : 1;
+  return Math.round(home.cap * clamp((f + (R() - .5) * .08) * Math.pow(BASE_TICKET[home.div] / home.ticket, .7) * fanF, .15, 1));
 }
 
 function boardReact(r, e) {
@@ -411,6 +412,7 @@ function boardReact(r, e) {
   const won = r.cup ? r.win === W.clubId : gf > ga, lost = r.cup ? r.win !== W.clubId : gf < ga;
   const b = W.board;
   b.conf = clamp(b.conf + (won ? 2.5 : lost ? -3 : 0) + (r.cup && won ? 1 : 0), 0, 100);
+  W.fans = clamp((W.fans ?? 60) + (won ? 1.5 : lost ? -1.5 : 0), 0, 100);
   if (e.t === 'L' && W.week > 5) { const pos = posIn(W.clubId); b.conf = clamp(b.conf + clamp((b.target - pos) * .35, -2, 2), 0, 100); }
 }
 
@@ -615,6 +617,7 @@ function dropPlayer(p) {
 function newSeason() {
   W.season++;
   W.board.conf = clamp(W.board.conf, 25, 100);
+  W.fans = Math.round(clamp((W.fans ?? 60) * .7 + 18, 0, 100));
   startSeason();
   Object.values(W.players).forEach(p => { p.fit = 100; p.inj = 0; p.sus = 0; p.mor = clamp(p.mor * .5 + 35, 5, 100); p.val = valueOf(p); p.grew = 0; });
   W.clubs.forEach(c => { if (c.id !== W.clubId) autoPick(c); });
@@ -637,6 +640,7 @@ function startCareer(name, clubId) {
   W = newWorld(name);
   W.clubId = clubId; W.career.clubs = [clubId];
   W.training = {focus: 'balanced', int: 1};
+  W.fans = 60;
   Object.values(W.players).forEach(p => p.val = valueOf(p));
   W.clubs.forEach(c => autoPick(c));
   startSeason();

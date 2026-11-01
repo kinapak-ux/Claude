@@ -197,6 +197,15 @@ img.face{border:3px solid #000;background:#5fb8ff;box-shadow:0 0 0 2px var(--edg
 .opp .nextfx{justify-content:flex-start;text-align:left}
 .opp .vs{align-items:flex-start}
 div.slot{cursor:pointer}
+.scenh{display:flex;justify-content:space-between;align-items:center;background:#000;margin:-14px -14px 10px;padding:8px 12px;border-bottom:2px solid var(--edge);font-family:var(--px);font-size:9px;color:var(--cy);line-height:1.5}
+.scenh small{font-family:var(--vt);font-size:17px;color:var(--dim)}
+.scenq{display:flex;gap:12px;align-items:center}
+.scenq p{font-size:23px;margin:6px 0;flex:1}
+.scenq img.face{flex:none}
+.scenr{font-size:23px;margin:8px 0 12px}
+.effs{display:flex;flex-wrap:wrap;gap:6px}
+.eff{font-family:var(--px);font-size:8px;padding:6px 8px;background:var(--dark);border:2px solid var(--edge);line-height:1.4}
+.eff.up{color:var(--grn);border-color:var(--grn)}.eff.down{color:var(--red);border-color:var(--red)}
 /* match */
 .match{display:flex;flex-direction:column;gap:6px;padding-top:4px}
 .scorebar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;background:#000;border:2px solid var(--edge);padding:6px 8px}
@@ -244,6 +253,7 @@ div.slot{cursor:pointer}
 <script src="engine.js"></script>
 <script src="pixel.js"></script>
 <script src="minigames.js"></script>
+<script src="scenarios.js"></script>
 <script src="ui.js"></script>
 <script>if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));</script>
 </body>
