@@ -1,6 +1,6 @@
 // Pixel Gaffer '96: the mini-games. Each returns a Promise with the result.
 'use strict';
-const ADS = ['PIXEL', 'GAFFER', 'TELETEXT', 'PIES', 'BOVRIL?', 'CRISPS', '1996'];
+const ADS = ['PIXEL', 'GAFFER', 'TELETEXT', 'PIES', 'HOT TEA', 'CRISPS', '1996'];
 let crowdDots = null;
 
 function miniOverlay(title, hint, opts) {

@@ -83,7 +83,7 @@ function titleHTML() {
       <button class="btn" data-a="arcade">Arcade mini-games</button>
       <button class="btn ghost" data-a="howto">How to play</button>
     </div>
-    <p class="foot">48 clubs · 4 divisions · the ${CUP_NAME}<br><a href="../">← Family Games</a></p>
+    <p class="foot">48 clubs · 4 divisions · the ${CUP_NAME}<br>${window.FamilyScores ? '<a href="../">← Family Games</a>' : `<a href="privacy.html">Privacy</a> · v${window.APP_VERSION || '1.0'}`}</p>
   </div>`;
 }
 function startTitle() {
