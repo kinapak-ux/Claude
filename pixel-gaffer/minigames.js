@@ -6,13 +6,16 @@ function miniOverlay(title, hint, opts) {
   opts = opts || {};
   const el = document.createElement('div');
   el.className = 'mini';
-  el.innerHTML = `<div class="mhead"><span class="mt">${title}</span><span class="ms" id="mscore">${opts.score || ''}</span></div>
+  el.innerHTML = `<div class="mhead"><button class="mback">◀ Back</button><span class="mt">${title}</span><span class="ms" id="mscore">${opts.score || ''}</span></div>
     <div class="mwrap"><canvas class="mcv"></canvas></div><div class="mhint">${hint}</div>${opts.skip === false ? '' : `<button class="btn ghost small mskip">${opts.skipTxt || 'Let the computer decide'}</button>`}`;
   document.body.appendChild(el);
   const cv = el.querySelector('canvas');
   cv.width = opts.w || 200; cv.height = opts.h || 170;
   const g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
-  return {el, cv, g, hint: t => { el.querySelector('.mhint').innerHTML = t; }, score: t => { el.querySelector('#mscore').innerHTML = t; }, close: () => el.remove()};
+  const ov = {el, cv, g, quit: false, hint: t => { el.querySelector('.mhint').innerHTML = t; }, score: t => { el.querySelector('#mscore').innerHTML = t; }, close: () => el.remove()};
+  // Back: leave the mini-game. Callers check ov.quit; a running scene finishes at once.
+  el.querySelector('.mback').onclick = () => { ov.quit = true; if (ov.onBack) ov.onBack(); };
+  return ov;
 }
 // Runs a scene until it calls finish(result).
 function runScene(ov, scene) {
@@ -24,6 +27,7 @@ function runScene(ov, scene) {
     wrap.addEventListener('pointerdown', tap);
     const skip = ov.el.querySelector('.mskip'), prev = skip && skip.onclick;
     if (skip) skip.onclick = () => { if (prev) prev(); if (!fin) scene.finish(scene.auto ? scene.auto() : null, 0); };
+    ov.onBack = () => { if (!fin) scene.finish(scene.auto ? scene.auto() : null, 0); };
     scene.parts = scene.parts || []; scene.shake = 0;
     const loop = now => {
       if (dead) return;
@@ -582,6 +586,8 @@ async function shootout(opts) {
   const sc = [0, 0], marks = [[], []];
   let auto = false;
   ov.el.querySelector('.mskip').onclick = () => { auto = true; };
+  const backBtn = ov.el.querySelector('.mback'), runBack = () => { auto = true; if (ov.onBack) ov.onBack(); };
+  backBtn.onclick = runBack;
   const board = () => ov.score(`${opts.us.short} ${dots(marks[0])} ${sc[0]}-${sc[1]} ${dots(marks[1])} ${opts.them.short}`);
   const dots = m => { const a = m.map(x => x ? '●' : '○'); while (a.length < 5) a.push('·'); return `<span class="dots">${a.slice(-5).join('')}</span>`; };
   board();
@@ -593,7 +599,7 @@ async function shootout(opts) {
       if (auto) goal = R() < penChance(taker, keeper.gk);
       else {
         // fresh scene in the same overlay
-        const cv = ov.cv; ov.el.querySelector('.mskip').onclick = () => { auto = true; };
+        const cv = ov.cv; ov.el.querySelector('.mskip').onclick = () => { auto = true; }; backBtn.onclick = runBack;
         goal = await (side === 0 ? penShoot({taker, gk: keeper.gk, kit: shooter.kit, gkKit: keeper.gkKit}, ov) : penSave({taker, gk: keeper.gk, kit: shooter.kit, gkKit: keeper.gkKit}, ov));
         cv.getContext('2d').setTransform(1, 0, 0, 1, 0, 0);
       }

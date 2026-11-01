@@ -741,12 +741,14 @@ async function arcade(k) {
   } else if (k === 'fk') {
     const ov = miniOverlay('FREE-KICK CHALLENGE', '', {skip: false});
     let goals = 0;
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 10 && !ov.quit; i++) {
       ov.score(`Kick ${i + 1}/10 · ${goals} goal${goals === 1 ? '' : 's'}`);
       ov.cv.getContext('2d').setTransform(1, 0, 0, 1, 0, 0);
-      if (await freeKick({taker: fake(14), gk: fake(5, 9 + i * .5), kit: kitOf(you), wallKit: {shirt: '#1d3fbf', shorts: '#fff'}}, ov)) goals++;
+      const ok = await freeKick({taker: fake(14), gk: fake(5, 9 + i * .5), kit: kitOf(you), wallKit: {shirt: '#1d3fbf', shorts: '#fff'}}, ov);
+      if (ok && !ov.quit) goals++;
     }
     ov.close();
+    if (ov.quit) return rerender();
     if (goals > b.fk) { b.fk = goals; lset(BEST, b); }
     toast(`<b>${goals}/10</b> free kicks scored!`);
     if (window.FamilyScores) FamilyScores.submit('pixelgaffer', 'freekick', goals, {fallbackName: W && W.name});
@@ -772,7 +774,7 @@ async function drill(k) {
     const ov = miniOverlay('FREE-KICK PRACTICE', '', {skip: false});
     const taker = c.squad.map(P).sort((x, y) => y.a.sho - x.a.sho)[0], gk = c.squad.map(P).filter(p => p.pos === 'GK').sort((x, y) => y.a.gk - x.a.gk)[1] || null;
     let goals = 0;
-    for (let i = 0; i < 5; i++) { ov.score(`Kick ${i + 1}/5 · ${goals} scored`); ov.cv.getContext('2d').setTransform(1, 0, 0, 1, 0, 0); if (await freeKick({taker, gk, kit: kitOf(c), wallKit: {shirt: '#ff8a1f', shorts: '#ff8a1f'}}, ov)) goals++; }
+    for (let i = 0; i < 5 && !ov.quit; i++) { ov.score(`Kick ${i + 1}/5 · ${goals} scored`); ov.cv.getContext('2d').setTransform(1, 0, 0, 1, 0, 0); const ok = await freeKick({taker, gk, kit: kitOf(c), wallKit: {shirt: '#ff8a1f', shorts: '#ff8a1f'}}, ov); if (ok && !ov.quit) goals++; }
     ov.close();
     W.drill = goals / 5;
     if (goals >= 3 && taker) { taker.a.sho = clamp(taker.a.sho + .5, 1, 20); toast(`${goals}/5! ${esc(pname(taker))}'s shooting improved. Training bonus +${Math.round(W.drill * 100)}%.`); }
