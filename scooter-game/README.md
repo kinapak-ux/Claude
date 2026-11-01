@@ -25,6 +25,14 @@ Finishing a level unlocks the next (Options has "Unlock all levels").
 | Downhill Rush | Steep streets | Long descents, high speed, barriers that need quick reactions |
 | Midnight Rooftops | Night | Rooftop gaps, wire grinds, big drops |
 | Blackout | Finale | The level collapses behind you while a helicopter spotlight follows. Don't get caught |
+| Beach Boardwalk | Seaside | Beach huts, a long pier rail, bouncy awnings and sea gaps |
+| Winter Park | Snowy park | Slippery ice rinks, skaters, a frozen-pond rail |
+| Factory Floor | Indoors | Conveyor belts that carry you (one runs backwards), molten vats, a crane hook, laser scanners |
+| Airport Apron | Runway | Luggage carts, the plane steps, runway lights, long fast straights |
+| Bridge Run | Sunset bridge | Traffic to jump, suspension cables to grind across the water |
+| Theme Park | Fairground | Rollercoaster tracks to grind, bouncy castles, crowds |
+| Neon Alley | Night alley | Three neon rails, stalls and shoppers |
+| Night Bowl | Floodlit park | A 60-second score attack with big quarter pipes |
 
 **Daily Run** builds a new level every day from the date, with fixed weather, so everyone plays the same course. On the published page, signed-in players share one daily leaderboard; elsewhere scores stay on the device.
 
@@ -40,7 +48,7 @@ Each level has four challenges: a par time (or two score targets on the timed pl
 
 ## Riders, power-ups and the level editor
 
-- **Riders:** Street Kid, Robot, Gorilla, Alien, Skeleton and Astronaut, plus seven outfit colours. They unlock with challenge stars (4 per level, 48 in all). Options has "Unlock all riders and colours".
+- **Riders:** Street Kid, Robot, Gorilla, Alien, Skeleton and Astronaut, plus seven outfit colours. They unlock with challenge stars (4 per level, 80 in all). Options has "Unlock all riders and colours".
 - **Power-ups** appear on long flat stretches:
   - Rocket: faster and pushes for you, 5 s.
   - Super Spring: higher jumps, 8 s.
