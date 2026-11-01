@@ -480,7 +480,7 @@ function aiTransfers(report) {
     const buyer = pick(W.clubs.filter(c => c.id !== W.clubId && c.squad.length < 22));
     const pos = pick(POS);
     const mine = buyer.squad.map(P).filter(p => p.pos === pos).sort((a, b) => ovrOf(a) - ovrOf(b));
-    const target = Object.values(W.players).filter(p => p.pos === pos && p.club !== buyer.id && p.club !== W.clubId && (p.club < 0 || C(p.club).squad.length > 16) && ovrOf(p) > (mine[0] ? ovrOf(mine[0]) + 1 : 0) && ovrOf(p) < ovrOf(mine[mine.length - 1] || p) + 2).sort(() => R() - .5)[0];
+    const target = Object.values(W.players).filter(p => p.pos === pos && p.club !== buyer.id && p.club !== W.clubId && p.loanFrom == null && (p.club < 0 || C(p.club).squad.length > 16) && ovrOf(p) > (mine[0] ? ovrOf(mine[0]) + 1 : 0) && ovrOf(p) < ovrOf(mine[mine.length - 1] || p) + 2).sort(() => R() - .5)[0];
     if (target) {
       const fee = askingPrice(target);
       if (buyer.cash > fee * 1.5) {
@@ -494,7 +494,7 @@ function aiTransfers(report) {
   const listed = club.squad.map(P).filter(p => p.listed);
   const chance = .08 + listed.length * .1 + club.squad.map(P).filter(p => p.s.ap > 3 && p.s.rt / p.s.ap > 7.2).length * .03;
   if (R() < chance && club.squad.length > 15) {
-    const p = listed.length && R() < .7 ? pick(listed) : wpick(club.squad.map(P), q => Math.pow(ovrOf(q), 2) * (q.s.ap ? q.s.rt / q.s.ap - 5.5 : .5));
+    const p = listed.length && R() < .7 ? pick(listed) : wpick(club.squad.map(P).filter(q => q.loanFrom == null), q => Math.pow(ovrOf(q), 2) * (q.s.ap ? q.s.rt / q.s.ap - 5.5 : .5));
     const bidders = W.clubs.filter(c => c.id !== W.clubId && c.cash > valueOf(p) * .9 && c.div <= club.div + 1);
     if (p && bidders.length) {
       const b = pick(bidders), amt = Math.round(valueOf(p) * (p.listed ? .75 + R() * .35 : .9 + R() * .45) / 1000) * 1000;
@@ -565,6 +565,7 @@ function endSeason() {
   S.relegated.forEach(([id, d]) => { C(id).div = d + 1; });
   const oldDiv = {}; S.promoted.concat(S.relegated).forEach(([id]) => oldDiv[id] = 1);
   W.clubs.forEach(cl => { cl.rep = clamp(Math.round(cl.rep * .8 + (95 - cl.div * 20) * .2), 5, 99); if (oldDiv[cl.id] || cl.id !== W.clubId) cl.ticket = BASE_TICKET[cl.div]; });
+  returnLoans();
   // players age, grow and retire
   const retired = [], expired = [], youth = [];
   Object.values(W.players).forEach(p => {
@@ -647,4 +648,15 @@ function startCareer(name, clubId) {
   const c = me();
   inbox('The Chairman', `Welcome to ${c.name}!`, `Welcome aboard, ${name}. You've got ${money(c.cash)} in the bank. The board's target for this season: ${W.board.txt.toUpperCase()}. Don't let us down.`);
   inbox('Your Assistant', 'How it all works', `Hit CONTINUE to get to the next game. I'll pick the team for you until you change it in TACTICS. Try a different STYLE against teams whose style yours beats (the pre-match report tells you). Train the lads every week in CLUB, and play a drill for a bonus. Buy players in TRANSFERS. Good luck, gaffer!`);
+}
+
+// loans end with the season: everyone goes home (young players come back better for the games)
+function returnLoans() {
+  Object.values(W.players).forEach(p => {
+    if (p.loanFrom == null) return;
+    const cur = p.club >= 0 ? C(p.club) : null, home = C(p.loanFrom);
+    if (cur) { cur.squad = cur.squad.filter(x => x !== p.id); if (cur.xi) cur.xi = cur.xi.map(x => x === p.id ? null : x); if (cur.bench) cur.bench = cur.bench.filter(x => x !== p.id); }
+    if (home.id === W.clubId && cur && cur.id !== W.clubId) grow(p, p.age <= 21 ? .9 : .5);
+    home.squad.push(p.id); p.club = home.id; delete p.loanFrom;
+  });
 }

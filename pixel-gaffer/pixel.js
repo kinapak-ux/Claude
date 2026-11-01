@@ -71,8 +71,24 @@ class Pitch {
   }
   setForms(forms, on) { this.forms = forms; if (on) on.forEach((list, s) => list.forEach((id, k) => { if (this.men[s][k]) this.men[s][k].on = id != null; })); }
   // positions for this moment: the attacking side pushes up and everyone drifts towards the ball
+  // a goal celebration: the scorer heads for the corner flag and the team piles in
+  celebrate(side, ms) {
+    const men = this.men[side].map((m, k) => ({m, k})).filter(o => o.m.on && o.k);
+    const scorer = men.sort((a, b) => side === 0 ? b.m.x - a.m.x : a.m.x - b.m.x)[0];
+    this.celeb = {side, k: scorer ? scorer.k : 9, until: this.t + (ms || 1700), y: this.ball.y < 75 ? 12 : 138};
+  }
   layout() {
-    const b = this.ball;
+    const b = this.ball, cel = this.celeb && this.t < this.celeb.until ? this.celeb : null;
+    if (cel) {
+      const cx = cel.side === 0 ? 228 : 12, dir = cel.side === 0 ? -1 : 1, dy = cel.y < 75 ? 1 : -1;
+      this.men.forEach((side, s) => side.forEach((m, k) => {
+        if (s === cel.side && k) {
+          if (k === cel.k) { m.tx = cx; m.ty = cel.y; }
+          else { const i = (k + 11 - cel.k) % 11; m.tx = cx + dir * (6 + (i % 4) * 6); m.ty = cel.y + dy * (3 + Math.floor(i / 4) * 6); }
+        } else { const [x, y] = this.spot(s, k, -.08); m.tx = x; m.ty = y; }
+      }));
+      return;
+    }
     for (let s = 0; s < 2; s++) {
       const att = s === this.poss, push = att ? .14 : -.04;
       this.men[s].forEach((m, k) => {
@@ -130,7 +146,7 @@ class Pitch {
     }
     this.layout();
     this.men.forEach(side => side.forEach(m => {
-      const dx = m.tx - m.x, dy = m.ty - m.y, d = Math.hypot(dx, dy), sp = .045 * dt;
+      const dx = m.tx - m.x, dy = m.ty - m.y, d = Math.hypot(dx, dy), sp = .045 * dt * (this.celeb && this.t < this.celeb.until ? 1.7 : 1);
       if (d > .3) { m.x += dx / d * Math.min(d, sp); m.y += dy / d * Math.min(d, sp); m.run = (m.run || 0) + dt; m.frame = Math.floor(m.run / 120) % 2; } else m.frame = 0;
     }));
   }
@@ -158,7 +174,12 @@ class Pitch {
     const all = [];
     this.men.forEach((side, s) => side.forEach((m, k) => { if (m.on) all.push({m, s, k}); }));
     all.sort((a, b) => a.m.y - b.m.y);
-    all.forEach(({m, s, k}) => { const kit = this.kits[s]; sprite(g, m.x, m.y, k === 0 ? kit.gk : kit.shirt, kit.shorts, m.frame, {skin: m.skin, hair: m.hair, hi: s === this.poss && k === this.carrier}); });
+    const cel = this.celeb && this.t < this.celeb.until ? this.celeb : null;
+    all.forEach(({m, s, k}) => {
+      const kit = this.kits[s], jump = cel && s === cel.side && k && Math.hypot(m.tx - m.x, m.ty - m.y) < 4 ? ((Math.floor(this.t / 130) + k) % 2 ? 2 : 0) : 0;
+      sprite(g, m.x, m.y - jump, k === 0 ? kit.gk : kit.shirt, kit.shorts, m.frame, {skin: m.skin, hair: m.hair, hi: !cel && s === this.poss && k === this.carrier});
+      if (jump && k === cel.k) { g.fillStyle = m.skin; g.fillRect(Math.round(m.x) - 3, Math.round(m.y - jump) - 8, 1, 3); g.fillRect(Math.round(m.x) + 2, Math.round(m.y - jump) - 8, 1, 3); }
+    });
     // ball and shadow
     const b = this.ball;
     g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(Math.round(b.x - 1), Math.round(b.y), 2, 1);

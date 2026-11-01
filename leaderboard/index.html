@@ -128,7 +128,7 @@ function boards(rows) {
     ships: {friend: winsOf(g('battleships').filter(r => r.b === 'friend')), computer: winsOf(g('battleships').filter(r => r.b === 'computer'))},
     shipsAll: winsOf(g('battleships')),
     snap: {wins: winsOf(g('snaprace').filter(r => r.b === 'wins')), fastest: bestBy(g('snaprace').filter(r => r.b === 'fastest'), true)},
-    pg: {career: bestBy(g('pixelgaffer').filter(r => r.b === 'career')), keepy: bestBy(g('pixelgaffer').filter(r => r.b === 'keepy')), freekick: bestBy(g('pixelgaffer').filter(r => r.b === 'freekick'))},
+    pg: {career: bestBy(g('pixelgaffer').filter(r => r.b === 'career')), keepy: bestBy(g('pixelgaffer').filter(r => r.b === 'keepy')), freekick: bestBy(g('pixelgaffer').filter(r => r.b === 'freekick')), achievements: bestBy(g('pixelgaffer').filter(r => r.b === 'achievements'))},
     tt: {blast: bestBy(g('timestables').filter(r => r.b === 'blast')), bubble: bestBy(g('timestables').filter(r => r.b === 'bubble')), stars: bestBy(g('timestables').filter(r => r.b === 'stars'))},
   };
 }
@@ -158,7 +158,7 @@ function feedLine(r) {
     case 'familyquiz': return r.b === 'wins' ? (r.s >= 1 ? `❓ ${n} won Family Quiz Night!` : `❓ ${n} played Family Quiz Night${r.d ? ` (${esc(r.d)})` : ''}`) : `❓ ${n} scored ${r.s.toLocaleString()} in the quiz`;
     case 'battleships': return `🚢 ${n} ${r.s >= 1 ? 'won' : 'lost'} a sea battle${r.b === 'computer' ? ' against the computer' : r.d ? ' ' + esc(r.d) : ''}`;
     case 'timestables': return r.b === 'stars' ? `🚀 ${n} has ${r.s} times-table star${r.s === 1 ? '' : 's'} ⭐` : r.b === 'bubble' ? `🫧 ${n} popped ${r.s.toLocaleString()} points in Bubble Pop` : `🚀 ${n} blasted ${r.s.toLocaleString()} points in Times Table Blaster`;
-    case 'pixelgaffer': return r.b === 'career' ? `⚽ ${n} has ${r.s} manager points${r.d ? ` (${esc(r.d)})` : ''}` : r.b === 'keepy' ? `⚽ ${n} did ${r.s} keepy-uppies` : `⚽ ${n} scored ${r.s}/10 free kicks`;
+    case 'pixelgaffer': return r.b === 'career' ? `⚽ ${n} has ${r.s} manager points${r.d ? ` (${esc(r.d)})` : ''}` : r.b === 'keepy' ? `⚽ ${n} did ${r.s} keepy-uppies` : r.b === 'achievements' ? `🏆 ${n} has ${r.s} Pixel Gaffer achievements` : `⚽ ${n} scored ${r.s}/10 free kicks`;
     case 'snaprace': return r.b === 'fastest' ? `⚡ ${n} snapped in ${(r.s / 1000).toFixed(2)}s` : r.s >= 1 ? `⚡ ${n} won a Snap Race!` : `⚡ ${n} raced at Snap${r.d ? ` (${esc(r.d)})` : ''}`;
   }
   return '';
@@ -193,7 +193,7 @@ function render() {
     ${section('battleships', tabs('ships', {friend: 'Against a friend', computer: 'Against the computer'}) + rankHTML(B.ships[S.tab.ships], x => `${x.value} win${x.value === 1 ? '' : 's'}`, x => `${x.played} battle${x.played === 1 ? '' : 's'}`))}
     ${section('snaprace', tabs('snap', {wins: 'Race wins', fastest: 'Fastest snap'}) + (S.tab.snap === 'wins' ? rankHTML(B.snap.wins, x => `${x.value} win${x.value === 1 ? '' : 's'}`, x => `${x.played} race${x.played === 1 ? '' : 's'}`) : rankHTML(B.snap.fastest, x => `${(x.value / 1000).toFixed(2)}s`)))}
     ${section('timestables', tabs('tt', {blast: 'Blast off', bubble: 'Bubble Pop', stars: 'Star chart'}) + (S.tab.tt !== 'stars' ? rankHTML(B.tt[S.tab.tt], x => `${x.value.toLocaleString()} pts`) : rankHTML(B.tt.stars, x => `⭐ ${x.value} of 78`)))}
-    ${section('pixelgaffer', tabs('pg', {career: 'Manager points', keepy: 'Keepy-uppy', freekick: 'Free kicks'}) + rankHTML(B.pg[S.tab.pg], x => S.tab.pg === 'career' ? `${x.value} pts` : S.tab.pg === 'keepy' ? `${x.value} touches` : `${x.value}/10`))}
+    ${section('pixelgaffer', tabs('pg', {career: 'Manager points', keepy: 'Keepy-uppy', freekick: 'Free kicks', achievements: 'Achievements'}) + rankHTML(B.pg[S.tab.pg], x => S.tab.pg === 'career' ? `${x.value} pts` : S.tab.pg === 'keepy' ? `${x.value} touches` : S.tab.pg === 'achievements' ? `🏆 ${x.value} of 25` : `${x.value}/10`))}
     <div class="panel"><h2>📰 Latest</h2><div class="feed">${S.rows.slice(-12).reverse().map(r => `<div>${feedLine(r)}<time>${ago(r.t)}</time></div>`).join('') || '<div class="empty">Nothing yet.</div>'}</div></div>`;
 }
 

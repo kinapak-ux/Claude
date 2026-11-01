@@ -435,7 +435,7 @@ function applyScenario(eff, sc) {
     if (eff.pinj) { p.inj = Math.max(p.inj, eff.pinj); out.push([`${p.ln} injured ${eff.pinj}w`, false]); }
     if (eff.pwage) { const old = p.wage; p.wage = Math.round(p.wage * (1 + eff.pwage) / 10) * 10; p.con = Math.max(p.con, 3); out.push([`${p.ln} wage ${money(old)}→${money(p.wage)}`, false]); }
     if (eff.pskill) { p.a[eff.pskill] = clamp(p.a[eff.pskill] + 1, 1, 20); out.push([`${p.ln} ${({sho: 'shooting', pas: 'passing', tkl: 'tackling', pac: 'pace'})[eff.pskill]} +1`, true]); }
-    if (eff.list) { p.listed = true; out.push([`${p.ln} listed`, false]); }
+    if (eff.list && p.loanFrom == null) { p.listed = true; out.push([`${p.ln} listed`, false]); }
   }
   if (eff.heal) {
     let n = 0; sq.forEach(x => { if (x.inj) { x.inj = Math.max(0, x.inj - eff.heal); n++; } });
@@ -451,7 +451,7 @@ function applyScenario(eff, sc) {
     }
     W.nextId = NEXT_ID;
   }
-  if (eff.sell && p) {
+  if (eff.sell && p && p.loanFrom == null) {
     if (c.squad.length <= 14) out.push([`${p.ln} stays: squad too small to sell`, false]);
     else {
       const fee = Math.round(valueOf(p) * eff.sell / 1000) * 1000;

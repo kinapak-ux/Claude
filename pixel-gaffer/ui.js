@@ -3,11 +3,12 @@
 const SAVE = 'pixelgaffer-save', BEST = 'pixelgaffer-best';
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
-const UI = {screen: 'title', tab: 'home', lt: 'table', ld: null, mkt: {pos: 'ALL', view: 'all', afford: false}, sel: null, modal: null};
+const UI = {slot: 1, screen: 'title', tab: 'home', lt: 'table', ld: null, mkt: {pos: 'ALL', view: 'all', afford: false}, sel: null, modal: null};
 const lget = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
 const lset = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
-function save() { if (!W) return; W.nextId = NEXT_ID; lset(SAVE, W); }
-function loadSave() { const w = lget(SAVE, null); if (!w || !w.clubs) return null; return w; }
+function save() { if (!W) return; W.nextId = NEXT_ID; lset(slotKey(UI.slot), W); lset('pixelgaffer-slot', UI.slot); }
+function loadSave(n) { const w = lget(slotKey(n || UI.slot), null); if (!w || !w.clubs) return null; return w; }
+const anySave = () => [1, 2, 3].some(n => slotInfo(n));
 const best = () => lget(BEST, {keepy: 0, fk: 0, pens: 0});
 function toast(t) { const el = document.createElement('div'); el.className = 'toast'; el.innerHTML = t; document.body.appendChild(el); setTimeout(() => el.remove(), 2600); }
 
@@ -54,7 +55,40 @@ function render() {
   }
   if (UI.screen !== 'match') window.scrollTo(0, UI.keepScroll || 0);
   UI.keepScroll = 0;
+  MUSIC.want(['title', 'arcade', 'new'].includes(UI.screen) ? 'title' : UI.screen === 'season' ? 'anthem' : null);
+  if (UI.screen !== 'title') pushNav();
+  const tc = $('#trophycv'); if (tc) trophyScene(tc, kitOf(C(UI.season.user.club)), tc.dataset.title);
 }
+// the phone's back button moves back through the game instead of leaving it
+function pushNav() { if (!history.state || !history.state.pg) history.pushState({pg: 1}, ''); }
+function handleBack() {
+  const mb = document.querySelector('.mini .mback'); if (mb) { mb.click(); return true; }
+  if (UI.tour != null) { endTour(); return true; }
+  if (UI.modal) {
+    if (LM && UI.screen === 'match') { if (!document.querySelector('[data-a=talk]')) ACT.mResume(); return true; }
+    if (document.querySelector('.scen')) return true;
+    ACT.close(); return true;
+  }
+  switch (UI.screen) {
+    case 'match': case 'ft': case 'week': case 'season': return true;
+    case 'prematch': ACT.backToGame(); return true;
+    case 'new': case 'arcade': ACT.toTitle(); return true;
+    case 'game': if (UI.tab !== 'home') { UI.tab = UI.tab === 'market' ? 'squad' : 'home'; render(); } else ACT.toTitle(); return true;
+  }
+  return false;
+}
+addEventListener('popstate', () => { if (handleBack()) pushNav(); });
+// swipe left and right between the main screens
+const NAV_ORDER = ['home', 'squad', 'tactics', 'league', 'club'];
+const navParent = t => t === 'market' ? 'squad' : t === 'news' ? 'home' : t;
+let swipe = null;
+document.addEventListener('touchstart', e => { if (UI.screen !== 'game' || UI.modal || UI.tour != null || e.touches.length > 1 || (e.target.closest && e.target.closest('input,select,.mini'))) { swipe = null; return; } swipe = {x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now()}; }, {passive: true});
+document.addEventListener('touchend', e => {
+  if (!swipe) return; const t = e.changedTouches[0], dx = t.clientX - swipe.x, dy = t.clientY - swipe.y, dt = Date.now() - swipe.t; swipe = null;
+  if (Math.abs(dx) < 70 || Math.abs(dy) > 45 || dt > 700) return;
+  const i = NAV_ORDER.indexOf(navParent(UI.tab)), j = clamp(i + (dx < 0 ? 1 : -1), 0, NAV_ORDER.length - 1);
+  if (j !== i) { UI.tab = NAV_ORDER[j]; UI.sel = null; render(); }
+}, {passive: true});
 function rerender() { UI.keepScroll = window.scrollY; render(); }
 function tabHTML() {
   switch (UI.tab) {
@@ -72,16 +106,19 @@ function tabHTML() {
 // ---------- title screen with a little "attract mode" match behind the logo
 let titleLoop = null;
 function titleHTML() {
-  const has = !!loadSave();
+  UI.slot = lget('pixelgaffer-slot', 1);
+  if (!slotInfo(UI.slot)) UI.slot = [1, 2, 3].find(n => slotInfo(n)) || UI.slot;
+  const cur = slotInfo(UI.slot), has = !!cur, many = [1, 2, 3].filter(n => slotInfo(n)).length;
   return `<div class="title">
     <canvas id="tpitch" class="tpitch"></canvas>
     <h1 class="logo"><span>PIXEL</span><span>GAFFER</span><small>'96</small></h1>
     <p class="tag-line">Football management, the old-fashioned way.</p>
     <div class="menu">
-      ${has ? `<button class="btn go big" data-a="continueGame">▶ Continue career</button>` : ''}
+      ${has ? `<button class="btn go big" data-a="continueGame">▶ Continue: ${esc(cur.club.short)} ${seasonLabel(cur.season)}</button>` : ''}
       <button class="btn ${has ? '' : 'go big'}" data-a="newGame">New career</button>
+      ${many ? `<button class="btn" data-a="slots">Saved careers (${many})</button>` : ''}
       <button class="btn" data-a="arcade">Arcade mini-games</button>
-      <button class="btn ghost" data-a="howto">How to play</button>
+      <div class="menu2"><button class="btn ghost small" data-a="howto">How to play</button><button class="btn ghost small" data-a="achs">🏆 Achievements</button><button class="btn ghost small" data-a="musicToggle">${MUSIC.on ? '♪ Music on' : '♪ Music off'}</button></div>
     </div>
     <p class="foot">48 clubs · 4 divisions · the ${CUP_NAME}<br>${window.FamilyScores ? '<a href="../">← Family Games</a>' : `<a href="privacy.html">Privacy</a> · v${window.APP_VERSION || '1.0'}`}</p>
   </div>`;
@@ -121,13 +158,13 @@ function headerHTML() {
   return `<header class="hdr">
     <div class="hclub">${badgeImg(c, 26)}<div><b>${esc(c.name)}</b><small>${dateOf(W.season, W.week)} · ${DIVS[c.div]}</small></div></div>
     <div class="hcash ${c.cash < 0 ? 'c-r' : 'c-g'}">${money(c.cash)}</div>
-    <button class="btn go" data-a="go">${fx ? 'PLAY ▶' : 'NEXT ▶'}</button>
+    <button class="btn go nextbtn" data-a="go">${fx ? `PLAY<small>v ${esc(C(fx.h === c.id ? fx.a : fx.h).short)}</small>` : W.week >= SEASON_WEEKS ? 'SEASON<small>review</small>' : `NEXT<small>week</small>`}</button>
   </header>${unread ? '' : ''}`;
 }
 function navHTML() {
   const unread = W.inbox.filter(m => !m.read).length;
-  const t = [['home', 'HOME', '⌂'], ['squad', 'SQUAD', '☺'], ['tactics', 'TACTICS', '⚑'], ['league', 'TABLES', '≡'], ['market', 'MARKET', '£'], ['club', 'CLUB', '♜'], ['news', 'NEWS', '✉']];
-  return `<nav class="nav">${t.map(([k, n, i]) => `<button class="${UI.tab === k ? 'on' : ''}" data-a="tab" data-t="${k}"><i>${i}</i>${n}${k === 'news' && unread ? `<b class="dot">${unread}</b>` : ''}</button>`).join('')}</nav>`;
+  const t = [['home', 'HOME'], ['squad', 'SQUAD'], ['tactics', 'TACTICS'], ['league', 'TABLES'], ['club', 'CLUB']], cur = navParent(UI.tab);
+  return `<nav class="nav">${t.map(([k, n]) => `<button class="${cur === k ? 'on' : ''}" data-a="tab" data-t="${k}"><img src="${navIcon(k, cur === k ? '#ffd23f' : '#9aa6dd')}" alt="">${n}${k === 'home' && unread ? `<b class="dot">${unread}</b>` : ''}</button>`).join('')}</nav>`;
 }
 
 // ---------- HOME
@@ -138,8 +175,8 @@ function homeHTML() {
   if (fx) {
     const opp = C(fx.h === c.id ? fx.a : fx.h), home = fx.h === c.id;
     next = `<div class="nextfx">${badgeImg(c, 40)}<div class="vs"><small>${fx.cup ? `${CUP_NAME} · ${cupRoundName()}` : `${DIVS[c.div]} · Round ${e.r + 1}`}</small><b>${home ? 'HOME' : 'AWAY'} v</b><span>${esc(opp.name)}</span><small>${opp.div !== c.div ? DIVS[opp.div] + ' · ' : ''}${ordinal(posIn(opp.id))} · form ${formHTML(opp.formStr)}</small></div>${badgeImg(opp, 40)}</div>
-      <button class="btn go big wide" data-a="go">PLAY MATCH ▶</button>`;
-  } else next = `<p>${e.t === 'C' ? `${CUP_NAME} ${cupRoundName()} day. ${W.cup.alive.includes(c.id) || W.cup.byes.includes(c.id) ? '' : "You're out, so the lads get a week off."}` : ''}</p><button class="btn go big wide" data-a="go">NEXT WEEK ▶</button>`;
+      <p class="note center">Tap <b class="c-g">PLAY</b> at the top when you're ready. <span class="lnk" data-a="viewOpp" data-id="${opp.id}">Scout ${esc(opp.short)}</span></p>`;
+  } else next = `<p>${e.t === 'C' ? `${CUP_NAME} ${cupRoundName()} day. ${W.cup.alive.includes(c.id) || W.cup.byes.includes(c.id) ? '' : "You're out, so the lads get a week off."}` : 'A week without a game.'}</p><p class="note center">Tap <b class="c-g">NEXT</b> at the top to move on.</p>`;
   const conf = W.board.conf;
   const injured = c.squad.map(P).filter(p => p.inj || p.sus);
   const act = W.inbox.filter(m => m.act && !m.act.done);
@@ -151,6 +188,9 @@ function homeHTML() {
       <h2 style="margin-top:10px">Fans</h2>${bar(W.fans ?? 60, 100, (W.fans ?? 60) > 60 ? 'g' : (W.fans ?? 60) > 30 ? 'y' : 'r')}<small>${fansWord(W.fans ?? 60)}</small></div>
   </div>
   ${injured.length ? `<div class="panel"><h2>Treatment room</h2>${injured.map(p => `<div class="row" data-a="player" data-id="${p.id}">${posTag(p.pos)} ${esc(pname(p))} ${status(p)}</div>`).join('')}</div>` : ''}
+  <div class="panel"><h2>✉ Inbox${W.inbox.filter(m => !m.read).length ? ` · ${W.inbox.filter(m => !m.read).length} new` : ''}</h2>
+    ${W.inbox.slice(0, 3).map(m => `<div class="row" data-a="openMsgHome" data-id="${m.id}">${m.read ? '' : '<span class="c-r">► </span>'}<span class="c-c">${esc(m.from)}:</span> ${esc(m.subj)}</div>`).join('') || '<p class="note">No messages.</p>'}
+    <button class="btn small" data-a="tab" data-t="news">Open inbox</button></div>
   <div class="ttx"><div class="ttxh"><span>P302</span><span>PIXTEXT</span><span>FOOTBALL</span></div>
   ${W.news.slice(0, 6).map(n => `<div class="c-c">${esc(n.txt)}</div>`).join('') || '<div class="c-y">NO NEWS IS GOOD NEWS</div>'}
   ${lastResultsTTX()}
@@ -174,31 +214,39 @@ const confWord = c => c >= 80 ? 'Delighted' : c >= 60 ? 'Happy' : c >= 40 ? 'Wat
 function squadHTML() {
   const c = me(), list = c.squad.map(P).sort((a, b) => POS.indexOf(a.pos) - POS.indexOf(b.pos) || ovrOf(b) - ovrOf(a));
   const wages = list.reduce((s, p) => s + p.wage, 0);
-  return `<div class="panel"><h2>First-team squad (${list.length})</h2><p class="note">Tap a player for details, to sell him or to give him a new contract. Wage bill ${money(wages)}/week.</p>
+  return `<div class="subtabs"><button class="${UI.tab === 'squad' ? 'on' : ''}" data-a="tab" data-t="squad">My squad</button><button class="${UI.tab === 'market' ? 'on' : ''}" data-a="tab" data-t="market">Transfer market</button></div><div class="panel"><h2>First-team squad (${list.length})</h2><p class="note">Tap a player for details, to sell him or to give him a new contract. Wage bill ${money(wages)}/week.</p>
   <table class="tbl squad"><thead><tr><th></th><th>Name</th><th>Age</th><th>Rat</th><th>Fit</th><th>Fm</th></tr></thead><tbody>
-  ${list.map(p => `<tr data-a="player" data-id="${p.id}" class="${c.xi && c.xi.includes(p.id) ? 'xi' : ''}"><td>${posTag(p.pos)}</td><td class="nm">${esc(pname(p))}${p.tr ? ' <span class="c-m">◆</span>' : ''} ${status(p)}</td><td>${p.age}</td><td class="${ovrCol(ovr(p))}">${ovr(p)}</td><td>${bar(p.fit, 100, fitCls(p.fit))}</td><td>${formArrow(p.form)}</td></tr>`).join('')}
-  </tbody></table><p class="note"><span class="xi-key"></span> = in your starting eleven · ◆ = special trait</p></div>`;
+  ${list.map(p => `<tr data-a="player" data-id="${p.id}" class="${c.xi && c.xi.includes(p.id) ? 'xi' : ''}"><td>${posTag(p.pos)}</td><td class="nm">${esc(pname(p))}${p.tr ? ' <span class="c-m">◆</span>' : ''} ${status(p)}${p.loanFrom != null ? '<span class="tag m">LOAN</span>' : ''}</td><td>${p.age}</td><td class="${ovrCol(ovr(p))}">${ovr(p)}</td><td>${bar(p.fit, 100, fitCls(p.fit))}</td><td>${formArrow(p.form)}</td></tr>`).join('')}
+  </tbody></table>${(() => { const out = Object.values(W.players).filter(p => p.loanFrom === c.id); return out.length ? `<h3 class="divh">Out on loan</h3>${out.map(p => `<div class="row" data-a="player" data-id="${p.id}">${posTag(p.pos)} ${esc(pname(p))} at ${badgeImg(C(p.club), 14)} ${esc(C(p.club).name)} · ${p.s.ap} apps</div>`).join('')}` : ''; })()}<p class="note"><span class="xi-key"></span> = in your starting eleven · ◆ = special trait</p></div>`;
 }
 function playerModal(id) {
   const p = P(id); if (!p) return;
   const mine = p.club === W.clubId, c = p.club >= 0 ? C(p.club) : null;
   const a = p.a, keys = p.pos === 'GK' ? [['gk', 'Goalkeeping'], ['pas', 'Kicking'], ['pac', 'Agility']] : [['pac', 'Pace'], ['tkl', 'Tackling'], ['pas', 'Passing'], ['sho', 'Shooting']];
   const avg = p.s.ap ? (p.s.rt / p.s.ap).toFixed(2) : '-';
-  const ask = askingPrice(p);
+  const ask = askingPrice(p), k = known(p), loanee = p.loanFrom != null, myLoan = p.loanFrom === W.clubId;
+  UI.curModal = () => playerModal(id); UI.curKind = 'player';
   modal(`<div class="pcard">
-    <div class="phead">${portrait(p, 64)}<div><h3>${esc(p.fn)} ${esc(p.ln)}</h3><div>${posTag(p.pos)} ${POS_NAME[p.pos]} · age ${p.age}</div><div>${c ? badgeImg(c, 16) + ' ' + esc(c.name) : 'Free agent'}</div></div><div class="pbig ${ovrCol(ovr(p))}">${ovr(p)}</div></div>
-    <div class="attrs">${keys.map(([k, n]) => `<div><span>${n}</span>${bar(a[k], 20, a[k] >= 15 ? 'c' : a[k] >= 11 ? 'g' : a[k] >= 7 ? 'y' : 'r')}<b>${Math.round(a[k])}</b></div>`).join('')}</div>
-    <div class="kv"><span>Room to grow</span><b>${stars(p)}</b><span>Fitness</span><b>${Math.round(p.fit)}%</b><span>Morale</span><b>${moraleWord(p.mor)}</b><span>Form</span><b>${formArrow(p.form)} ${p.form >= 1.2 ? 'Hot' : p.form <= -1.2 ? 'Poor' : 'Steady'}</b>
+    <div class="phead">${portrait(p, 64)}<div><h3>${esc(p.fn)} ${esc(p.ln)}</h3><div>${posTag(p.pos)} ${POS_NAME[p.pos]} · age ${p.age}</div><div>${c ? badgeImg(c, 16) + ' ' + esc(c.name) : 'Free agent'}</div>${loanee ? `<div class="c-m">On loan from ${esc(C(p.loanFrom).name)}</div>` : ''}</div><div class="pbig">${ovrHTML(p)}</div></div>
+    ${k ? `<div class="attrs">${keys.map(([k, n]) => `<div><span>${n}</span>${bar(a[k], 20, a[k] >= 15 ? 'c' : a[k] >= 11 ? 'g' : a[k] >= 7 ? 'y' : 'r')}<b>${Math.round(a[k])}</b></div>`).join('')}</div>`
+      : `<div class="scoutbox">🔍 Your scout hasn't watched him yet. Ratings are a rough guess.<button class="btn small go" data-a="scout" data-id="${p.id}">Scout him (${money(scoutCost())})</button></div>`}
+    <div class="kv"><span>Room to grow</span><b>${k ? stars(p) : '<span class="c-d">?</span>'}</b><span>Fitness</span><b>${Math.round(p.fit)}%</b><span>Morale</span><b>${moraleWord(p.mor)}</b><span>Form</span><b>${formArrow(p.form)} ${p.form >= 1.2 ? 'Hot' : p.form <= -1.2 ? 'Poor' : 'Steady'}</b>
       <span>Value</span><b>${money(valueOf(p))}</b><span>Wage</span><b>${money(p.wage)}/wk</b><span>Contract</span><b>${p.club < 0 ? '-' : p.con <= 0 ? 'Expiring!' : p.con + ' yr' + (p.con > 1 ? 's' : '')}</b>
       <span>This season</span><b>${p.s.ap} apps · ${p.s.gl} gls · ${p.s.as} ast · avg ${avg}</b></div>
     ${p.tr ? `<div class="trait">◆ <b>${TRAITS[p.tr].n}</b>: ${TRAITS[p.tr].d}</div>` : ''}
     ${p.inj ? `<div class="c-r">Injured: out for ${p.inj} week${p.inj > 1 ? 's' : ''}</div>` : ''}${p.sus ? `<div class="c-o">Suspended: ${p.sus} match${p.sus > 1 ? 'es' : ''}</div>` : ''}
+    ${!mine && !myLoan ? compareHTML(p) : ''}
     <div class="acts">
-      ${mine ? `<button class="btn small" data-a="toggleList" data-id="${p.id}">${p.listed ? 'Take off the list' : 'Transfer list'}</button>
+      ${mine && loanee ? `<div class="note">He goes back to ${esc(C(p.loanFrom).name)} at the end of the season.</div>`
+      : mine ? `<button class="btn small" data-a="toggleList" data-id="${p.id}">${p.listed ? 'Take off the list' : 'Transfer list'}</button>
         ${p.con <= 1 ? `<button class="btn small go" data-a="renew" data-id="${p.id}">New contract</button>` : ''}
+        ${p.age <= 23 ? `<button class="btn small" data-a="loanOut" data-id="${p.id}">Send out on loan</button>` : ''}
         <button class="btn small bad" data-a="release" data-id="${p.id}">Release (${money(releaseCost(p))})</button>`
-      : `<div class="note">${p.club < 0 ? `Free agent. Wants about ${money(wageDemand(p, me().div))}/wk.` : `Asking price about <b>${money(ask)}</b>${p.listed ? ' (transfer listed!)' : ''}.`}</div><button class="btn go" data-a="offer" data-id="${p.id}">${p.club < 0 ? 'Offer a contract' : 'Make an offer'}</button>`}
-      <button class="btn ghost small" data-a="close">Close</button>
+      : myLoan ? `<div class="note">Your player, out on loan. He comes back at the end of the season.</div>`
+      : loanee ? `<div class="note">On loan here from ${esc(C(p.loanFrom).name)}, so he can't be signed until the summer.</div>`
+      : `<div class="note">${p.club < 0 ? `Free agent. Wants about ${money(wageDemand(p, me().div))}/wk.` : `Asking price about <b>${money(ask)}</b>${p.listed ? ' (transfer listed!)' : ''}.`}</div><button class="btn go" data-a="offer" data-id="${p.id}">${p.club < 0 ? 'Offer a contract' : 'Make an offer'}</button>
+        ${canLoanIn(p) ? `<button class="btn" data-a="loanIn" data-id="${p.id}">Loan him (${money(loanFee(p))})</button>` : ''}`}
+      <button class="btn ghost small" data-a="close">${UI.ret ? '◀ Back' : 'Close'}</button>
     </div></div>`);
 }
 
@@ -208,7 +256,7 @@ function pitchHTML(c, edit) {
   return `<div class="tpitch2">${c.xi.map((id, k) => {
     const p = id != null ? P(id) : null, [x, y] = spots[k];
     const off = p && p.pos !== slots[k];
-    return `<${edit ? 'button' : 'div'} class="slot ${edit && UI.sel === k ? 'sel' : ''} ${off ? 'off' : ''}" style="left:${y * 100}%;top:${92 - x * 112}%" ${edit ? `data-a="slot" data-k="${k}"` : `data-a="player" data-id="${id}"`}><i style="background:${k ? c.c1 : '#33d17a'};border-color:${c.c2}"></i><span>${p ? esc(p.ln) : '???'}</span><b class="${p ? ovrCol(ovr(p, slots[k])) : ''}">${p ? ovr(p, slots[k]) : ''}</b></${edit ? 'button' : 'div'}>`;
+    return `<${edit ? 'button' : 'div'} class="slot ${edit && UI.sel === k ? 'sel' : ''} ${off ? 'off' : ''}" style="left:${y * 100}%;top:${92 - x * 112}%" ${edit ? `data-a="slot" data-k="${k}"` : `data-a="player" data-id="${id}"`}><i style="background:${k ? c.c1 : '#33d17a'};border-color:${c.c2}"></i><span>${p ? esc(p.ln) : '???'}</span><b>${p ? (edit ? `<span class="${ovrCol(ovr(p, slots[k]))}">${ovr(p, slots[k])}</span>` : ovrHTML(p, slots[k])) : ''}</b></${edit ? 'button' : 'div'}>`;
   }).join('')}</div>`;
 }
 function tacticsTop() {
@@ -243,21 +291,25 @@ function oppModal(id) {
   const key = o.xi.map(P).filter(Boolean).sort((a, b) => ovrOf(b) - ovrOf(a))[0];
   const rivals = W.clubs.filter(x => x.div === c.div && x.id !== c.id).sort((a, b) => a.name.localeCompare(b.name));
   if (o.div !== c.div && !rivals.includes(o)) rivals.unshift(o);
+  UI.curModal = () => oppModal(id); UI.curKind = 'opp';
+  const unknown = o.squad.filter(x => !known(P(x))).length;
   modal(`<div class="opp">
     <div class="chips small">${nextId != null ? `<button class="chip ${id === nextId ? 'on' : ''}" data-a="viewOpp" data-id="${nextId}">Next opponent</button>` : ''}
       <select class="oppsel" data-a="oppSel">${rivals.map(x => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
     <div class="nextfx">${badgeImg(o, 40)}<div class="vs"><b>${esc(o.name)}</b><small>${DIVS[o.div]} · ${row && row.p ? ordinal(pos) : '-'} · form ${formHTML(o.formStr)}</small></div></div>
     <p>${o.formation}, plays <b class="c-y">${STYLES[o.style].n}</b>. ${STYLES[o.style].d}</p>
-    <p class="note">${weBeat ? `<span class="c-g">Your ${STYLES[c.style].n} should trouble them.</span>` : theyBeat ? `<span class="c-r">Their style beats your ${STYLES[c.style].n}.</span>` : 'Your styles cancel out.'} Best against them: <b>${counters.map(s => STYLES[s].n).join(' or ')}</b>.${key ? ` Danger man: <b>${esc(pname(key))}</b> (${ovr(key)}).` : ''}</p>
+    <p class="note">${weBeat ? `<span class="c-g">Your ${STYLES[c.style].n} should trouble them.</span>` : theyBeat ? `<span class="c-r">Their style beats your ${STYLES[c.style].n}.</span>` : 'Your styles cancel out.'} Best against them: <b>${counters.map(s => STYLES[s].n).join(' or ')}</b>.${key ? ` Danger man: <b>${esc(pname(key))}</b> (${ovrHTML(key)}).` : ''}</p>
+    ${unknown ? `<div class="scoutbox">🔍 Ratings are rough guesses until you scout them.<button class="btn small go" data-a="scoutSquad" data-id="${o.id}">Scout the whole squad (${money(scoutCost() * 4)})</button></div>` : ''}
     <h3 class="divh">Their likely team</h3>${pitchHTML(o, false)}
     <h3 class="divh">Squad</h3>
-    <table class="tbl"><tbody>${squad.map(p => `<tr data-a="player" data-id="${p.id}" class="${o.xi.includes(p.id) ? 'xi' : ''}"><td>${posTag(p.pos)}</td><td class="nm">${esc(pname(p))}${p.tr ? ' <span class="c-m">◆</span>' : ''} ${p.inj ? `<span class="tag r">INJ</span>` : ''}${p.sus ? '<span class="tag o">SUS</span>' : ''}</td><td>${p.age}</td><td class="${ovrCol(ovr(p))}">${ovr(p)}</td><td>${p.s.gl ? p.s.gl + '⚽' : ''}</td></tr>`).join('')}</tbody></table>
+    <table class="tbl"><tbody>${squad.map(p => `<tr data-a="player" data-id="${p.id}" class="${o.xi.includes(p.id) ? 'xi' : ''}"><td>${posTag(p.pos)}</td><td class="nm">${esc(pname(p))}${p.tr ? ' <span class="c-m">◆</span>' : ''} ${p.inj ? `<span class="tag r">INJ</span>` : ''}${p.sus ? '<span class="tag o">SUS</span>' : ''}</td><td>${p.age}</td><td>${ovrHTML(p)}</td><td>${p.s.gl ? p.s.gl + '⚽' : ''}</td></tr>`).join('')}</tbody></table>
     <div class="acts"><button class="btn go" data-a="close">Done</button></div></div>`);
 }
 function slotModal(k) {
   const c = me(), isBench = String(k)[0] === 'b', slots = formSlots(c.formation), pos = isBench ? null : slots[k];
   const cur = isBench ? c.bench[+k.slice(1)] : c.xi[k];
   const list = c.squad.map(P).filter(p => p.id !== cur).sort((a, b) => pos ? ovrOf(b, pos) - ovrOf(a, pos) : ovrOf(b) - ovrOf(a));
+  UI.curModal = () => slotModal(k); UI.curKind = 'slot';
   modal(`<h3>${isBench ? 'Pick a substitute' : `Who plays ${POS_NAME[pos]}?`}</h3>
   <table class="tbl"><tbody>${list.map(p => {
     const where = c.xi.includes(p.id) ? 'XI' : c.bench.includes(p.id) ? 'SUB' : '';
@@ -297,17 +349,24 @@ function leagueHTML() {
       return `<tr class="${zone} ${r.id === c.id ? 'me' : ''}"><td>${i + 1}</td><td>${badgeImg(C(r.id), 14)}</td><td class="nm">${esc(C(r.id).name)}</td><td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${r.f - r.a > 0 ? '+' : ''}${r.f - r.a}</td><td><b>${r.pts}</b></td></tr>`;
     }).join('')}</tbody></table><p class="note"><span class="c-g">■</span> ${d ? 'promoted' : 'champions'} ${d < 3 ? '· <span class="c-r">■</span> relegated' : ''}</p>`;
   } else if (UI.lt === 'fix') {
-    body = `<table class="tbl"><tbody>${W.cal.map((e, w) => {
-      const date = dateOf(W.season, w).replace(/ \d{4}$/, '');
+    let month = '';
+    const rows = W.cal.map((e, w) => {
+      const dt = dateOf(W.season, w), mon = dt.replace(/^\d+ /, ''), day = dt.split(' ')[0];
+      let head = ''; if (mon !== month) { month = mon; head = `<div class="calm">${mon.toUpperCase()}</div>`; }
       let opp = null, home, res = null;
       if (e.t === 'L') { const f = W.fix[c.div][e.r].find(([h, a]) => h === c.id || a === c.id); if (f) { home = f[0] === c.id; opp = home ? f[1] : f[0]; res = W.res.find(r => r.w === w && (r.h === c.id || r.a === c.id)); } }
       else { const rd = W.cup.log[e.r]; const t = rd ? rd.find(t => t.h === c.id || t.a === c.id) : (W.cup.r === e.r ? W.cup.ties.map(([h, a]) => ({h, a})).find(t => t.h === c.id || t.a === c.id) : null); if (t) { home = t.h === c.id; opp = home ? t.a : t.h; if (rd) res = t; } }
-      const lab = e.t === 'L' ? 'L' : 'CUP';
-      if (opp == null) return `<tr class="dim"><td>${date}</td><td>${lab}</td><td colspan="3">${e.t === 'C' ? cupRoundName(e.r) + (W.cup.r > e.r || !W.cup.alive.concat(W.cup.byes).includes(c.id) ? '' : '') : ''}</td></tr>`;
+      const comp = e.t === 'L' ? '<span class="comp l">LGE</span>' : `<span class="comp c">${['R1', 'R2', 'R3', 'QF', 'SF', 'FINAL'][e.r]}</span>`;
+      const now = w === W.week ? 'now' : w < W.week ? 'past' : '';
+      if (opp == null) return head + `<div class="calr ${now} dim"><span class="d">${day}</span>${comp}<span class="o">${e.t === 'C' ? (W.cup.r > e.r || W.cup.winner != null || !W.cup.alive.concat(W.cup.byes).includes(c.id) ? 'Not involved' : 'Draw to come') : 'No game'}</span></div>`;
       let out = '';
       if (res) { const gf = home ? res.hg : res.ag, ga = home ? res.ag : res.hg; const wl = res.win != null ? (res.win === c.id ? 'W' : 'L') : gf > ga ? 'W' : gf < ga ? 'L' : 'D'; out = `<span class="fm ${wl}">${wl}</span> ${gf}-${ga}${res.pens ? 'p' : ''}`; }
-      return `<tr class="${w === W.week ? 'me' : ''}"><td>${date}</td><td>${lab}</td><td>${home ? 'H' : 'A'}</td><td class="nm">${badgeImg(C(opp), 14)} ${esc(C(opp).name)}</td><td>${out}</td></tr>`;
-    }).join('')}</tbody></table>`;
+      else { const op = posIn(opp), dv = C(opp).div, hard = dv < c.div || (dv === c.div && op <= 3), easy = dv > c.div || (dv === c.div && op >= 10); out = `<span class="diff ${hard ? 'h' : easy ? 'e' : 'm'}">${hard ? 'HARD' : easy ? 'EASY' : 'FAIR'}</span>`; }
+      return head + `<div class="calr ${now}" data-a="viewOpp" data-id="${opp}"><span class="d">${now === 'now' ? '▶' : day}</span>${comp}<span class="ha">${home ? 'H' : 'A'}</span><span class="o">${badgeImg(C(opp), 14)} ${esc(C(opp).name)}</span><span class="r">${out}</span></div>`;
+    }).join('');
+    const left = W.cal.map((e, w) => ({e, w})).filter(x => x.w >= W.week && x.e.t === 'L').slice(0, 5).map(x => { const f = W.fix[c.div][x.e.r].find(([h, a]) => h === c.id || a === c.id); return f ? (f[0] === c.id ? f[1] : f[0]) : null; }).filter(x => x != null);
+    const avg = left.length ? left.reduce((s, id) => s + posIn(id), 0) / left.length : 0;
+    body = `${left.length ? `<p class="note">Next ${left.length} league games: average opponent ${ordinal(Math.round(avg))} in the table, so <b class="${avg < 5 ? 'c-r' : avg > 8 ? 'c-g' : 'c-y'}">${avg < 5 ? 'a tough run' : avg > 8 ? 'a kind run' : 'a mixed run'}</b>. Tap a game to scout the opponent.</p>` : ''}<div class="cal">${rows}</div>`;
   } else if (UI.lt === 'cup') {
     const cup = W.cup;
     body = `<p>${cup.winner != null ? `<b class="c-y">🏆 ${esc(C(cup.winner).name)} won the ${CUP_NAME}!</b>` : `Next: <b>${cupRoundName()}</b> on ${dateOf(W.season, CUP_WEEKS[cup.r])}`}</p>
@@ -328,14 +387,14 @@ function marketHTML() {
   if (m.pos !== 'ALL') list = list.filter(p => p.pos === m.pos);
   if (m.afford && m.view !== 'mine') list = list.filter(p => askingPrice(p) <= Math.max(0, c.cash));
   if (m.young) list = list.filter(p => p.age <= 21);
-  list.sort((a, b) => ovrOf(b) - ovrOf(a));
+  list.sort((a, b) => estOvr(b) - estOvr(a));
   const shown = list.slice(0, 60);
-  return `<div class="panel"><h2>Transfer market</h2><p class="note">Budget: <b class="${c.cash < 0 ? 'c-r' : 'c-g'}">${money(c.cash)}</b> · squad ${c.squad.length}/26</p>
+  return `<div class="subtabs"><button class="${UI.tab === 'squad' ? 'on' : ''}" data-a="tab" data-t="squad">My squad</button><button class="${UI.tab === 'market' ? 'on' : ''}" data-a="tab" data-t="market">Transfer market</button></div><div class="panel"><h2>Transfer market</h2><p class="note">Budget: <b class="${c.cash < 0 ? 'c-r' : 'c-g'}">${money(c.cash)}</b> · squad ${c.squad.length}/26 · loans in ${loansIn()}/3. Ratings like <span class="rng c-y">55-65</span> are guesses until you scout a player.</p>
   <div class="chips">${[['all', 'All players'], ['listed', 'Transfer list'], ['free', 'Free agents'], ['mine', 'My squad']].map(([k, n]) => `<button class="chip ${m.view === k ? 'on' : ''}" data-a="mview" data-k="${k}">${n}</button>`).join('')}</div>
   <div class="chips small">${['ALL'].concat(POS).map(p => `<button class="chip ${m.pos === p ? 'on' : ''}" data-a="mpos" data-p="${p}">${p}</button>`).join('')}
     <button class="chip ${m.afford ? 'on' : ''}" data-a="mafford">Can afford</button><button class="chip ${m.young ? 'on' : ''}" data-a="myoung">21 &amp; under</button></div>
   <table class="tbl"><thead><tr><th></th><th>Name</th><th>Age</th><th>Club</th><th>Rat</th><th>${m.view === 'mine' ? 'Value' : 'Price'}</th></tr></thead><tbody>
-  ${shown.map(p => `<tr data-a="player" data-id="${p.id}"><td>${posTag(p.pos)}</td><td class="nm">${esc(pname(p))}${p.listed ? ' <span class="tag c">L</span>' : ''}${p.tr === 'wonder' ? ' <span class="c-m">◆</span>' : ''}</td><td>${p.age}</td><td>${p.club < 0 ? '<small>FREE</small>' : badgeImg(C(p.club), 14) + ' <small>' + C(p.club).short + '</small>'}</td><td class="${ovrCol(ovr(p))}">${ovr(p)}</td><td>${m.view === 'mine' ? money(valueOf(p)) : p.club < 0 ? '-' : money(askingPrice(p))}</td></tr>`).join('') || '<tr><td colspan="6">Nobody matches.</td></tr>'}
+  ${shown.map(p => `<tr data-a="player" data-id="${p.id}"><td>${posTag(p.pos)}</td><td class="nm">${esc(pname(p))}${p.listed ? ' <span class="tag c">L</span>' : ''}${p.loanFrom != null ? ' <span class="tag m">LOAN</span>' : ''}${known(p) && p.tr === 'wonder' ? ' <span class="c-m">◆</span>' : ''}</td><td>${p.age}</td><td>${p.club < 0 ? '<small>FREE</small>' : badgeImg(C(p.club), 14) + ' <small>' + C(p.club).short + '</small>'}</td><td>${ovrHTML(p)}</td><td>${m.view === 'mine' ? money(valueOf(p)) : p.club < 0 ? '-' : money(askingPrice(p))}</td></tr>`).join('') || '<tr><td colspan="6">Nobody matches.</td></tr>'}
   </tbody></table>${list.length > 60 ? `<p class="note">Showing the best 60 of ${list.length}.</p>` : ''}</div>`;
 }
 
@@ -385,6 +444,7 @@ function signDeal() {
   if (c.cash < d.fee) return toast("You can't afford that.");
   const from = p.club >= 0 ? C(p.club) : null;
   moveP(p, c, d.fee); p.wage = d.wage; p.con = 3;
+  if (d.fee >= 1e6) ach('bigspend');
   news(`${pname(p).toUpperCase()} SIGNS FOR ${c.name.toUpperCase()} ${from ? 'FOR ' + money(d.fee) : 'ON A FREE'}`);
   SND.good(); closeModal(); save(); rerender();
   toast(`<b>${esc(pname(p))}</b> has signed!`);
@@ -408,18 +468,21 @@ function clubHTML() {
   <div class="panel"><h2>Trophy cabinet</h2>${W.career.trophies.length ? W.career.trophies.map(t => `<div>🏆 ${esc(t)}</div>`).join('') : '<p class="note">Empty... for now.</p>'}
     <h3 class="divh">Career</h3><p>${esc(W.name)} · ${W.career.seasons} season${W.career.seasons === 1 ? '' : 's'} · <b class="c-y">${W.career.pts}</b> manager points</p>
     ${W.history.length ? `<table class="tbl"><tbody>${W.history.map(h => `<tr><td>${seasonLabel(h.s)}</td><td>${badgeImg(C(h.club), 14)} ${C(h.club).short}</td><td>${DIVS[h.div]}</td><td>${ordinal(h.pos)}</td><td>${h.pts} pts</td></tr>`).join('')}</tbody></table>` : ''}</div>
+  <div class="panel"><h2>Achievements</h2>${achHTML()}</div>
   <div class="panel"><h2>Settings</h2>
     <label class="tog"><input type="checkbox" data-a="set" data-k="mini" ${W.settings.mini ? 'checked' : ''}> Play penalties and free kicks yourself in matches</label>
     <label class="tog"><input type="checkbox" data-a="set" data-k="sound" ${W.settings.sound ? 'checked' : ''}> Sound</label>
     <label class="tog"><input type="checkbox" data-a="set" data-k="zoom" ${W.settings.zoom !== false ? 'checked' : ''}> Close-up match camera (off = whole pitch)</label>
     <div class="chips small">Match speed: ${['Slow', 'Normal', 'Fast'].map((n, i) => `<button class="chip ${W.settings.speed === i + 1 ? 'on' : ''}" data-a="speed" data-s="${i + 1}">${n}</button>`).join('')}</div>
+    <label class="tog"><input type="checkbox" data-a="musicSet" ${MUSIC.on ? 'checked' : ''}> Music on the title and season screens</label>
+    <div class="acts"><button class="btn small" data-a="backup">💾 Back up this career</button><button class="btn small" data-a="slots">Saved careers</button><button class="btn small" data-a="tour">Replay the tour</button></div>
     <div class="acts"><button class="btn small" data-a="toTitle">Save &amp; quit to menu</button><button class="btn small bad" data-a="resign">Resign</button></div>
     <p class="note">Best: keepy-uppy ${b.keepy} · free-kick challenge ${b.fk}/10</p></div>`;
 }
 
 // ---------- NEWS (inbox)
 function newsHTML() {
-  return `<div class="ttx inbox"><div class="ttxh"><span>P101</span><span>PIXTEXT</span><span>MAIL</span></div>
+  return `<div class="subtabs"><button data-a="tab" data-t="home">◀ Home</button><button class="on">Inbox</button></div><div class="ttx inbox"><div class="ttxh"><span>P101</span><span>PIXTEXT</span><span>MAIL</span></div>
   ${W.inbox.length ? W.inbox.map(m => `<div class="msg ${m.read ? '' : 'unread'} ${UI.open === m.id ? 'open' : ''}" data-a="openMsg" data-id="${m.id}">
     <div class="mh"><span class="c-c">${esc(m.from)}</span><span class="c-d">${dateOf(m.s, m.w).replace(/ \d{4}$/, '')}</span></div><div class="c-y">${esc(m.subj)}</div>
     ${UI.open === m.id ? `<div class="mb">${esc(m.body)}</div>${msgActs(m)}` : ''}</div>`).join('') : '<div class="c-y">NO MESSAGES</div>'}</div>`;
@@ -485,7 +548,7 @@ function prematchHTML() {
   return `<div class="top-simple"><button class="btn ghost small" data-a="backToGame">← Back</button><h2 class="px">MATCH DAY</h2></div>
   <div class="panel"><div class="nextfx">${badgeImg(home ? c : opp, 44)}<div class="vs"><small>${fx.cup ? `${CUP_NAME} · ${cupRoundName()}${fx.neutral ? ' · neutral ground' : ''}` : DIVS[c.div]}</small><b>${esc((home ? c : opp).short)} v ${esc((home ? opp : c).short)}</b><small>${esc(C(fx.h).name)} v ${esc(C(fx.a).name)}</small></div>${badgeImg(home ? opp : c, 44)}</div></div>
   <div class="panel"><h2>Scout report: ${esc(opp.name)}</h2>
-    <p>${opp.formation}, plays <b class="c-y">${STYLES[opp.style].n}</b>. Form ${formHTML(opp.formStr)}. Danger man: <b>${key ? esc(pname(key)) + ' (' + ovr(key) + ')' : '-'}</b></p>
+    <p>${opp.formation}, plays <b class="c-y">${STYLES[opp.style].n}</b>. Form ${formHTML(opp.formStr)}. Danger man: <b>${key ? esc(pname(key)) + ' (' + ovrHTML(key) + ')' : '-'}</b></p>
     ${cmp('Defence', us.def, them.def)}${cmp('Midfield', us.mid, them.mid)}${cmp('Attack', us.att, them.att)}
     <p class="note">${tip}</p></div>
   <div class="panel"><h2>Your team · ${c.formation} · ${STYLES[c.style].n}</h2><div class="lineup">${c.xi.map((id, k) => id == null ? '' : `<span>${posTag(formSlots(c.formation)[k])} ${esc(P(id).ln)}</span>`).join('')}</div>
@@ -509,6 +572,8 @@ function answerScenario(i) {
   if (eff.chance != null) { const win = R() < eff.chance; gamble = win; [eff, txt] = win ? eff.win : eff.lose; }
   W.scenSeen = (W.scenSeen || []).concat(sc.s.id).slice(-60);
   const out = applyScenario(eff, sc);
+  if (bumpStat('scen') >= 20) ach('scen20');
+  if (gamble && bumpStat('gamble') >= 5) ach('gambler');
   save();
   if (gamble != null) (gamble ? SND.good() : SND.bad()); else SND.click();
   modal(`<div class="scen"><div class="scenh"><span>${gamble == null ? 'You decided...' : gamble ? '🎲 It paid off!' : '🎲 It backfired!'}</span></div>
@@ -561,7 +626,7 @@ function handleEvents(evs, ms) {
   LM.pitch.playMinute({poss: shot ? shot.s : m.ball ?? 0, shot: shot ? shot.t : null, shotSide: shot ? shot.s : 0}, Math.max(ms, shot ? 700 : 0));
   evs.forEach(e => {
     addLine(e);
-    if (e.t === 'goal') { pause = Math.max(pause, 2200); setTimeout(() => { if (!LM) return; LM.pitch.banner('GOAL!', e.s === m.userSide ? '#3ddc5a' : '#ff4b55', 1600); SND.roar(); }, 650); }
+    if (e.t === 'goal') { pause = Math.max(pause, 2200); setTimeout(() => { if (!LM) return; LM.pitch.banner('GOAL!', e.s === m.userSide ? '#3ddc5a' : '#ff4b55', 1600); LM.pitch.celebrate(e.s, 1500); SND.roar(); }, 650); }
     if (e.t === 'save' || e.t === 'post') { pause = Math.max(pause, 1100); setTimeout(() => SND.ooh(), 600); }
     if (e.t === 'rc') { pause = Math.max(pause, 1500); LM.pitch.banner('RED CARD', '#ff4b55', 1200); }
     if (e.t === 'yc') SND.whistle();
@@ -600,7 +665,7 @@ async function runPending() {
     const takers = s => s.on.filter(id => id != null).map(P).sort((a, b) => (b.a.sho + (b.tr === 'deadball' ? 6 : 0)) - (a.a.sho + (a.tr === 'deadball' ? 6 : 0)));
     const sc = await shootout({us: {short: us.c.short, takers: takers(us), gk: P(m.keeper(us)), kit: kitOf(us.c), gkKit: gkKit(us)}, them: {short: them.c.short, takers: takers(them), gk: P(m.keeper(them)), kit: kitOf(them.c), gkKit: oppGkKit}});
     m.resolveShootout(m.userSide === 0 ? sc : [sc[1], sc[0]]);
-    const b = best(); if (sc[0] > sc[1]) { b.pens++; lset(BEST, b); }
+    const b = best(); if (sc[0] > sc[1]) { b.pens++; lset(BEST, b); ach('shootout'); }
   } else {
     const taker = P(pd.taker), gk = pd.gk != null ? P(pd.gk) : null;
     let goal;
@@ -608,8 +673,11 @@ async function runPending() {
     else if (pd.type === 'pen-save') goal = await penSave({taker, gk, kit: kitOf(them.c), gkKit: gkKit(us)});
     else goal = await freeKick({taker, gk, kit: kitOf(us.c), gkKit: oppGkKit, wallKit: kitOf(them.c)});
     const e = m.resolve(goal);
+    if (pd.type === 'pen-shoot' && goal) ach('pen_score');
+    if (pd.type === 'pen-save' && !goal) ach('pen_save');
+    if (pd.type === 'fk' && goal) ach('fk_goal');
     addLine(e);
-    if (goal) LM.pitch.banner('GOAL!', pd.type === 'pen-save' ? '#ff4b55' : '#3ddc5a', 1500);
+    if (goal) { LM.pitch.banner('GOAL!', pd.type === 'pen-save' ? '#ff4b55' : '#3ddc5a', 1500); LM.pitch.celebrate(pd.type === 'pen-save' ? 1 - m.userSide : m.userSide, 1500); }
   }
   afterPending();
 }
@@ -668,15 +736,19 @@ function fullTime(m) {
   <div class="panel ftbox"><div class="ftscore"><div>${badgeImg(S[0].c, 40)}<b>${esc(S[0].c.short)}</b></div><div class="big">${S[0].g} - ${S[1].g}</div><div>${badgeImg(S[1].c, 40)}<b>${esc(S[1].c.short)}</b></div></div>
     ${m.pens ? `<p class="c-y center">${m.pens[0]}-${m.pens[1]} on penalties</p>` : ''}
     <div class="scorers"><div>${goals(0)}</div><div>${goals(1)}</div></div>
-    <p class="center ${won ? 'c-g' : lost ? 'c-r' : 'c-y'} px">${won ? 'VICTORY!' : lost ? 'DEFEAT' : 'A DRAW'}</p></div>
+    <p class="center ${won ? 'c-g' : lost ? 'c-r' : 'c-y'} px">${won ? 'VICTORY!' : lost ? 'DEFEAT' : 'A DRAW'}</p>
+    ${m.log.some(e => e.t === 'goal') ? '<button class="btn wide" data-a="highlights">▶ Watch the goals</button>' : ''}</div>
+  ${won && m.cup && W.cup.r === 5 ? '<canvas id="cupcv" class="trophycv"></canvas>' : ''}
   <div class="panel"><h2>Stats</h2><div class="mstats">${(() => { const pos = Math.round(S[0].poss / Math.max(1, S[0].poss + S[1].poss) * 100); return `<span>${pos}%</span><span>Possession</span><span>${100 - pos}%</span><span>${S[0].sh}</span><span>Shots</span><span>${S[1].sh}</span><span>${S[0].sot}</span><span>On target</span><span>${S[1].sot}</span>`; })()}</div></div>
   <div class="panel"><h2>Your player ratings</h2><table class="tbl"><tbody>${rated.map((x, i) => `<tr><td>${posTag(x.p.pos)}</td><td class="nm">${esc(pname(x.p))}${i === 0 ? ' <span class="tag y">STAR</span>' : ''}${mine.gl[x.p.id] ? ' ' + '⚽'.repeat(mine.gl[x.p.id]) : ''}</td><td class="${x.r >= 7.5 ? 'c-g' : x.r < 6 ? 'c-r' : 'c-y'}">${x.r.toFixed(1)}</td></tr>`).join('')}</tbody></table></div>
   <div class="sticky"><button class="btn go big wide" data-a="ftContinue">Continue ▶</button></div>`;
   window.scrollTo(0, 0);
+  if ($('#cupcv')) { trophyScene($('#cupcv'), kitOf(mine.c), 'CUP WINNERS!'); MUSIC.want('anthem'); }
 }
 function afterWeek(rep) {
   W.lastWeek = {cup: rep.cup, results: rep.results.map(r => ({h: r.h, a: r.a, hg: r.hg, ag: r.ag, pens: r.pens, d: r.d}))};
   if (rep.user && rep.gate != null) W.lastGate = {gate: rep.gate, att: rep.user.att};
+  if (rep.user) achAfterMatch(rep);
   UI.rep = rep; UI.screen = 'week'; save(); render();
 }
 function weekHTML() {
@@ -706,7 +778,9 @@ function seasonHTML() {
   const offers = UI.offers || [];
   const exp = (u.expired || []).map(P).filter(Boolean);
   UI.renew = UI.renew || Object.fromEntries(exp.map(p => [p.id, p.age < 33]));
+  const ttl = u.pos === 1 ? 'CHAMPIONS!' : u.cupRound === 6 ? 'CUP WINNERS!' : u.pos <= 2 && u.div > 0 ? 'PROMOTED!' : '';
   return `<div class="top-simple"><h2 class="px">SEASON ${seasonLabel(S.season)}</h2></div>
+  ${ttl ? `<canvas id="trophycv" class="trophycv" data-title="${ttl}"></canvas>` : ''}
   <div class="panel center"><div>${badgeImg(C(u.club), 48)}</div><h2>${esc(C(u.club).name)}</h2>
     <div class="big c-y">${ordinal(u.pos)} in ${DIVS[u.div]}</div><p>${u.pts} points · ${u.cupRound === 6 ? `<b class="c-y">${CUP_NAME} WINNERS!</b>` : `${CUP_NAME}: out in the ${CUP_ROUNDS[Math.max(0, u.cupRound)] || 'early rounds'}`}</p>
     ${u.trophies.map(t => `<div class="trophy">🏆 ${esc(t)}</div>`).join('')}
@@ -737,6 +811,7 @@ async function arcade(k) {
   if (k === 'keepy') {
     const n = await keepyUppy({kit: kitOf(you), best: b.keepy});
     if (n > b.keepy) { b.keepy = n; lset(BEST, b); }
+    if (n >= 50) ach('keepy50'); if (n >= 100) ach('keepy100');
     if (n > 0 && window.FamilyScores) FamilyScores.submit('pixelgaffer', 'keepy', n, {fallbackName: W && W.name});
   } else if (k === 'fk') {
     const ov = miniOverlay('FREE-KICK CHALLENGE', '', {skip: false});
@@ -750,13 +825,14 @@ async function arcade(k) {
     ov.close();
     if (ov.quit) return rerender();
     if (goals > b.fk) { b.fk = goals; lset(BEST, b); }
+    if (goals >= 8) ach('fk8');
     toast(`<b>${goals}/10</b> free kicks scored!`);
     if (window.FamilyScores) FamilyScores.submit('pixelgaffer', 'freekick', goals, {fallbackName: W && W.name});
   } else {
     const opp = pick(CLUBS);
     const takers = n => Array.from({length: 5}, () => fake(10 + R() * 6, 10));
     const sc = await shootout({us: {short: you.short || 'YOU', takers: takers(), gk: fake(5, 12), kit: kitOf(you)}, them: {short: opp[1], takers: takers(), gk: fake(5, 11), kit: {shirt: opp[2], shorts: opp[3]}}});
-    if (sc[0] > sc[1]) { b.pens++; lset(BEST, b); }
+    if (sc[0] > sc[1]) { b.pens++; lset(BEST, b); ach('shootout'); }
     toast(sc[0] > sc[1] ? '<b>You won the shoot-out!</b>' : 'Beaten on penalties...');
   }
   rerender();
@@ -766,6 +842,7 @@ async function drill(k) {
   if (k === 'keepy') {
     const n = await keepyUppy({kit: kitOf(c), best: b.keepy});
     if (n > b.keepy) { b.keepy = n; lset(BEST, b); }
+    if (n >= 50) ach('keepy50'); if (n >= 100) ach('keepy100');
     if (n > 0 && window.FamilyScores) FamilyScores.submit('pixelgaffer', 'keepy', n, {fallbackName: W.name});
     W.drill = Math.min(1, n / 30);
     c.squad.forEach(id => P(id).mor = clamp(P(id).mor + Math.min(8, n / 4), 5, 100));
@@ -785,7 +862,7 @@ async function drill(k) {
 }
 
 // ---------- modal
-function modal(html, sticky) { closeModal(); const el = document.createElement('div'); el.className = 'modal'; el.innerHTML = `<div class="mbox">${html}</div>`; if (!sticky) el.addEventListener('click', e => { if (e.target === el) closeModal(); }); document.body.appendChild(el); UI.modal = el; }
+function modal(html, sticky) { closeModal(); const el = document.createElement('div'); el.className = 'modal'; el.innerHTML = `<div class="mbox">${html}</div>`; if (!sticky) el.addEventListener('click', e => { if (e.target === el) ACT.close(); }); document.body.appendChild(el); UI.modal = el; }
 function closeModal() { if (UI.modal) UI.modal.remove(); UI.modal = null; }
 function howto() {
   modal(`<h3>How to play</h3><div class="howto">
@@ -801,8 +878,26 @@ function howto() {
 
 // ---------- actions
 const ACT = {
-  newGame() { if (loadSave() && !confirm('Start a new career? Your current save will be replaced.')) return; UI.screen = 'new'; UI.newClub = null; render(); },
-  continueGame() { W = loadSave(); NEXT_ID = W.nextId; if (!W.training) W.training = {focus: 'balanced', int: 1}; UI.screen = W.pendingSeason ? 'season' : 'game'; UI.tab = 'home'; if (W.pendingSeason) { UI.season = W.pendingSeason; UI.offers = W.pendingOffers || []; } render(); },
+  newGame() { if (!anySave()) { UI.slot = 1; UI.screen = 'new'; UI.newClub = null; return render(); } modal(slotsHTML('new')); },
+  slots() { modal(slotsHTML('load')); },
+  slotNew(d) { const n = +d.n; if (slotInfo(n) && !confirm(`Start a new career in slot ${n}? The career saved there will be lost.`)) return; closeModal(); UI.slot = n; W = null; UI.screen = 'new'; UI.newClub = null; render(); },
+  slotLoad(d) { closeModal(); save(); UI.slot = +d.n; lset('pixelgaffer-slot', UI.slot); ACT.continueGame(); },
+  slotDel(d) { const n = +d.n; if (!confirm(`Delete the career in slot ${n}? This can't be undone.`)) return; try { localStorage.removeItem(slotKey(n)); } catch (e) {} if (W && UI.slot === n) W = null; modal(slotsHTML('load')); if (UI.screen === 'title') rerender(); },
+  slotRestore(d, el) { if (el.files && el.files[0]) restoreSave(+d.n, el.files[0]); },
+  backup() { exportSave(); },
+  achs() { modal(`<h3>🏆 Achievements</h3>${achHTML()}<button class="btn go" data-a="close">Close</button>`); },
+  musicToggle() { MUSIC.on = !MUSIC.on; if (MUSIC.on) MUSIC.want('title'); rerender(); },
+  musicSet(d, el) { MUSIC.on = el.checked; },
+  tour() { startTour(); },
+  tourNext() { UI.tour++; showTour(); },
+  tourEnd() { endTour(); },
+  scout(d) { const c = me(), cost = scoutCost(); if (c.cash < cost) return toast("You can't afford the scout."); c.cash -= cost; scoutPlayers([+d.id]); save(); toast('Your scout has seen him play. Full report ready!'); playerModal(+d.id); },
+  scoutSquad(d) { const c = me(), cost = scoutCost() * 4, o = C(+d.id); if (c.cash < cost) return toast("You can't afford the scouts."); c.cash -= cost; scoutPlayers(o.squad); save(); toast(`Your scouts have watched ${esc(o.name)}. Full reports ready!`); oppModal(o.id); },
+  loanIn(d) { const p = P(+d.id); if (!confirm(`Take ${pname(p)} on loan until the end of the season for ${money(loanFee(p))}? You pay his wages (${money(p.wage)}/wk).`)) return; loanInPlayer(p); fixTeam(me()); UI.ret = null; closeModal(); save(); rerender(); },
+  loanOut(d) { const p = P(+d.id); if (!confirm(`Send ${pname(p)} out on loan until the end of the season? He'll play regularly and come back better.`)) return; loanOutPlayer(p); UI.ret = null; closeModal(); save(); rerender(); },
+  highlights() { showHighlights(UI.match); },
+  openMsgHome(d) { UI.open = d.id; const m = W.inbox.find(x => x.id === d.id); if (m) m.read = true; UI.tab = 'news'; save(); render(); },
+  continueGame() { W = loadSave(); if (!W) return toast('No saved career in that slot.'); NEXT_ID = W.nextId; if (!W.training) W.training = {focus: 'balanced', int: 1}; UI.screen = W.pendingSeason ? 'season' : 'game'; UI.tab = 'home'; if (W.pendingSeason) { UI.season = W.pendingSeason; UI.offers = W.pendingOffers || []; } render(); },
   arcade() { UI.screen = 'arcade'; W = W || loadSave(); render(); },
   howto,
   toTitle() { save(); UI.screen = 'title'; render(); },
@@ -810,7 +905,7 @@ const ACT = {
   startCareer() {
     const name = ($('#mname').value || '').trim().slice(0, 16) || 'The Gaffer';
     startCareer(name, UI.newClub); save();
-    UI.screen = 'game'; UI.tab = 'home'; render(); setTimeout(howto, 300);
+    UI.screen = 'game'; UI.tab = 'home'; render(); setTimeout(startTour, 350);
   },
   scen(d) { answerScenario(+d.i); },
   scenDone() { closeModal(); go(); },
@@ -818,11 +913,11 @@ const ACT = {
   tacBack() { fixTeam(me()); UI.screen = 'prematch'; render(); },
   viewOpp(d) { oppModal(d.id === '' ? null : +d.id); },
   oppSel(d, el) { oppModal(+el.value); },
-  tab(d) { closeModal(); if (UI.screen !== 'game') UI.screen = 'game'; UI.tab = d.t; UI.sel = null; render(); },
+  tab(d) { UI.ret = null; closeModal(); if (UI.screen !== 'game') UI.screen = 'game'; UI.tab = d.t; UI.sel = null; render(); },
   go() { go(); },
   backToGame() { UI.screen = 'game'; render(); },
-  player(d) { playerModal(+d.id); },
-  close() { closeModal(); },
+  player(d) { UI.ret = UI.modal && UI.curKind !== 'player' ? UI.curModal : UI.modal ? UI.ret : null; playerModal(+d.id); },
+  close() { const r = UI.ret; UI.ret = null; closeModal(); if (r) r(); },
   toggleList(d) { const p = P(+d.id); p.listed = !p.listed; save(); toast(p.listed ? 'Transfer listed. Bids should follow.' : 'Taken off the list.'); playerModal(p.id); },
   renew(d) {
     const p = P(+d.id), wage = Math.round(wageDemand(Object.assign({}, p), me().div) * (p.mor < 40 ? 1.3 : 1) / 10) * 10;
@@ -897,7 +992,7 @@ const ACT = {
       const great = S.user.pos <= 2 || S.user.cupRound === 6;
       UI.offers = S.user.sacked ? jobOffers(true) : great && R() < .7 ? jobOffers(false).slice(0, 2) : [];
       if (S.user.sacked && !UI.offers.length) UI.offers = [pick(W.clubs.filter(x => x.div === 3 && x.id !== W.clubId)).id];
-      W.pendingSeason = S; W.pendingOffers = UI.offers; save();
+      W.pendingSeason = S; W.pendingOffers = UI.offers; save(); achAfterSeason(S);
       if (window.FamilyScores) FamilyScores.submit('pixelgaffer', 'career', W.career.pts, {fallbackName: W.name, detail: `${me().name}, ${W.career.seasons} season${W.career.seasons > 1 ? 's' : ''}`});
       UI.screen = 'season'; render(); return;
     }
