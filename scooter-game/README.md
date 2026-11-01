@@ -33,6 +33,10 @@ Finishing a level unlocks the next (Options has "Unlock all levels").
 | Theme Park | Fairground | Rollercoaster tracks to grind, bouncy castles, crowds |
 | Neon Alley | Night alley | Three neon rails, stalls and shoppers |
 | Night Bowl | Floodlit park | A 60-second score attack with big quarter pipes |
+| Grid Runner | Tron-style | Black world drawn in neon green and pink, synthwave sun, light trail behind you, synth music |
+| Shadow Woods | Monochrome | Grey misty forest, silhouette rider with a glowing eye, film grain, swinging logs, quiet ambient music |
+| Beat Street | Rhythm run | You ride at a fixed speed to a club track; every obstacle sits on a beat, marked on the ground. Jump on the beat to build a streak |
+| Bass Drop | Club | Equaliser bars, floor lights and beams pulse to the music, speakers bounce you, on-beat jumps score a bonus |
 
 **Daily Run** builds a new level every day from the date, with fixed weather, so everyone plays the same course. On the published page, signed-in players share one daily leaderboard; elsewhere scores stay on the device.
 
@@ -48,7 +52,7 @@ Each level has four challenges: a par time (or two score targets on the timed pl
 
 ## Riders, power-ups and the level editor
 
-- **Riders:** Street Kid, Robot, Gorilla, Alien, Skeleton and Astronaut, plus seven outfit colours. They unlock with challenge stars (4 per level, 80 in all). Options has "Unlock all riders and colours".
+- **Riders:** Street Kid, Robot, Gorilla, Alien, Skeleton and Astronaut, plus seven outfit colours. They unlock with challenge stars (4 per level, 96 in all). Options has "Unlock all riders and colours".
 - **Power-ups** appear on long flat stretches:
   - Rocket: faster and pushes for you, 5 s.
   - Super Spring: higher jumps, 8 s.
