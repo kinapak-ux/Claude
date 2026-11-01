@@ -188,13 +188,13 @@ class Match {
     }
     // cards and knocks
     S.forEach((s, i) => {
-      const hot = s.on.some(id => id != null && P(id).tr === 'hothead') ? 1.6 : 1;
-      if (R() < .019 * hot * (s.style === 'press' ? 1.3 : 1)) {
-        const id = wpick(s.on.filter(x => x != null), x => (P(x).tr === 'hothead' ? 3 : 1) * (P(x).pos === 'DF' ? 1.6 : P(x).pos === 'GK' ? .2 : 1));
+      const hot = s.on.some(id => id != null && P(id).tr === 'hothead') ? 1.3 : 1;
+      if (R() < .016 * hot * (s.style === 'press' ? 1.25 : 1)) {
+        const id = wpick(s.on.filter(x => x != null), x => (P(x).tr === 'hothead' ? 2 : 1) * (P(x).pos === 'DF' ? 1.4 : P(x).pos === 'GK' ? .2 : 1) * (s.yc[x] ? .3 : 1));
         s.yc[id] = (s.yc[id] || 0) + 1; s.rt[id] -= .3;
         if (s.yc[id] >= 2) out.push(this.sendOff(i, id, true));
         else out.push(this.ev({t: 'yc', s: i, pid: id, txt: `${pname(P(id))} goes into the book.`}));
-      } else if (R() < .0007 * hot) out.push(this.sendOff(i, wpick(s.on.filter(x => x != null), x => P(x).pos === 'GK' ? .1 : 1), false));
+      } else if (R() < .00028 * hot) out.push(this.sendOff(i, wpick(s.on.filter(x => x != null), x => P(x).pos === 'GK' ? .1 : 1), false));
       if (R() < .0013) {
         const id = wpick(s.on.filter(x => x != null), x => (P(x).tr === 'glass' ? 3 : 1) * (1.5 - s.fit[x] / 100));
         if (id != null) {
@@ -338,11 +338,15 @@ function applyMatch(m, info) {
       if (p.pos === 'GK') rt -= conceded * .25;
       rt = clamp(Math.round(rt * 10) / 10, 3, 10);
       p.s.ap++; p.s.gl += s.gl[id] || 0; p.s.as += s.as[id] || 0; p.s.rt += rt; p.last = rt;
+      if (p.pos === 'GK' && conceded === 0 && !(s.subbed || []).includes(id)) p.s.cs = (p.s.cs || 0) + 1;
+      p.s.yc = (p.s.yc || 0) + (s.yc[id] || 0);
       p.form = clamp(p.form * .6 + (rt - 6.6) * 1.1, -3, 3);
       p.fit = Math.round(s.fit[id] ?? p.fit);
       if (s.yc[id] === 1) { p.yc++; if (p.yc >= 5) { p.yc = 0; p.sus = Math.max(p.sus, 1); p.susNew = 1; } }
     });
-    Object.entries(s.reds || {}).forEach(([id, n]) => { P(id).sus = Math.max(P(id).sus, n); P(id).susNew = 1; });
+    Object.entries(s.reds || {}).forEach(([id, n]) => { P(id).sus = Math.max(P(id).sus, n); P(id).susNew = 1; P(id).s.rc = (P(id).s.rc || 0) + 1; });
+    const star = [...s.played].filter(id => P(id)).sort((a, b) => P(b).last - P(a).last)[0];
+    if (star != null) P(star).s.mo = (P(star).s.mo || 0) + 1;
     Object.entries(s.injured || {}).forEach(([id, n]) => { const p = P(id); p.inj = Math.max(p.inj, n * (p.tr === 'glass' ? 2 : 1)); p.injNew = 1; });
     s.c.squad.forEach(id => { const p = P(id); if (!p) return; p.mor = clamp(p.mor + (res === 'W' ? 6 : res === 'L' ? -6 : 0) + (s.played.has(id) ? 1 : -1) + (p.tr === 'leader' && res === 'L' ? 4 : 0), 5, 100); });
     s.c.squad.forEach(id => { const p = P(id); if (p && p.sus && !p.susNew) p.sus--; if (p) delete p.susNew; });

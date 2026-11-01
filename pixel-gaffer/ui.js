@@ -183,7 +183,8 @@ function homeHTML() {
   return `<div class="panel"><h2>Next up · ${dateOf(W.season, W.week)}</h2>${next}</div>
   ${act.length ? `<div class="panel alert" data-a="tab" data-t="news"><h2>✉ ${act.length} message${act.length > 1 ? 's' : ''} need${act.length > 1 ? '' : 's'} an answer</h2>${act.slice(0, 2).map(m => `<div>${esc(m.subj)}</div>`).join('')}</div>` : ''}
   <div class="grid2">
-    <div class="panel stat"><h2>League</h2><div class="big ${pos <= 2 && c.div > 0 || pos === 1 ? 'c-g' : pos >= 11 && c.div < 3 ? 'c-r' : 'c-y'}">${row.p ? ordinal(pos) : '-'}</div><small>${row.pts} pts · P${row.p} · ${formHTML(row.form.slice(-5))}</small></div>
+    <div class="panel stat"><h2>League</h2><div class="big ${pos <= 2 && c.div > 0 || pos === 1 ? 'c-g' : pos >= 11 && c.div < 3 ? 'c-r' : 'c-y'}">${row.p ? ordinal(pos) : '-'}</div><small>${row.pts} pts · P${row.p} · ${formHTML(row.form.slice(-5))}</small>
+      ${(() => { const ts = c.squad.map(P).filter(p => p.s.gl).sort((a, b) => b.s.gl - a.s.gl)[0], ds = Object.values(W.players).filter(p => p.club >= 0 && C(p.club).div === c.div && p.s.gl).sort((a, b) => b.s.gl - a.s.gl)[0]; return ts || ds ? `<h2 style="margin-top:10px">Top scorers</h2><small>${ts ? `Ours: <b>${esc(pname(ts))}</b> ${ts.s.gl}<br>` : ''}${ds ? `League: <b>${esc(pname(ds))}</b> ${ds.s.gl} <span data-a="statsGo" class="lnk">all stats</span>` : ''}</small>` : ''; })()}</div>
     <div class="panel stat"><h2>Board</h2>${bar(conf, 100, conf > 60 ? 'g' : conf > 30 ? 'y' : 'r')}<small>${confWord(conf)}<br>Target: <b>${esc(W.board.txt)}</b></small>
       <h2 style="margin-top:10px">Fans</h2>${bar(W.fans ?? 60, 100, (W.fans ?? 60) > 60 ? 'g' : (W.fans ?? 60) > 30 ? 'y' : 'r')}<small>${fansWord(W.fans ?? 60)}</small></div>
   </div>
@@ -339,7 +340,7 @@ function choosePlayer(k, id) {
 // ---------- LEAGUE
 function leagueHTML() {
   const c = me(), d = UI.ld ?? c.div;
-  const tabs = `<div class="chips">${[['table', 'Tables'], ['fix', 'Fixtures'], ['cup', CUP_NAME], ['scorers', 'Top scorers']].map(([k, n]) => `<button class="chip ${UI.lt === k ? 'on' : ''}" data-a="lt" data-k="${k}">${n}</button>`).join('')}</div>`;
+  const tabs = `<div class="chips">${[['table', 'Tables'], ['fix', 'Fixtures'], ['cup', CUP_NAME], ['scorers', 'Stats']].map(([k, n]) => `<button class="chip ${UI.lt === k ? 'on' : ''}" data-a="lt" data-k="${k}">${n}</button>`).join('')}</div>`;
   const divs = `<div class="chips small">${DIVS.map((n, i) => `<button class="chip ${d === i ? 'on' : ''}" data-a="ld" data-d="${i}">${i ? 'Div ' + i : 'Premier'}</button>`).join('')}</div>`;
   let body = '';
   if (UI.lt === 'table') {
@@ -373,10 +374,55 @@ function leagueHTML() {
       ${cup.winner == null ? `<div class="ttx">${cup.r === 0 ? '<div class="c-y">FIRST ROUND DRAW (the top 16 have byes)</div>' : `<div class="c-y">${cupRoundName().toUpperCase()} DRAW</div>`}${cup.ties.map(([h, a]) => `<div class="res ${h === c.id || a === c.id ? 'mine' : ''}"><span>${esc(C(h).name)}</span><b>v</b><span>${esc(C(a).name)}</span></div>`).join('')}</div>` : ''}
       ${cup.log.map((rd, i) => `<div class="ttx"><div class="c-y">${CUP_ROUNDS[i].toUpperCase()}</div>${rd.map(r => resLine(r)).join('')}</div>`).reverse().join('')}`;
   } else {
-    const ps = Object.values(W.players).filter(p => p.club >= 0 && C(p.club).div === d && p.s.gl > 0).sort((a, b) => b.s.gl - a.s.gl).slice(0, 15);
-    body = divs + `<table class="tbl"><tbody>${ps.map((p, i) => `<tr data-a="player" data-id="${p.id}" class="${p.club === c.id ? 'me' : ''}"><td>${i + 1}</td><td class="nm">${esc(pname(p))}</td><td>${badgeImg(C(p.club), 14)} ${C(p.club).short}</td><td><b>${p.s.gl}</b></td></tr>`).join('') || '<tr><td>No goals yet.</td></tr>'}</tbody></table>`;
+    body = statsHTML(d, divs);
   }
   return `<div class="panel">${tabs}${body}</div>`;
+}
+
+// ---------- STATS: player leaderboards, team tables and your own squad
+const STAT_TABS = [['goals', 'Goals'], ['assists', 'Assists'], ['rating', 'Ratings'], ['motm', 'Star man'], ['cs', 'Clean sheets'], ['cards', 'Discipline'], ['form', 'Form table'], ['home', 'Home'], ['away', 'Away'], ['attack', 'Attack'], ['defence', 'Defence'], ['mine', 'My club']];
+function teamRows(div, filter) {
+  const rows = {};
+  W.clubs.filter(c => c.div === div).forEach(c => rows[c.id] = {id: c.id, p: 0, w: 0, d: 0, l: 0, f: 0, a: 0, pts: 0, form: ''});
+  W.res.filter(r => r.d === div).sort((a, b) => a.w - b.w).forEach(r => {
+    [[r.h, r.hg, r.ag, 'h'], [r.a, r.ag, r.hg, 'a']].forEach(([id, gf, ga, where]) => {
+      const x = rows[id]; if (!x || (filter && filter !== where)) return;
+      x.p++; x.f += gf; x.a += ga;
+      if (gf > ga) { x.w++; x.pts += 3; x.form += 'W'; } else if (gf < ga) { x.l++; x.form += 'L'; } else { x.d++; x.pts++; x.form += 'D'; }
+    });
+  });
+  return Object.values(rows);
+}
+function statsHTML(d, divs) {
+  const c = me(), st = UI.st || 'goals';
+  const chips = `<div class="chips small">${STAT_TABS.map(([k, n]) => `<button class="chip ${st === k ? 'on' : ''}" data-a="st" data-k="${k}">${n}</button>`).join('')}</div>`;
+  const pl = Object.values(W.players).filter(p => p.club >= 0 && C(p.club).div === d && p.s.ap > 0);
+  const club = p => `${badgeImg(C(p.club), 14)} <small>${C(p.club).short}</small>`;
+  const pTable = (list, val, head) => `<table class="tbl"><thead><tr><th>#</th><th>Player</th><th>Club</th><th>Apps</th><th>${head}</th></tr></thead><tbody>${list.slice(0, 15).map((p, i) => `<tr data-a="player" data-id="${p.id}" class="${p.club === c.id ? 'me' : ''}"><td>${i + 1}</td><td class="nm">${posTag(p.pos)} ${esc(pname(p))}</td><td>${club(p)}</td><td>${p.s.ap}</td><td><b>${val(p)}</b></td></tr>`).join('') || '<tr><td colspan="5">Nothing yet this season.</td></tr>'}</tbody></table>`;
+  const played = Math.max(1, ...W.clubs.filter(x => x.div === d).map(x => teamRows(d).find(r => r.id === x.id).p));
+  const tTable = (rows, cols) => `<table class="tbl league"><thead><tr><th>#</th><th></th><th>Team</th>${cols.map(x => `<th>${x[0]}</th>`).join('')}</tr></thead><tbody>${rows.map((r, i) => `<tr class="${r.id === c.id ? 'me' : ''}"><td>${i + 1}</td><td>${badgeImg(C(r.id), 14)}</td><td class="nm">${esc(C(r.id).name)}</td>${cols.map(x => `<td>${x[1](r)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  const std = [['P', r => r.p], ['W', r => r.w], ['D', r => r.d], ['L', r => r.l], ['GD', r => (r.f - r.a > 0 ? '+' : '') + (r.f - r.a)], ['Pts', r => `<b>${r.pts}</b>`]];
+  const ord = (a, b) => b.pts - a.pts || (b.f - b.a) - (a.f - a.a) || b.f - a.f;
+  let out;
+  switch (st) {
+    case 'goals': out = pTable(pl.filter(p => p.s.gl).sort((a, b) => b.s.gl - a.s.gl || a.s.ap - b.s.ap), p => p.s.gl, 'Goals'); break;
+    case 'assists': out = pTable(pl.filter(p => p.s.as).sort((a, b) => b.s.as - a.s.as || a.s.ap - b.s.ap), p => p.s.as, 'Assists'); break;
+    case 'rating': { const min = Math.max(2, Math.floor(played / 3)); out = pTable(pl.filter(p => p.s.ap >= min).sort((a, b) => b.s.rt / b.s.ap - a.s.rt / a.s.ap), p => (p.s.rt / p.s.ap).toFixed(2), 'Avg') + `<p class="note">Players with at least ${min} appearances.</p>`; break; }
+    case 'motm': out = pTable(pl.filter(p => p.s.mo).sort((a, b) => b.s.mo - a.s.mo), p => p.s.mo, '★') + '<p class="note">How often each player was his team\'s best performer.</p>'; break;
+    case 'cs': out = pTable(pl.filter(p => p.pos === 'GK' && p.s.cs).sort((a, b) => b.s.cs - a.s.cs || a.s.ap - b.s.ap), p => p.s.cs, 'Clean') ; break;
+    case 'cards': out = pTable(pl.filter(p => p.s.yc || p.s.rc).sort((a, b) => ((b.s.rc || 0) * 3 + (b.s.yc || 0)) - ((a.s.rc || 0) * 3 + (a.s.yc || 0))), p => `<span class="card y"></span>${p.s.yc || 0} <span class="card r"></span>${p.s.rc || 0}`, 'Cards'); break;
+    case 'form': { const rows = teamRows(d).map(r => { const f = r.form.slice(-5); return Object.assign({}, r, {f5: f, fp: [...f].reduce((s, x) => s + (x === 'W' ? 3 : x === 'D' ? 1 : 0), 0)}); }).sort((a, b) => b.fp - a.fp || ord(a, b)); out = tTable(rows, [['Last 5', r => formHTML(r.f5)], ['Pts', r => `<b>${r.fp}</b>`]]); break; }
+    case 'home': out = tTable(teamRows(d, 'h').sort(ord), std); break;
+    case 'away': out = tTable(teamRows(d, 'a').sort(ord), std); break;
+    case 'attack': out = tTable(teamRows(d).sort((a, b) => b.f - a.f || a.p - b.p), [['P', r => r.p], ['Scored', r => `<b>${r.f}</b>`], ['Per game', r => r.p ? (r.f / r.p).toFixed(1) : '-']]); break;
+    case 'defence': out = tTable(teamRows(d).sort((a, b) => a.a - b.a || b.p - a.p), [['P', r => r.p], ['Conceded', r => `<b>${r.a}</b>`], ['Per game', r => r.p ? (r.a / r.p).toFixed(1) : '-']]); break;
+    case 'mine': {
+      const sq = c.squad.map(P).sort((a, b) => b.s.gl - a.s.gl || b.s.ap - a.s.ap);
+      out = `<table class="tbl mystats"><thead><tr><th></th><th>Player</th><th>Apps</th><th>Gls</th><th>Ast</th><th>Avg</th><th>★</th><th>🟨</th></tr></thead><tbody>${sq.map(p => `<tr data-a="player" data-id="${p.id}"><td>${posTag(p.pos)}</td><td class="nm">${esc(pname(p))}</td><td>${p.s.ap}</td><td>${p.s.gl || ''}</td><td>${p.s.as || ''}</td><td>${p.s.ap ? (p.s.rt / p.s.ap).toFixed(1) : '-'}</td><td>${p.s.mo || ''}</td><td>${p.s.yc || p.s.rc ? (p.s.yc || 0) + (p.s.rc ? '+' + p.s.rc + 'R' : '') : ''}</td></tr>`).join('')}</tbody></table>`;
+      return chips + `<p class="note">${esc(c.name)} this season, in all competitions.</p>` + out;
+    }
+  }
+  return chips + divs + out + (['goals', 'assists', 'rating', 'motm', 'cs', 'cards'].includes(st) ? '<p class="note">League and cup games combined.</p>' : '');
 }
 
 // ---------- MARKET
@@ -944,6 +990,8 @@ const ACT = {
   form(d) { const c = me(); c.formation = d.f; if (W.settings.autoPick) autoPick(c); save(); rerender(); },
   style(d) { me().style = d.s; save(); rerender(); },
   lt(d) { UI.lt = d.k; rerender(); },
+  st(d) { UI.st = d.k; rerender(); },
+  statsGo() { UI.tab = 'league'; UI.lt = 'scorers'; UI.st = 'goals'; render(); },
   ld(d) { UI.ld = +d.d; rerender(); },
   mview(d) { UI.mkt.view = d.k; rerender(); },
   mpos(d) { UI.mkt.pos = d.p; rerender(); },
