@@ -4,8 +4,9 @@ let W = null;   // the saved world
 const P = id => W.players[id];
 const C = id => W.clubs[id];
 const me = () => W.clubs[W.clubId];
-const CUP_WEEKS = [3, 7, 11, 15, 19, 24];
-const SEASON_WEEKS = 28;
+const CUP_WEEKS = [3, 8, 13, 18, 23, 29];
+const KO_WEEKS = [5, 10, 15, 21, 26];
+const SEASON_WEEKS = 33;
 const TV = [90000, 35000, 12000, 5000];
 const PRIZE = [250000, 90000, 35000, 12000];
 const BASE_TICKET = [18, 12, 9, 7];
@@ -24,7 +25,8 @@ function roundRobin(ids) {
 }
 function calendar() {
   const cal = []; let l = 0, c = 0;
-  for (let w = 0; w < SEASON_WEEKS; w++) cal.push(CUP_WEEKS.includes(w) ? {t: 'C', r: c++} : {t: 'L', r: l++});
+  let k = 0;
+  for (let w = 0; w < SEASON_WEEKS; w++) cal.push(CUP_WEEKS.includes(w) ? {t: 'C', r: c++} : KO_WEEKS.includes(w) ? {t: 'K', r: k++} : {t: 'L', r: l++});
   return cal;
 }
 function startSeason() {
@@ -33,9 +35,10 @@ function startSeason() {
   W.res = [];
   W.week = 0;
   // cup: the 16 strongest get a bye to round two
-  const order = W.clubs.slice().sort((a, b) => a.div - b.div || b.rep - a.rep).map(c => c.id);
+  const order = W.clubs.filter(c => !c.foreign).sort((a, b) => a.div - b.div || b.rep - a.rep).map(c => c.id);
   W.cup = {r: 0, byes: order.slice(0, 16), alive: order.slice(16), ties: [], log: [], winner: null};
   W.cup.ties = drawTies(W.cup.alive);
+  setupComps();
   W.clubs.forEach(c => { c.formStr = ''; });
   Object.values(W.players).forEach(p => { p.s = {ap: 0, gl: 0, as: 0, rt: 0}; p.yc = 0; });
   setTarget();
@@ -358,14 +361,15 @@ function applyMatch(m, info) {
 function weekFixtures() {
   const e = W.cal[W.week];
   if (e.t === 'L') return [0, 1, 2, 3].flatMap(d => W.fix[d][e.r].map(([h, a]) => ({h, a, d, cup: false})));
-  return W.cup.ties.map(([h, a]) => ({h, a, d: -1, cup: true, neutral: W.cup.r === 5}));
+  if (e.t === 'K') return koFixtures(e.r);
+  return W.cup.ties.map(([h, a]) => ({h, a, d: -1, cup: true, comp: 'tin', round: W.cup.r, label: `${CUP_NAME} · ${CUP_ROUNDS[W.cup.r]}`, neutral: W.cup.r === 5, final: W.cup.r === 5}));
 }
 function userFixture() { return weekFixtures().find(f => f.h === W.clubId || f.a === W.clubId) || null; }
 function cupRoundName(r) { return CUP_ROUNDS[r ?? W.cup.r]; }
 
 // Plays every other game of the week, then runs the club's week. Returns a report.
 function finishWeek(userMatch) {
-  const e = W.cal[W.week], report = {results: [], cup: e.t === 'C', msgs: []};
+  const e = W.cal[W.week], report = {results: [], cup: e.t !== 'L', msgs: []};
   const fx = weekFixtures();
   const played = new Set();
   fx.forEach(f => {
@@ -373,21 +377,23 @@ function finishWeek(userMatch) {
     if (userMatch && (f.h === W.clubId || f.a === W.clubId)) m = userMatch;
     else { [f.h, f.a].forEach(id => { if (id !== W.clubId) autoPick(C(id)); }); m = new Match(f.h, f.a, {cup: f.cup, neutral: f.neutral}).sim(); }
     const r = applyMatch(m, {cup: f.cup, div: f.d});
+    if (f.cup) { r.comp = f.comp; r.label = f.label; r.final = !!f.final; }
     played.add(f.h); played.add(f.a);
     report.results.push(r);
     if (!f.cup) W.res.push(r);
     // money on the gate
     const home = C(f.h), away = C(f.a);
-    const att = attendance(home, away, f.cup);
+    const att = attendance(home, away, f.cup ? f.round || 0 : null, f.euro);
     r.att = att;
     const gate = att * home.ticket;
     if (f.cup) { home.cash += gate / 2; away.cash += gate / 2; } else home.cash += gate;
     if (f.h === W.clubId || f.a === W.clubId) { report.gate = f.cup ? gate / 2 : f.h === W.clubId ? gate : 0; report.user = r; }
-    if (f.cup) { const wnr = m.winner() === 0 ? f.h : f.a; C(wnr).cash += CUP_PRIZE[W.cup.r]; r.win = wnr; }
+    if (f.cup) { const wnr = m.winner() === 0 ? f.h : f.a; C(wnr).cash += f.comp === 'tin' ? CUP_PRIZE[W.cup.r] : koPrize(f.comp, f.round); r.win = wnr; }
   });
   // board and morale reaction to the user's game
   if (report.user) boardReact(report.user, e);
   // cup progress
+  if (e.t === 'K') progressComps(report.results);
   if (e.t === 'C') {
     W.cup.log.push(report.results.map(r => ({h: r.h, a: r.a, hg: r.hg, ag: r.ag, pens: r.pens, win: r.win})));
     const winners = report.results.map(r => r.win);
@@ -401,12 +407,13 @@ function finishWeek(userMatch) {
   weeklyClub(report, played);
   aiTransfers(report);
   W.week++;
-  report.seasonOver = W.week >= SEASON_WEEKS;
+  report.seasonOver = W.week >= W.cal.length;
   return report;
 }
-function attendance(home, away, cup) {
-  const pos = home.div >= 0 && W.res.length ? posIn(home.id) : 6;
-  const f = .42 + home.rep / 260 + (12 - pos) * .015 + (home.formStr || '').split('').filter(x => x === 'W').length * .02 + (cup ? .1 + W.cup.r * .05 : 0) + (away.rep - home.rep) / 400;
+function attendance(home, away, cupR, euro) {
+  if (home.foreign) return Math.round(home.cap * (.7 + R() * .28));
+  const pos = W.res.length ? posIn(home.id) : 6;
+  const f = .42 + home.rep / 260 + (12 - pos) * .015 + (home.formStr || '').split('').filter(x => x === 'W').length * .02 + (cupR != null ? .1 + cupR * .05 : 0) + (euro ? .25 : 0) + (away.rep - home.rep) / 400;
   const fanF = home.id === W.clubId ? .8 + (W.fans ?? 60) / 250 : 1;
   return Math.round(home.cap * clamp((f + (R() - .5) * .08) * Math.pow(BASE_TICKET[home.div] / home.ticket, .7) * fanF, .15, 1));
 }
@@ -424,6 +431,7 @@ function weeklyClub(report, played) {
   const club = me(), t = W.training;
   // money
   W.clubs.forEach(c => {
+    if (c.foreign) return;
     const wages = c.squad.reduce((s, id) => s + (P(id) ? P(id).wage : 0), 0);
     c.cash += TV[c.div] - wages;
     if (c.id === W.clubId) { report.wages = wages; report.tv = TV[c.div]; }
@@ -481,10 +489,10 @@ function willingToJoin(p) {
 function aiTransfers(report) {
   const club = me();
   if (R() < .45) {
-    const buyer = pick(W.clubs.filter(c => c.id !== W.clubId && c.squad.length < 22));
+    const buyer = pick(W.clubs.filter(c => c.id !== W.clubId && !c.foreign && c.squad.length < 22));
     const pos = pick(POS);
     const mine = buyer.squad.map(P).filter(p => p.pos === pos).sort((a, b) => ovrOf(a) - ovrOf(b));
-    const target = Object.values(W.players).filter(p => p.pos === pos && p.club !== buyer.id && p.club !== W.clubId && p.loanFrom == null && (p.club < 0 || C(p.club).squad.length > 16) && ovrOf(p) > (mine[0] ? ovrOf(mine[0]) + 1 : 0) && ovrOf(p) < ovrOf(mine[mine.length - 1] || p) + 2).sort(() => R() - .5)[0];
+    const target = Object.values(W.players).filter(p => p.pos === pos && p.club !== buyer.id && p.club !== W.clubId && p.loanFrom == null && (p.club < 0 || !C(p.club).foreign) && (p.club < 0 || C(p.club).squad.length > 16) && ovrOf(p) > (mine[0] ? ovrOf(mine[0]) + 1 : 0) && ovrOf(p) < ovrOf(mine[mine.length - 1] || p) + 2).sort(() => R() - .5)[0];
     if (target) {
       const fee = askingPrice(target);
       if (buyer.cash > fee * 1.5) {
@@ -499,7 +507,7 @@ function aiTransfers(report) {
   const chance = .08 + listed.length * .1 + club.squad.map(P).filter(p => p.s.ap > 3 && p.s.rt / p.s.ap > 7.2).length * .03;
   if (R() < chance && club.squad.length > 15) {
     const p = listed.length && R() < .7 ? pick(listed) : wpick(club.squad.map(P).filter(q => q.loanFrom == null), q => Math.pow(ovrOf(q), 2) * (q.s.ap ? q.s.rt / q.s.ap - 5.5 : .5));
-    const bidders = W.clubs.filter(c => c.id !== W.clubId && c.cash > valueOf(p) * .9 && c.div <= club.div + 1);
+    const bidders = W.clubs.filter(c => c.id !== W.clubId && !c.foreign && c.cash > valueOf(p) * .9 && c.div <= club.div + 1);
     if (p && bidders.length) {
       const b = pick(bidders), amt = Math.round(valueOf(p) * (p.listed ? .75 + R() * .35 : .9 + R() * .45) / 1000) * 1000;
       inbox(b.name, `Bid for ${pname(p)}`, `${b.name} have offered ${money(amt)} for ${p.fn} ${p.ln} (${POS_NAME[p.pos]}, ${ovr(p)}). Valued at ${money(valueOf(p))}.`, {type: 'bid', pid: p.id, club: b.id, amt, w: W.week});
@@ -531,6 +539,7 @@ function endSeason() {
   const tabs = [0, 1, 2, 3].map(table);
   S.tables = tabs.map(t => t.map(r => ({id: r.id, pts: r.pts, gd: r.f - r.a})));
   const champs = tabs.map(t => t[0].id);
+  W.prevPrem = tabs[0].map(r => r.id);
   tabs.forEach((t, d) => {
     t.forEach((r, i) => { C(r.id).cash += (12 - i) * PRIZE[d]; });
     if (d > 0) t.slice(0, 2).forEach(r => S.promoted.push([r.id, d]));
@@ -549,7 +558,11 @@ function endSeason() {
   if (pos === 1) tro.push(`${DIVS[c.div]} champions`);
   else if (pos <= 2 && c.div > 0) tro.push(`Promoted from ${DIVS[c.div]}`);
   if (W.cup.winner === c.id) tro.push(`${CUP_NAME} winners`);
+  const koWon = Object.values(W.ko || {}).filter(cp => cp.winner === c.id);
+  koWon.forEach(cp => tro.push(`${cp.name} winners`));
+  const uc = userComp(), ucOut = uc ? (uc.winner === c.id ? 'Winners' : (() => { const i = uc.log.findIndex(rd => rd.some(t => (t.h === c.id || t.a === c.id) && t.win !== c.id)); return i >= 0 ? 'Out in the ' + uc.rounds[i] : ''; })()) : '';
   let career = pts + (4 - c.div) * 10 + (pos === 1 ? 100 : 0) + (pos <= 2 && c.div > 0 ? 60 : 0) + (W.cup.winner === c.id ? 80 : 0) + (cupRound >= 4 ? 15 : 0);
+  career += koWon.reduce((s, cp) => s + KO_DEFS[cp.key].pts, 0);
   if (pos > 10 && c.div < 3) career = Math.max(0, career - 30);
   W.career.pts += career; W.career.seasons++;
   tro.forEach(t => W.career.trophies.push(`${t} ${START_YEAR + W.season}/${String(START_YEAR + W.season + 1).slice(2)}`));
@@ -562,13 +575,13 @@ function endSeason() {
   else if (diff >= -3) { verdict = 'Short of the target, but the board are patient.'; W.board.conf = clamp(W.board.conf - 12, 0, 100); }
   else { verdict = 'A poor season. The board are not happy.'; W.board.conf = clamp(W.board.conf - 22, 0, 100); }
   if (W.board.conf < 10) { sacked = true; verdict = 'The board have lost patience.'; }
-  S.user = {club: c.id, div: c.div, pos, pts, cupRound, trophies: tro, careerAdd: career, best: best && best.id, top: topS && topS.s.gl ? [topS.id, topS.s.gl] : null, verdict, sacked};
+  S.user = {club: c.id, div: c.div, pos, pts, cupRound, ko: uc ? {name: uc.name, res: ucOut} : null, koWon: koWon.map(cp => cp.key), trophies: tro, careerAdd: career, best: best && best.id, top: topS && topS.s.gl ? [topS.id, topS.s.gl] : null, verdict, sacked};
   W.history.push({s: W.season, club: c.id, div: c.div, pos, pts, cup: cupRound, tro});
   // move clubs between divisions
   S.promoted.forEach(([id, d]) => { C(id).div = d - 1; });
   S.relegated.forEach(([id, d]) => { C(id).div = d + 1; });
   const oldDiv = {}; S.promoted.concat(S.relegated).forEach(([id]) => oldDiv[id] = 1);
-  W.clubs.forEach(cl => { cl.rep = clamp(Math.round(cl.rep * .8 + (95 - cl.div * 20) * .2), 5, 99); if (oldDiv[cl.id] || cl.id !== W.clubId) cl.ticket = BASE_TICKET[cl.div]; });
+  W.clubs.forEach(cl => { if (cl.foreign) return; cl.rep = clamp(Math.round(cl.rep * .8 + (95 - cl.div * 20) * .2), 5, 99); if (oldDiv[cl.id] || cl.id !== W.clubId) cl.ticket = BASE_TICKET[cl.div]; });
   returnLoans();
   // players age, grow and retire
   const retired = [], expired = [], youth = [];
@@ -582,6 +595,7 @@ function endSeason() {
   });
   retired.forEach(p => { if (p.club === W.clubId) S.user.retired = (S.user.retired || []).concat(`${p.fn} ${p.ln}`); dropPlayer(p); });
   W.clubs.forEach(cl => {
+    if (cl.foreign) return topUpForeign(cl);
     cl.squad.map(P).forEach(p => {
       if (p.con > 0) return;
       if (cl.id === W.clubId) expired.push(p.id);
@@ -609,6 +623,7 @@ function endSeason() {
   W.nextId = NEXT_ID;
   S.user.expired = expired; S.user.youth = youth;
   S.cupWinner = W.cup.winner;
+  S.koWinners = Object.values(W.ko || {}).map(cp => [cp.name, cp.winner]);
   return S;
 }
 function grow(p, amt) {
@@ -631,7 +646,7 @@ function newSeason() {
 // job offers after a good season, or after the sack
 function jobOffers(sacked) {
   const c = me();
-  const pool = W.clubs.filter(x => x.id !== c.id && (sacked ? x.div >= c.div && x.div <= c.div + 1 : x.div < c.div || (x.div === c.div && x.rep > c.rep + 5)));
+  const pool = W.clubs.filter(x => x.id !== c.id && !x.foreign && (sacked ? x.div >= c.div && x.div <= c.div + 1 : x.div < c.div || (x.div === c.div && x.rep > c.rep + 5)));
   return shuffle(pool).slice(0, 3).map(x => x.id);
 }
 function takeJob(id) {
@@ -643,6 +658,7 @@ function takeJob(id) {
 }
 function startCareer(name, clubId) {
   W = newWorld(name);
+  addForeignClubs();
   W.clubId = clubId; W.career.clubs = [clubId];
   W.training = {focus: 'balanced', int: 1};
   W.fans = 60;

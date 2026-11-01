@@ -154,11 +154,11 @@ function newHTML() {
 // ---------- header and navigation
 function headerHTML() {
   const c = me(), unread = W.inbox.filter(m => !m.read).length;
-  const fx = W.week < SEASON_WEEKS ? userFixture() : null;
+  const fx = W.week < W.cal.length ? userFixture() : null;
   return `<header class="hdr">
     <div class="hclub">${badgeImg(c, 26)}<div><b>${esc(c.name)}</b><small>${dateOf(W.season, W.week)} · ${DIVS[c.div]}</small></div></div>
     <div class="hcash ${c.cash < 0 ? 'c-r' : 'c-g'}">${money(c.cash)}</div>
-    <button class="btn go nextbtn" data-a="go">${fx ? `PLAY<small>v ${esc(C(fx.h === c.id ? fx.a : fx.h).short)}</small>` : W.week >= SEASON_WEEKS ? 'SEASON<small>review</small>' : `NEXT<small>week</small>`}</button>
+    <button class="btn go nextbtn" data-a="go">${fx ? `PLAY<small>v ${esc(C(fx.h === c.id ? fx.a : fx.h).short)}</small>` : W.week >= W.cal.length ? 'SEASON<small>review</small>' : `NEXT<small>week</small>`}</button>
   </header>${unread ? '' : ''}`;
 }
 function navHTML() {
@@ -174,9 +174,9 @@ function homeHTML() {
   let next;
   if (fx) {
     const opp = C(fx.h === c.id ? fx.a : fx.h), home = fx.h === c.id;
-    next = `<div class="nextfx">${badgeImg(c, 40)}<div class="vs"><small>${fx.cup ? `${CUP_NAME} · ${cupRoundName()}` : `${DIVS[c.div]} · Round ${e.r + 1}`}</small><b>${home ? 'HOME' : 'AWAY'} v</b><span>${esc(opp.name)}</span><small>${opp.div !== c.div ? DIVS[opp.div] + ' · ' : ''}${ordinal(posIn(opp.id))} · form ${formHTML(opp.formStr)}</small></div>${badgeImg(opp, 40)}</div>
+    next = `<div class="nextfx">${badgeImg(c, 40)}<div class="vs"><small>${fx.cup ? esc(fx.label) : `${DIVS[c.div]} · Round ${e.r + 1}`}</small><b>${fx.neutral ? 'FINAL v' : home ? 'HOME v' : 'AWAY v'}</b><span>${esc(opp.name)}</span><small>${[opp.foreign || opp.div !== c.div ? divName(opp) : '', opp.foreign ? '' : ordinal(posIn(opp.id)), 'form ' + formHTML(opp.formStr)].filter(Boolean).join(' · ')}</small></div>${badgeImg(opp, 40)}</div>
       <p class="note center">Tap <b class="c-g">PLAY</b> at the top when you're ready. <span class="lnk" data-a="viewOpp" data-id="${opp.id}">Scout ${esc(opp.short)}</span></p>`;
-  } else next = `<p>${e.t === 'C' ? `${CUP_NAME} ${cupRoundName()} day. ${W.cup.alive.includes(c.id) || W.cup.byes.includes(c.id) ? '' : "You're out, so the lads get a week off."}` : 'A week without a game.'}</p><p class="note center">Tap <b class="c-g">NEXT</b> at the top to move on.</p>`;
+  } else next = e.t === 'K' ? `<p>Midweek cup night${userComp() ? ` in the ${esc(userComp().name)}` : ''}, but you're not playing this round.</p><p class="note center">Tap <b class="c-g">NEXT</b> at the top to move on.</p>` : `<p>${e.t === 'C' ? `${CUP_NAME} ${cupRoundName()} day. ${W.cup.alive.includes(c.id) || W.cup.byes.includes(c.id) ? '' : "You're out, so the lads get a week off."}` : 'A week without a game.'}</p><p class="note center">Tap <b class="c-g">NEXT</b> at the top to move on.</p>`;
   const conf = W.board.conf;
   const injured = c.squad.map(P).filter(p => p.inj || p.sus);
   const act = W.inbox.filter(m => m.act && !m.act.done);
@@ -297,7 +297,7 @@ function oppModal(id) {
   modal(`<div class="opp">
     <div class="chips small">${nextId != null ? `<button class="chip ${id === nextId ? 'on' : ''}" data-a="viewOpp" data-id="${nextId}">Next opponent</button>` : ''}
       <select class="oppsel" data-a="oppSel">${rivals.map(x => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
-    <div class="nextfx">${badgeImg(o, 40)}<div class="vs"><b>${esc(o.name)}</b><small>${DIVS[o.div]} · ${row && row.p ? ordinal(pos) : '-'} · form ${formHTML(o.formStr)}</small></div></div>
+    <div class="nextfx">${badgeImg(o, 40)}<div class="vs"><b>${esc(o.name)}</b><small>${divName(o)}${o.foreign ? '' : ` · ${row && row.p ? ordinal(pos) : '-'}`} · form ${formHTML(o.formStr)}</small></div></div>
     <p>${o.formation}, plays <b class="c-y">${STYLES[o.style].n}</b>. ${STYLES[o.style].d}</p>
     <p class="note">${weBeat ? `<span class="c-g">Your ${STYLES[c.style].n} should trouble them.</span>` : theyBeat ? `<span class="c-r">Their style beats your ${STYLES[c.style].n}.</span>` : 'Your styles cancel out.'} Best against them: <b>${counters.map(s => STYLES[s].n).join(' or ')}</b>.${key ? ` Danger man: <b>${esc(pname(key))}</b> (${ovrHTML(key)}).` : ''}</p>
     ${unknown ? `<div class="scoutbox">🔍 Ratings are rough guesses until you scout them.<button class="btn small go" data-a="scoutSquad" data-id="${o.id}">Scout the whole squad (${money(scoutCost() * 4)})</button></div>` : ''}
@@ -340,7 +340,7 @@ function choosePlayer(k, id) {
 // ---------- LEAGUE
 function leagueHTML() {
   const c = me(), d = UI.ld ?? c.div;
-  const tabs = `<div class="chips">${[['table', 'Tables'], ['fix', 'Fixtures'], ['cup', CUP_NAME], ['scorers', 'Stats']].map(([k, n]) => `<button class="chip ${UI.lt === k ? 'on' : ''}" data-a="lt" data-k="${k}">${n}</button>`).join('')}</div>`;
+  const tabs = `<div class="chips">${[['table', 'Tables'], ['fix', 'Fixtures'], ['cup', 'Cups'], ['scorers', 'Stats']].map(([k, n]) => `<button class="chip ${UI.lt === k ? 'on' : ''}" data-a="lt" data-k="${k}">${n}</button>`).join('')}</div>`;
   const divs = `<div class="chips small">${DIVS.map((n, i) => `<button class="chip ${d === i ? 'on' : ''}" data-a="ld" data-d="${i}">${i ? 'Div ' + i : 'Premier'}</button>`).join('')}</div>`;
   let body = '';
   if (UI.lt === 'table') {
@@ -356,27 +356,48 @@ function leagueHTML() {
       let head = ''; if (mon !== month) { month = mon; head = `<div class="calm">${mon.toUpperCase()}</div>`; }
       let opp = null, home, res = null;
       if (e.t === 'L') { const f = W.fix[c.div][e.r].find(([h, a]) => h === c.id || a === c.id); if (f) { home = f[0] === c.id; opp = home ? f[1] : f[0]; res = W.res.find(r => r.w === w && (r.h === c.id || r.a === c.id)); } }
+      else if (e.t === 'K') { const cp = userComp(); if (cp && e.r >= cp.start) { const ri2 = e.r - cp.start, rd = cp.log[ri2]; const t = rd ? rd.find(t => t.h === c.id || t.a === c.id) : (cp.r === ri2 ? cp.ties.map(([h, a]) => ({h, a})).find(t => t.h === c.id || t.a === c.id) : null); if (t) { home = t.h === c.id; opp = home ? t.a : t.h; if (rd) res = t; } } }
       else { const rd = W.cup.log[e.r]; const t = rd ? rd.find(t => t.h === c.id || t.a === c.id) : (W.cup.r === e.r ? W.cup.ties.map(([h, a]) => ({h, a})).find(t => t.h === c.id || t.a === c.id) : null); if (t) { home = t.h === c.id; opp = home ? t.a : t.h; if (rd) res = t; } }
-      const comp = e.t === 'L' ? '<span class="comp l">LGE</span>' : `<span class="comp c">${['R1', 'R2', 'R3', 'QF', 'SF', 'FINAL'][e.r]}</span>`;
+      const kc = e.t === 'K' ? userComp() : null;
+      const comp = e.t === 'L' ? '<span class="comp l">LGE</span>' : e.t === 'K' ? `<span class="comp ${kc && kc.euro ? 'e' : 'k'}">${kc ? kc.short : 'CUP'}</span>` : `<span class="comp c">${['R1', 'R2', 'R3', 'QF', 'SF', 'FINAL'][e.r]}</span>`;
       const now = w === W.week ? 'now' : w < W.week ? 'past' : '';
-      if (opp == null) return head + `<div class="calr ${now} dim"><span class="d">${day}</span>${comp}<span class="o">${e.t === 'C' ? (W.cup.r > e.r || W.cup.winner != null || !W.cup.alive.concat(W.cup.byes).includes(c.id) ? 'Not involved' : 'Draw to come') : 'No game'}</span></div>`;
+      if (opp == null) return head + `<div class="calr ${now} dim"><span class="d">${day}</span>${comp}<span class="o">${e.t === 'K' ? (kc && e.r >= kc.start && kc.winner == null && kc.entrants.includes(c.id) && !kc.log.some(rd => rd.some(t => (t.h === c.id || t.a === c.id) && t.win !== c.id)) ? `${kc.rounds[e.r - kc.start]}: draw to come` : 'Not involved') : e.t === 'C' ? (W.cup.r > e.r || W.cup.winner != null || !W.cup.alive.concat(W.cup.byes).includes(c.id) ? 'Not involved' : 'Draw to come') : 'No game'}</span></div>`;
       let out = '';
       if (res) { const gf = home ? res.hg : res.ag, ga = home ? res.ag : res.hg; const wl = res.win != null ? (res.win === c.id ? 'W' : 'L') : gf > ga ? 'W' : gf < ga ? 'L' : 'D'; out = `<span class="fm ${wl}">${wl}</span> ${gf}-${ga}${res.pens ? 'p' : ''}`; }
-      else { const op = posIn(opp), dv = C(opp).div, hard = dv < c.div || (dv === c.div && op <= 3), easy = dv > c.div || (dv === c.div && op >= 10); out = `<span class="diff ${hard ? 'h' : easy ? 'e' : 'm'}">${hard ? 'HARD' : easy ? 'EASY' : 'FAIR'}</span>`; }
+      else { const op = posIn(opp), oc = C(opp), dv = oc.div, hard = oc.foreign ? squadStrength(oc) > squadStrength(c) : dv < c.div || (dv === c.div && op <= 3), easy = oc.foreign ? squadStrength(oc) < squadStrength(c) - 1 : dv > c.div || (dv === c.div && op >= 10); out = `<span class="diff ${hard ? 'h' : easy ? 'e' : 'm'}">${hard ? 'HARD' : easy ? 'EASY' : 'FAIR'}</span>`; }
       return head + `<div class="calr ${now}" data-a="viewOpp" data-id="${opp}"><span class="d">${now === 'now' ? '▶' : day}</span>${comp}<span class="ha">${home ? 'H' : 'A'}</span><span class="o">${badgeImg(C(opp), 14)} ${esc(C(opp).name)}</span><span class="r">${out}</span></div>`;
     }).join('');
     const left = W.cal.map((e, w) => ({e, w})).filter(x => x.w >= W.week && x.e.t === 'L').slice(0, 5).map(x => { const f = W.fix[c.div][x.e.r].find(([h, a]) => h === c.id || a === c.id); return f ? (f[0] === c.id ? f[1] : f[0]) : null; }).filter(x => x != null);
     const avg = left.length ? left.reduce((s, id) => s + posIn(id), 0) / left.length : 0;
     body = `${left.length ? `<p class="note">Next ${left.length} league games: average opponent ${ordinal(Math.round(avg))} in the table, so <b class="${avg < 5 ? 'c-r' : avg > 8 ? 'c-g' : 'c-y'}">${avg < 5 ? 'a tough run' : avg > 8 ? 'a kind run' : 'a mixed run'}</b>. Tap a game to scout the opponent.</p>` : ''}<div class="cal">${rows}</div>`;
   } else if (UI.lt === 'cup') {
-    const cup = W.cup;
-    body = `<p>${cup.winner != null ? `<b class="c-y">🏆 ${esc(C(cup.winner).name)} won the ${CUP_NAME}!</b>` : `Next: <b>${cupRoundName()}</b> on ${dateOf(W.season, CUP_WEEKS[cup.r])}`}</p>
-      ${cup.winner == null ? `<div class="ttx">${cup.r === 0 ? '<div class="c-y">FIRST ROUND DRAW (the top 16 have byes)</div>' : `<div class="c-y">${cupRoundName().toUpperCase()} DRAW</div>`}${cup.ties.map(([h, a]) => `<div class="res ${h === c.id || a === c.id ? 'mine' : ''}"><span>${esc(C(h).name)}</span><b>v</b><span>${esc(C(a).name)}</span></div>`).join('')}</div>` : ''}
-      ${cup.log.map((rd, i) => `<div class="ttx"><div class="c-y">${CUP_ROUNDS[i].toUpperCase()}</div>${rd.map(r => resLine(r)).join('')}</div>`).reverse().join('')}`;
+    const comps = [['tin', CUP_NAME]].concat(Object.values(W.ko || {}).map(cp => [cp.key, cp.name]));
+    const mine = userComp(), cv = UI.cv || 'tin';
+    body = `<div class="chips small">${comps.map(([k, n]) => `<button class="chip ${cv === k ? 'on' : ''}" data-a="cv" data-k="${k}">${k === 'tin' || (mine && mine.key === k) ? '★ ' : ''}${n}</button>`).join('')}</div>` + cupView(cv);
   } else {
     body = statsHTML(d, divs);
   }
   return `<div class="panel">${tabs}${body}</div>`;
+}
+
+// one knockout competition: who's in it, the current draw and every result so far
+function cupView(key) {
+  const c = me();
+  if (key === 'tin') {
+    const cup = W.cup, wk = W.cal.findIndex(e => e.t === 'C' && e.r === cup.r);
+    return `<p>Every club in the land. ${cup.winner != null ? `<b class="c-y">🏆 ${esc(C(cup.winner).name)} won it!</b>` : `Next: <b>${CUP_ROUNDS[cup.r]}</b>${wk >= 0 ? ' on ' + dateOf(W.season, wk) : ''}`}</p>
+      ${cup.winner == null ? `<div class="ttx"><div class="c-y">${CUP_ROUNDS[cup.r].toUpperCase()} DRAW${cup.r === 0 ? ' (THE TOP 16 HAVE BYES)' : ''}</div>${cup.ties.map(([h, a]) => `<div class="res ${h === c.id || a === c.id ? 'mine' : ''}"><span>${esc(C(h).name)}</span><b>v</b><span>${esc(C(a).name)}</span></div>`).join('')}</div>` : ''}
+      ${cup.log.map((rd, i) => `<div class="ttx"><div class="c-y">${CUP_ROUNDS[i].toUpperCase()}</div>${rd.map(r => resLine(r)).join('')}</div>`).reverse().join('')}`;
+  }
+  const cp = W.ko && W.ko[key]; if (!cp) return '<p class="note">Starts next season.</p>';
+  const who = {vase: 'Division Two and Division Three clubs.', flood: 'Division One clubs.', ecc: "Last season's top four in the Premier Division, against the best of Europe.", fairs: 'The rest of the Premier Division, against more of Europe.'}[key];
+  const wk = W.cal.findIndex(e => e.t === 'K' && e.r === cp.start + cp.r);
+  const nm = id => `${esc(C(id).name)}${C(id).foreign ? ` <small class="c-c">${C(id).short}</small>` : ''}`;
+  return `<p>${who} ${cp.entrants.includes(c.id) ? `<b class="c-g">You're in it!</b>` : ''}</p>
+    <p>${cp.winner != null ? `<b class="c-y">🏆 ${esc(C(cp.winner).name)} won the ${esc(cp.name)}!</b>` : `Next: <b>${cp.rounds[cp.r]}</b>${wk >= 0 ? ' on ' + dateOf(W.season, wk) : ''}`}</p>
+    ${cp.winner == null ? `<div class="ttx"><div class="c-y">${cp.rounds[cp.r].toUpperCase()} DRAW${cp.r === 0 && cp.byes.length ? ` (${cp.byes.length} SEEDS HAVE BYES)` : ''}</div>${cp.ties.map(([h, a]) => `<div class="res ${h === c.id || a === c.id ? 'mine' : ''}"><span>${nm(h)}</span><b>v</b><span>${nm(a)}</span></div>`).join('')}</div>` : ''}
+    ${cp.log.map((rd, i) => `<div class="ttx"><div class="c-y">${cp.rounds[i].toUpperCase()}</div>${rd.map(r => resLine(r)).join('')}</div>`).reverse().join('')}
+    ${cp.euro ? `<p class="note">European sides: ${cp.entrants.filter(id => C(id).foreign).map(id => `${esc(C(id).name)} (${C(id).country})`).join(', ')}.</p>` : ''}`;
 }
 
 // ---------- STATS: player leaderboards, team tables and your own squad
@@ -428,7 +449,7 @@ function statsHTML(d, divs) {
 // ---------- MARKET
 function marketHTML() {
   const c = me(), m = UI.mkt;
-  let list = Object.values(W.players).filter(p => p.club !== c.id);
+  let list = Object.values(W.players).filter(p => p.club !== c.id && (p.club < 0 || !C(p.club).foreign));
   if (m.view === 'free') list = list.filter(p => p.club < 0); else if (m.view === 'listed') list = list.filter(p => p.listed); else if (m.view === 'mine') list = c.squad.map(P);
   if (m.pos !== 'ALL') list = list.filter(p => p.pos === m.pos);
   if (m.afford && m.view !== 'mine') list = list.filter(p => askingPrice(p) <= Math.max(0, c.cash));
@@ -592,7 +613,7 @@ function prematchHTML() {
   const tip = weBeat ? `<span class="c-g">Your ${STYLES[c.style].n} game should trouble their ${STYLES[opp.style].n}.</span>` : theyBeat ? `<span class="c-r">Careful: their ${STYLES[opp.style].n} game beats your ${STYLES[c.style].n}.</span> Try ${Object.keys(STYLES).filter(s => BEATS[s].includes(opp.style)).map(s => STYLES[s].n).join(' or ')}.` : `Styles cancel out. Try ${Object.keys(STYLES).filter(s => BEATS[s].includes(opp.style)).map(s => STYLES[s].n).join(' or ')} to get an edge.`;
   const pr = UI.press;
   return `<div class="top-simple"><button class="btn ghost small" data-a="backToGame">← Back</button><h2 class="px">MATCH DAY</h2></div>
-  <div class="panel"><div class="nextfx">${badgeImg(home ? c : opp, 44)}<div class="vs"><small>${fx.cup ? `${CUP_NAME} · ${cupRoundName()}${fx.neutral ? ' · neutral ground' : ''}` : DIVS[c.div]}</small><b>${esc((home ? c : opp).short)} v ${esc((home ? opp : c).short)}</b><small>${esc(C(fx.h).name)} v ${esc(C(fx.a).name)}</small></div>${badgeImg(home ? opp : c, 44)}</div></div>
+  <div class="panel"><div class="nextfx">${badgeImg(home ? c : opp, 44)}<div class="vs"><small>${fx.cup ? `${esc(fx.label)}${fx.neutral ? ' · neutral ground' : ''}` : DIVS[c.div]}</small><b>${esc((home ? c : opp).short)} v ${esc((home ? opp : c).short)}</b><small>${esc(C(fx.h).name)} v ${esc(C(fx.a).name)}</small></div>${badgeImg(home ? opp : c, 44)}</div></div>
   <div class="panel"><h2>Scout report: ${esc(opp.name)}</h2>
     <p>${opp.formation}, plays <b class="c-y">${STYLES[opp.style].n}</b>. Form ${formHTML(opp.formStr)}. Danger man: <b>${key ? esc(pname(key)) + ' (' + ovrHTML(key) + ')' : '-'}</b></p>
     ${cmp('Defence', us.def, them.def)}${cmp('Midfield', us.mid, them.mid)}${cmp('Attack', us.att, them.att)}
@@ -784,12 +805,12 @@ function fullTime(m) {
     <div class="scorers"><div>${goals(0)}</div><div>${goals(1)}</div></div>
     <p class="center ${won ? 'c-g' : lost ? 'c-r' : 'c-y'} px">${won ? 'VICTORY!' : lost ? 'DEFEAT' : 'A DRAW'}</p>
     ${m.log.some(e => e.t === 'goal') ? '<button class="btn wide" data-a="highlights">▶ Watch the goals</button>' : ''}</div>
-  ${won && m.cup && W.cup.r === 5 ? '<canvas id="cupcv" class="trophycv"></canvas>' : ''}
+  ${won && m.cup && UI.fx && UI.fx.final ? `<canvas id="cupcv" class="trophycv" data-title="${UI.fx.euro ? 'KINGS OF EUROPE!' : 'CUP WINNERS!'}"></canvas>` : ''}
   <div class="panel"><h2>Stats</h2><div class="mstats">${(() => { const pos = Math.round(S[0].poss / Math.max(1, S[0].poss + S[1].poss) * 100); return `<span>${pos}%</span><span>Possession</span><span>${100 - pos}%</span><span>${S[0].sh}</span><span>Shots</span><span>${S[1].sh}</span><span>${S[0].sot}</span><span>On target</span><span>${S[1].sot}</span>`; })()}</div></div>
   <div class="panel"><h2>Your player ratings</h2><table class="tbl"><tbody>${rated.map((x, i) => `<tr><td>${posTag(x.p.pos)}</td><td class="nm">${esc(pname(x.p))}${i === 0 ? ' <span class="tag y">STAR</span>' : ''}${mine.gl[x.p.id] ? ' ' + '⚽'.repeat(mine.gl[x.p.id]) : ''}</td><td class="${x.r >= 7.5 ? 'c-g' : x.r < 6 ? 'c-r' : 'c-y'}">${x.r.toFixed(1)}</td></tr>`).join('')}</tbody></table></div>
   <div class="sticky"><button class="btn go big wide" data-a="ftContinue">Continue ▶</button></div>`;
   window.scrollTo(0, 0);
-  if ($('#cupcv')) { trophyScene($('#cupcv'), kitOf(mine.c), 'CUP WINNERS!'); MUSIC.want('anthem'); }
+  if ($('#cupcv')) { trophyScene($('#cupcv'), kitOf(mine.c), $('#cupcv').dataset.title); MUSIC.want('anthem'); }
 }
 function afterWeek(rep) {
   W.lastWeek = {cup: rep.cup, results: rep.results.map(r => ({h: r.h, a: r.a, hg: r.hg, ag: r.ag, pens: r.pens, d: r.d}))};
@@ -801,7 +822,7 @@ function weekHTML() {
   const rep = UI.rep, c = me();
   const grew = c.squad.map(P).filter(p => p.grew && p.grewShown !== p.grew);
   grew.forEach(p => p.grewShown = p.grew);
-  const groups = rep.cup ? [[`${CUP_NAME.toUpperCase()} · ${CUP_ROUNDS[W.cal[W.week - 1].r].toUpperCase()}`, rep.results]] : [0, 1, 2, 3].map(d => [DIVS[d].toUpperCase(), rep.results.filter(r => r.d === d)]);
+  const groups = rep.cup ? [...new Set(rep.results.map(r => r.label))].map(l => [(l || CUP_NAME).toUpperCase(), rep.results.filter(r => r.label === l)]) : [0, 1, 2, 3].map(d => [DIVS[d].toUpperCase(), rep.results.filter(r => r.d === d)]);
   groups.sort((a, b) => (b[1].some(r => r.h === c.id || r.a === c.id) ? 1 : 0) - (a[1].some(r => r.h === c.id || r.a === c.id) ? 1 : 0));
   return `<div class="top-simple"><h2 class="px">RESULTS</h2></div>
   <div class="ttx vidi"><div class="ttxh"><span>P303</span><span>VIDIPRINTER</span><span>${dateOf(W.season, W.week - 1).toUpperCase()}</span></div>
@@ -824,16 +845,17 @@ function seasonHTML() {
   const offers = UI.offers || [];
   const exp = (u.expired || []).map(P).filter(Boolean);
   UI.renew = UI.renew || Object.fromEntries(exp.map(p => [p.id, p.age < 33]));
-  const ttl = u.pos === 1 ? 'CHAMPIONS!' : u.cupRound === 6 ? 'CUP WINNERS!' : u.pos <= 2 && u.div > 0 ? 'PROMOTED!' : '';
+  const ttl = u.pos === 1 ? 'CHAMPIONS!' : (u.koWon || []).some(k => k === 'ecc' || k === 'fairs') ? 'KINGS OF EUROPE!' : u.cupRound === 6 || (u.koWon || []).length ? 'CUP WINNERS!' : u.pos <= 2 && u.div > 0 ? 'PROMOTED!' : '';
   return `<div class="top-simple"><h2 class="px">SEASON ${seasonLabel(S.season)}</h2></div>
   ${ttl ? `<canvas id="trophycv" class="trophycv" data-title="${ttl}"></canvas>` : ''}
   <div class="panel center"><div>${badgeImg(C(u.club), 48)}</div><h2>${esc(C(u.club).name)}</h2>
-    <div class="big c-y">${ordinal(u.pos)} in ${DIVS[u.div]}</div><p>${u.pts} points · ${u.cupRound === 6 ? `<b class="c-y">${CUP_NAME} WINNERS!</b>` : `${CUP_NAME}: out in the ${CUP_ROUNDS[Math.max(0, u.cupRound)] || 'early rounds'}`}</p>
+    <div class="big c-y">${ordinal(u.pos)} in ${DIVS[u.div]}</div><p>${u.pts} points · ${u.cupRound === 6 ? `<b class="c-y">${CUP_NAME} WINNERS!</b>` : `${CUP_NAME}: out in the ${CUP_ROUNDS[Math.max(0, u.cupRound)] || 'early rounds'}`}${u.ko && u.ko.res ? `<br>${esc(u.ko.name)}: ${u.ko.res === 'Winners' ? '<b class="c-y">WINNERS!</b>' : esc(u.ko.res.toLowerCase().replace(/^out/, 'out'))}` : ''}</p>
     ${u.trophies.map(t => `<div class="trophy">🏆 ${esc(t)}</div>`).join('')}
     <p class="${u.sacked ? 'c-r' : 'c-g'}">${esc(u.verdict)}</p><p>+${u.careerAdd} manager points (career total <b class="c-y">${W.career.pts}</b>)</p></div>
   <div class="panel"><h2>Awards</h2>${u.best ? `<div>Your player of the season: <b>${esc(pname(P(u.best)) || '')}</b></div>` : ''}${u.top ? `<div>Your top scorer: <b>${esc(pname(P(u.top[0])))}</b> (${u.top[1]})</div>` : ''}
     ${S.awards.map(a => `<div><span class="c-c">${DIVS[a.d]}:</span> champions ${esc(C(a.champ).name)}${a.scorer && P(a.scorer[0]) ? `, golden boot ${esc(pname(P(a.scorer[0])))} (${a.scorer[1]})` : ''}</div>`).join('')}
-    <div><span class="c-c">${CUP_NAME}:</span> ${S.cupWinner != null ? esc(C(S.cupWinner).name) : '-'}</div></div>
+    <div><span class="c-c">${CUP_NAME}:</span> ${S.cupWinner != null ? esc(C(S.cupWinner).name) : '-'}</div>
+    ${(S.koWinners || []).filter(([, w]) => w != null).map(([n, w]) => `<div><span class="c-c">${esc(n)}:</span> ${esc(C(w).name)}${C(w).foreign ? ` (${C(w).country})` : ''}</div>`).join('')}</div>
   <div class="panel"><h2>Ups and downs</h2><div class="c-g">▲ ${S.promoted.map(([id]) => esc(C(id).name)).join(', ')}</div><div class="c-r">▼ ${S.relegated.map(([id]) => esc(C(id).name)).join(', ')}</div></div>
   ${u.retired ? `<div class="panel"><h2>Retirements</h2><p>${u.retired.map(esc).join(', ')} hung up their boots.</p></div>` : ''}
   ${!u.sacked && exp.length ? `<div class="panel"><h2>Contracts up</h2><p class="note">Tick who you want to keep. The rest leave on a free.</p>${exp.map(p => `<label class="tog"><input type="checkbox" data-a="renewTick" data-id="${p.id}" ${UI.renew[p.id] ? 'checked' : ''}> ${posTag(p.pos)} ${esc(pname(p))} (${p.age}, ${ovr(p)}) wants ${money(wageDemand(Object.assign({}, p, {club: c.id}), c.div))}/wk</label>`).join('')}</div>` : ''}
@@ -943,7 +965,7 @@ const ACT = {
   loanOut(d) { const p = P(+d.id); if (!confirm(`Send ${pname(p)} out on loan until the end of the season? He'll play regularly and come back better.`)) return; loanOutPlayer(p); UI.ret = null; closeModal(); save(); rerender(); },
   highlights() { showHighlights(UI.match); },
   openMsgHome(d) { UI.open = d.id; const m = W.inbox.find(x => x.id === d.id); if (m) m.read = true; UI.tab = 'news'; save(); render(); },
-  continueGame() { W = loadSave(); if (!W) return toast('No saved career in that slot.'); NEXT_ID = W.nextId; if (!W.training) W.training = {focus: 'balanced', int: 1}; UI.screen = W.pendingSeason ? 'season' : 'game'; UI.tab = 'home'; if (W.pendingSeason) { UI.season = W.pendingSeason; UI.offers = W.pendingOffers || []; } render(); },
+  continueGame() { W = loadSave(); if (!W) return toast('No saved career in that slot.'); NEXT_ID = W.nextId; if (!W.training) W.training = {focus: 'balanced', int: 1}; if (!W.clubs.some(c => c.foreign)) addForeignClubs(); if (!W.ko) W.ko = {}; UI.screen = W.pendingSeason ? 'season' : 'game'; UI.tab = 'home'; if (W.pendingSeason) { UI.season = W.pendingSeason; UI.offers = W.pendingOffers || []; } render(); },
   arcade() { UI.screen = 'arcade'; W = W || loadSave(); render(); },
   howto,
   toTitle() { save(); UI.screen = 'title'; render(); },
@@ -991,6 +1013,7 @@ const ACT = {
   style(d) { me().style = d.s; save(); rerender(); },
   lt(d) { UI.lt = d.k; rerender(); },
   st(d) { UI.st = d.k; rerender(); },
+  cv(d) { UI.cv = d.k; rerender(); },
   statsGo() { UI.tab = 'league'; UI.lt = 'scorers'; UI.st = 'goals'; render(); },
   ld(d) { UI.ld = +d.d; rerender(); },
   mview(d) { UI.mkt.view = d.k; rerender(); },

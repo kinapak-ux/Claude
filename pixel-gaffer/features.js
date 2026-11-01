@@ -62,6 +62,8 @@ const ACHS = [
   ['champ', '🏆', 'Champions', 'Win a league title'],
   ['prem', '👑', 'Top of the pile', 'Win the Premier Division'],
   ['cup', '🥤', 'Cup kings', `Win the ${CUP_NAME}`],
+  ['silverware', '🏺', 'Midweek glory', 'Win the Pixel Vase or the Floodlit Cup'],
+  ['euro_win', '🌍', 'Kings of Europe', 'Win a European trophy'],
   ['cup_d3', '🪄', 'Giant-killers', `Win the ${CUP_NAME} with a Division Three club`],
   ['pen_score', '⚽', 'Cool as you like', 'Score a penalty yourself in a match'],
   ['pen_save', '🦸', 'Penalty saver', 'Save a penalty yourself in a match'],
@@ -110,7 +112,8 @@ function achAfterMatch(rep) {
   W.unbeaten = lost ? 0 : (W.unbeaten || 0) + 1;
   if (W.unbeaten >= 10) ach('unbeaten10');
   if (home && r.att >= C(r.h).cap) ach('sellout');
-  if (r.cup && W.cup.winner === c.id) { ach('cup'); if (c.div === 3) ach('cup_d3'); }
+  if (r.cup && r.comp === 'tin' && W.cup.winner === c.id) { ach('cup'); if (c.div === 3) ach('cup_d3'); }
+  if (r.cup && r.final && r.win === c.id && r.comp !== 'tin') ach(r.comp === 'ecc' || r.comp === 'fairs' ? 'euro_win' : 'silverware');
   if (c.cash >= 1e7) ach('rich');
   if (c.squad.map(P).some(p => p.age <= 20 && ovr(p) >= 70)) ach('wonderkid');
 }
@@ -221,7 +224,7 @@ const TOUR = [
   {sel: '.nextfx', txt: 'Your next opponent: where they are in the league and their recent form.'},
   {sel: '.nav [data-t=tactics]', txt: "TACTICS: pick your team, formation and playing style. Styles beat other styles, so check who you're playing!"},
   {sel: '.nav [data-t=squad]', txt: 'SQUAD: your players. The TRANSFER MARKET is in here too, for buying, selling and loans.'},
-  {sel: '.nav [data-t=league]', txt: 'TABLES: the league table, your fixtures calendar and the cup.'},
+  {sel: '.nav [data-t=league]', txt: 'TABLES: the league table, your fixtures calendar, the cups and stats. Climb the divisions to reach new cups, and Europe!'},
   {sel: '.nav [data-t=club]', txt: 'CLUB: training, money, the board, achievements and settings. Run a drill each week for a training bonus!'},
   {sel: '.hdr [data-a=go]', txt: "That's it, gaffer. Swipe left and right to move between screens. Good luck!"},
 ];
