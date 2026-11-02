@@ -74,7 +74,7 @@ A fantasy Top Trumps game that 2 to 6 players play on their own phones. It lives
 
 ## Family games (install them like apps)
 
-All eleven games are published with the tracker and can be installed on a phone's home screen, where they open full screen with their own icon:
+All eleven games, plus Moth Synth, are published with the tracker and can be installed on a phone's home screen, where they open full screen with their own icon:
 
 | Game | Address |
 |---|---|
@@ -89,6 +89,7 @@ All eleven games are published with the tracker and can be installed on a phone'
 | Times Table Blaster | https://kinapak-ux.github.io/Claude/times-tables/ |
 | Blow Out the Pumpkin | https://kinapak-ux.github.io/Claude/pumpkin/ |
 | Pixel Gaffer '96 | https://kinapak-ux.github.io/Claude/pixel-gaffer/ |
+| Moth Synth | https://kinapak-ux.github.io/Claude/synth/ |
 
 **To install:** on Android, open the game in Chrome, tap **⋮** and then **Install app** (or **Add to Home screen**). On iPhone, open it in Safari, tap **Share** and then **Add to Home Screen**.
 
@@ -97,6 +98,8 @@ Once a game has been opened, it also works with no signal. The exception is anyt
 Family Quiz Night, Battleships and Snap Race also work like Card Battler: one phone hosts and shows a 4-letter code, and the others join with it. Each also has a no-internet mode (pass-the-phone quiz, Battleships against the computer, Snap practice against computer racers). Their shared code is in `party.js` (connecting phones) and `kit.css` (the look).
 
 Blow Out the Pumpkin: tap **Light the candle**, allow the microphone, then blow on the phone and the candle flickers and goes out. Tap to light it again. Without a microphone, hold a finger on the pumpkin to blow instead. It doesn't send scores to the leaderboard.
+
+Moth Synth is a playable synthesizer. Tap the keys on screen (slide your finger for a glissando; tap lower on a key to play louder), or on a computer use A to ; for the white notes, W E T Y U O P for the black ones, and Z / X to change octave. It has two oscillators plus noise, a filter with its own envelope, a volume envelope, an LFO for vibrato and wah, drive, echo and reverb, a Poly/Mono switch with glide, and an arpeggiator (turn on **Latch** to keep it playing after you let go). Pick a sound from **Patch**, or tap **Surprise me** for a random one. Turn knobs by dragging up and down; double-click a knob to reset it. Your last sound is remembered on that device. A USB MIDI keyboard works in Chrome on a computer: tap **Connect MIDI**. On iPhone, if there's no sound, check the silent switch.
 
 Online chess works like Card Battler: one player taps **Online** and then **Start a new game**, and the other types in the 5-character code. If either phone drops out, the game pauses until it reconnects. Whoever started the game can reopen it from **Online** and then **Resume**.
 
