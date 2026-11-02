@@ -1,7 +1,7 @@
 {
   "name": "Moth Synth",
   "short_name": "Moth Synth",
-  "description": "A polyphonic synthesizer you can play on the screen or a keyboard.",
+  "description": "A synthesizer with a loop recorder and drum machine.",
   "id": "./",
   "start_url": "./",
   "scope": "./",
