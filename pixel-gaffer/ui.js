@@ -159,7 +159,7 @@ function headerHTML() {
   return `<header class="hdr">
     <div class="hclub">${badgeImg(c, 26)}<div><b>${esc(c.name)}</b><small>${dateOf(W.season, W.week)} · ${DIVS[c.div]}</small></div></div>
     <div class="hcash ${c.cash < 0 ? 'c-r' : 'c-g'}">${money(c.cash)}</div>
-    <button class="btn go nextbtn" data-a="go">${fx ? `PLAY<small>v ${esc(C(fx.h === c.id ? fx.a : fx.h).short)}</small>` : W.week >= W.cal.length ? 'SEASON<small>review</small>' : `NEXT<small>week</small>`}</button>
+    <button class="btn go nextbtn" data-a="go">${fx ? `PLAY<small>v ${esc(C(fx.h === c.id ? fx.a : fx.h).short)}${tacCheck(c, C(fx.h === c.id ? fx.a : fx.h)).st === 'bad' ? ' <i class="c-r">⚠</i>' : ''}</small>` : W.week >= W.cal.length ? 'SEASON<small>review</small>' : `NEXT<small>week</small>`}</button>
   </header>${unread ? '' : ''}`;
 }
 function navHTML() {
@@ -176,6 +176,7 @@ function homeHTML() {
   if (fx) {
     const opp = C(fx.h === c.id ? fx.a : fx.h), home = fx.h === c.id;
     next = `<div class="nextfx">${badgeImg(c, 40)}<div class="vs"><small>${fx.cup ? esc(fx.label) : `${DIVS[c.div]} · Round ${e.r + 1}`}</small><b>${fx.neutral ? 'FINAL v' : home ? 'HOME v' : 'AWAY v'}</b><span>${esc(opp.name)}</span><small>${[opp.foreign || opp.div !== c.div ? divName(opp) : '', opp.foreign ? '' : ordinal(posIn(opp.id)), 'form ' + formHTML(opp.formStr)].filter(Boolean).join(' · ')}</small></div>${badgeImg(opp, 40)}</div>
+      ${tacBox(c, opp)}
       <p class="note center">Tap <b class="c-g">PLAY</b> at the top when you're ready. <span class="lnk" data-a="viewOpp" data-id="${opp.id}">Scout ${esc(opp.short)}</span></p>`;
   } else next = e.t === 'K' ? `<p>Midweek cup night${userComp() ? ` in the ${esc(userComp().name)}` : ''}, but you're not playing this round.</p><p class="note center">Tap <b class="c-g">NEXT</b> at the top to move on.</p>` : `<p>${e.t === 'C' ? `${CUP_NAME} ${cupRoundName()} day. ${W.cup.alive.includes(c.id) || W.cup.byes.includes(c.id) ? '' : "You're out, so the lads get a week off."}` : 'A week without a game.'}</p><p class="note center">Tap <b class="c-g">NEXT</b> at the top to move on.</p>`;
   const conf = W.board.conf;
@@ -218,6 +219,49 @@ function teamTag(c) {
 }
 const fansWord = f => f >= 80 ? 'Singing your name' : f >= 60 ? 'Right behind you' : f >= 40 ? 'Restless' : f >= 20 ? 'Grumbling' : 'Calling for your head';
 const confWord = c => c >= 80 ? 'Delighted' : c >= 60 ? 'Happy' : c >= 40 ? 'Watching closely' : c >= 20 ? 'Worried' : 'Your job is on the line';
+
+// ---------- STADIUM
+function stadiumHTML(c) {
+  const g = ground(), lh = W.lastHome, lim = groundLimit(c), b = g.build;
+  const away = lh ? Math.max(0, lh.demand - lh.cap) : 0, full = lh ? Math.round(lh.att / lh.cap * 100) : null;
+  const crowd = !lh ? '<p class="note">No home game yet this job. Your first crowd will show how much demand there is.</p>'
+    : `<div class="kv"><span>Last home crowd</span><b>${lh.att.toLocaleString()} <small class="${full >= 100 ? 'c-g' : full >= 75 ? 'c-y' : 'c-r'}">(${full}% full)</small></b><span>Fans who wanted in</span><b class="${away ? 'c-o' : ''}">${lh.demand.toLocaleString()}</b></div>
+      <p class="note">${away ? `<b class="c-o">About ${away.toLocaleString()} fans were turned away.</b> Raise ticket prices (free, but fans grumble) or build more seats.` : full >= 95 ? 'Full, but not many locked out. More seats would sit empty for now.' : 'Empty seats. Cheaper tickets or better results will fill them; building would be wasted money.'}</p>`;
+  const standBtn = k => { const s = GROUND.stands[k], cost = standCost(k, c), over = c.cap + s.add > lim;
+    return `<button class="btn small" data-a="buildStand" data-k="${k}" ${over || c.cash < cost ? 'disabled' : ''}>${s.n}: +${s.add.toLocaleString()} seats · ${money(cost)} · ${s.wk} wks</button>`; };
+  const upg = (k, name, now, desc) => { const lv = g[k], cost = upgradeCost(k, c);
+    return `<div class="upg"><div><b>${name}</b> <span class="lvl">${'■'.repeat(lv)}${'□'.repeat(3 - lv)}</span><small>${now}</small></div>${lv < 3 ? `<button class="btn small" data-a="upgrade" data-k="${k}" ${c.cash < cost ? 'disabled' : ''}>${lv ? 'Upgrade' : 'Build'} · ${money(cost)}</button>` : '<span class="c-g">MAX</span>'}<p class="note">${desc}</p></div>`; };
+  return `<div class="panel"><h2>Stadium</h2>
+    <div class="kv"><span>Capacity</span><b>${c.cap.toLocaleString()}${b ? ` <small class="c-o">(${openSeats(c).toLocaleString()} open)</small>` : ''}</b><span>Ticket price</span><b>£${c.ticket} <small class="c-d">(max £${BASE_TICKET[c.div] * 2})</small></b></div>
+    ${crowd}
+    <h3 class="divh">Build seats</h3>
+    ${b ? `<p>🏗 <b>${esc(b.n)}</b> going up: <b class="c-y">${b.wk} week${b.wk > 1 ? 's' : ''}</b> left, then +${b.add.toLocaleString()} seats. ${b.closed.toLocaleString()} seats are closed while the builders are in.</p>`
+      : c.cap >= lim ? `<p class="note">The council won't allow a bigger ground in ${DIVS[c.div]} (limit ${lim.toLocaleString()}). Win promotion to build more, or earn more per fan below.</p>`
+      : `<div class="acts col">${standBtn('small')}${standBtn('big')}</div><p class="note">Part of the ground closes during building. ${DIVS[c.div]} limit: ${lim.toLocaleString()}.</p>`}
+    <h3 class="divh">Earn more per fan</h3>
+    ${upg('boxes', 'Executive boxes', g.boxes ? `${money(boxIncome(c))} every home game` : 'Not built', 'Hospitality for local businesses. Pays every home game, full ground or not.')}
+    ${upg('shop', 'Club shop', g.shop ? `about ${money(shopIncome(c))} a week` : 'Not built', 'Shirts and scarves. Weekly income that grows with ground size and happier fans.')}
+  </div>`;
+}
+
+// ---------- TACTICS CHECK: shown on Home and Match Day so you can't forget to counter the opponent
+function tacCheck(c, opp) {
+  const counters = Object.keys(STYLES).filter(s => BEATS[s].includes(opp.style));
+  return {st: BEATS[c.style].includes(opp.style) ? 'good' : BEATS[opp.style].includes(c.style) ? 'bad' : 'even', counters};
+}
+function tacBox(c, opp) {
+  const t = tacCheck(c, opp), us = STYLES[c.style].n, them = STYLES[opp.style].n;
+  const msg = t.st === 'good' ? `✓ Your ${us} should beat their ${them}.` : t.st === 'bad' ? `⚠ Their ${them} beats your ${us}!` : `= Your ${us} v their ${them}: no edge either way.`;
+  return `<div class="taccheck ${t.st}"><small>TACTICS CHECK · ${esc(opp.short)} play ${them}</small><b>${msg}</b>${t.st === 'good' ? '' : `<div class="chips small">${t.counters.map(s => `<button class="chip" data-a="style" data-s="${s}">Switch to ${STYLES[s].n}</button>`).join('')}</div>`}</div>`;
+}
+function tacWarn(mode) {
+  const fx = UI.fx, c = me(), opp = C(fx.h === c.id ? fx.a : fx.h), t = tacCheck(c, opp), key = W.season * 100 + W.week;
+  if (t.st !== 'bad' || UI.tacOk === key) return false;
+  modal(`<div class="scen"><div class="scenh"><span>⚠ Assistant manager</span></div>
+    <p class="scenr">"Gaffer, ${esc(opp.name)} play <b>${STYLES[opp.style].n}</b>, and that beats our <b>${STYLES[c.style].n}</b>. Want to switch?"</p>
+    <div class="answers">${t.counters.map(s => `<button class="btn go" data-a="tacFix" data-s="${s}" data-m="${mode}">Switch to ${STYLES[s].n}</button>`).join('')}<button class="btn" data-a="tacAnyway" data-m="${mode}">Keep ${STYLES[c.style].n} and play</button></div></div>`);
+  return true;
+}
 
 // ---------- SQUAD
 // three views of the same squad (overview / contract / season), sortable by tapping a column header
@@ -568,9 +612,10 @@ function clubHTML() {
     <h3 class="divh">Drill of the week</h3>
     ${drillDone ? `<p class="c-g">Done this week! Training bonus +${Math.round((W.drill || 0) * 100)}%.</p>` : `<p class="note">Run a drill with the lads for a training bonus this week.</p><div class="acts"><button class="btn" data-a="drill" data-k="keepy">⚽ Keepy-uppy</button><button class="btn" data-a="drill" data-k="fk">🎯 Free-kick practice</button></div>`}
   </div>
-  <div class="panel"><h2>Finances</h2><div class="kv"><span>Bank</span><b class="${c.cash < 0 ? 'c-r' : 'c-g'}">${money(c.cash)}</b><span>Wages</span><b>${money(wages)}/wk</b><span>TV money</span><b>${money(TV[c.div])}/wk</b><span>Last gate</span><b>${W.lastGate ? money(W.lastGate.gate) + ' (' + W.lastGate.att.toLocaleString() + ' fans)' : '-'}</b><span>Ground</span><b>${c.cap.toLocaleString()} capacity</b></div>
+  <div class="panel"><h2>Finances</h2><div class="kv"><span>Bank</span><b class="${c.cash < 0 ? 'c-r' : 'c-g'}">${money(c.cash)}</b><span>Wages</span><b>${money(wages)}/wk</b><span>TV money</span><b>${money(TV[c.div])}/wk</b><span>Last gate</span><b>${W.lastGate ? money(W.lastGate.gate) + ' (' + W.lastGate.att.toLocaleString() + ' fans)' : '-'}</b></div>
     <div class="offer small"><span>Ticket price</span><button class="btn small" data-a="ticket" data-d="-1">−</button><b>£${c.ticket}</b><button class="btn small" data-a="ticket" data-d="1">+</button></div>
     <p class="note">Cheaper tickets fill the ground, dearer ones earn more per fan. League average is £${BASE_TICKET[c.div]}.</p></div>
+  ${stadiumHTML(c)}
   <div class="panel"><h2>Trophy cabinet</h2>${W.career.trophies.length ? W.career.trophies.map(t => `<div>🏆 ${esc(t)}</div>`).join('') : '<p class="note">Empty... for now.</p>'}
     <h3 class="divh">Career</h3><p>${esc(W.name)} · ${W.career.seasons} season${W.career.seasons === 1 ? '' : 's'} · <b class="c-y">${W.career.pts}</b> manager points</p>
     ${W.history.length ? `<table class="tbl"><tbody>${W.history.map(h => `<tr><td>${seasonLabel(h.s)}</td><td>${badgeImg(C(h.club), 14)} ${C(h.club).short}</td><td>${DIVS[h.div]}</td><td>${ordinal(h.pos)}</td><td>${h.pts} pts</td></tr>`).join('')}</tbody></table>` : ''}</div>
@@ -651,14 +696,14 @@ function prematchHTML() {
   const cmp = (n, a, b) => { const tot = a + b; return `<div class="cmp"><span>${n}</span><div class="cmpbar"><i style="width:${a / tot * 100}%"></i></div><small>${a > b * 1.08 ? '<span class="c-g">Stronger</span>' : b > a * 1.08 ? '<span class="c-r">Weaker</span>' : 'Even'}</small></div>`; };
   const key = opp.xi.map(P).filter(Boolean).sort((a, b) => ovrOf(b) - ovrOf(a))[0];
   const theyBeat = BEATS[opp.style].includes(c.style), weBeat = BEATS[c.style].includes(opp.style);
-  const tip = weBeat ? `<span class="c-g">Your ${STYLES[c.style].n} game should trouble their ${STYLES[opp.style].n}.</span>` : theyBeat ? `<span class="c-r">Careful: their ${STYLES[opp.style].n} game beats your ${STYLES[c.style].n}.</span> Try ${Object.keys(STYLES).filter(s => BEATS[s].includes(opp.style)).map(s => STYLES[s].n).join(' or ')}.` : `Styles cancel out. Try ${Object.keys(STYLES).filter(s => BEATS[s].includes(opp.style)).map(s => STYLES[s].n).join(' or ')} to get an edge.`;
   const pr = UI.press;
   return `<div class="top-simple"><button class="btn ghost small" data-a="backToGame">← Back</button><h2 class="px">MATCH DAY</h2></div>
   <div class="panel"><div class="nextfx">${badgeImg(home ? c : opp, 44)}<div class="vs"><small>${fx.cup ? `${esc(fx.label)}${fx.neutral ? ' · neutral ground' : ''}` : DIVS[c.div]}</small><b>${esc((home ? c : opp).short)} v ${esc((home ? opp : c).short)}</b><small>${esc(C(fx.h).name)} v ${esc(C(fx.a).name)}</small><div class="ttags">${teamTag(C(fx.h))}<span>v</span>${teamTag(C(fx.a))}</div></div>${badgeImg(home ? opp : c, 44)}</div></div>
+  <div class="panel">${tacBox(c, opp)}</div>
   <div class="panel"><h2>Scout report: ${esc(opp.name)}</h2>
     <p>${opp.formation}, plays <b class="c-y">${STYLES[opp.style].n}</b>. Form ${formHTML(opp.formStr)}. Danger man: <b>${key ? esc(pname(key)) + ' (' + ovrHTML(key) + ')' : '-'}</b></p>
     ${cmp('Defence', us.def, them.def)}${cmp('Midfield', us.mid, them.mid)}${cmp('Attack', us.att, them.att)}
-    <p class="note">${tip}</p></div>
+    </div>
   <div class="panel"><h2>Your team · ${c.formation} · ${STYLES[c.style].n}</h2><div class="lineup">${c.xi.map((id, k) => id == null ? '' : `<span>${posTag(formSlots(c.formation)[k])} ${esc(P(id).ln)}</span>`).join('')}</div>
     <div class="acts"><button class="btn small" data-a="preTactics">Change tactics</button><button class="btn small" data-a="viewOpp" data-id="${opp.id}">View ${esc(opp.short)}</button></div></div>
   ${pr && !pr.done ? `<div class="panel press"><h2>📰 The press want a word</h2><p>"${esc(pr.q)}"</p><div class="answers">${pr.a.map((x, i) => `<button class="btn small" data-a="press" data-i="${i}">${esc(x[0])}</button>`).join('')}</div></div>` : pr ? `<div class="panel press"><p class="note">${esc(pr.done)}</p></div>` : ''}
@@ -870,7 +915,7 @@ function weekHTML() {
     ${groups.map(([n, rs]) => `<div class="c-y">${n}</div>${rs.map(resLine).join('')}`).join('')}</div>
   <div class="panel"><h2>Your week</h2>
     ${rep.user ? (() => { const r = rep.user, home = r.h === c.id, gf = home ? r.hg : r.ag, ga = home ? r.ag : r.hg, wl = r.win != null ? (r.win === c.id ? 'W' : 'L') : gf > ga ? 'W' : gf < ga ? 'L' : 'D'; return `<p><span class="fm ${wl}">${wl}</span> ${gf}-${ga}${r.pens ? ' (pens)' : ''} ${home ? 'v' : 'at'} ${esc(C(home ? r.a : r.h).name)}. ${r.cup ? '' : `You're ${ordinal(posIn(c.id))}.`}</p>`; })() : ''}
-    ${rep.user ? `<p>${rep.gate ? `Gate receipts <b class="c-g">${money(rep.gate)}</b> (${rep.user.att.toLocaleString()} fans). ` : ''}Wages <b class="c-r">−${money(rep.wages)}</b>. TV <b class="c-g">${money(rep.tv)}</b>.</p>` : `<p>Wages <b class="c-r">−${money(rep.wages)}</b>. TV <b class="c-g">${money(rep.tv)}</b>.</p>`}
+    ${rep.user ? `<p>${rep.gate ? `Gate receipts <b class="c-g">${money(rep.gate)}</b> (${rep.user.att.toLocaleString()} fans). ` : ''}${rep.boxes ? `Boxes <b class="c-g">${money(rep.boxes)}</b>. ` : ''}Wages <b class="c-r">−${money(rep.wages)}</b>. TV <b class="c-g">${money(rep.tv)}</b>.${rep.shop ? ` Shop <b class="c-g">${money(rep.shop)}</b>.` : ''}</p>` : `<p>Wages <b class="c-r">−${money(rep.wages)}</b>. TV <b class="c-g">${money(rep.tv)}</b>.${rep.shop ? ` Shop <b class="c-g">${money(rep.shop)}</b>.` : ''}</p>`}
     ${rep.msgs.map(t => `<div>• ${esc(t)}</div>`).join('')}
     ${grew.map(p => `<div class="c-g">▲ ${esc(pname(p))} has improved in training! Now ${ovr(p)}.</div>`).join('')}
     ${c.squad.map(P).filter(p => p.injNew === undefined && p.inj && rep.user && [...(UI.match ? UI.match.sides[UI.match.userSide].played : [])].includes(p.id) && UI.match && UI.match.sides[UI.match.userSide].injured && UI.match.sides[UI.match.userSide].injured[p.id]).map(p => `<div class="c-r">✚ ${esc(pname(p))} is injured for ${p.inj} week${p.inj > 1 ? 's' : ''}.</div>`).join('')}
@@ -1082,8 +1127,15 @@ const ACT = {
     pr.done = `You said: "${a[0]}" ${a[1] > 2 ? 'The dressing room loved it.' : a[1] < 0 ? 'The players cringed.' : ''}${a[2] < 0 ? ' The chairman winced.' : a[2] > 0 ? ' The chairman smiled.' : ''}`;
     rerender();
   },
-  kickoff() { SND.init(); startMatch(true); },
-  quick() { startMatch(false); },
+  kickoff() { if (tacWarn('live')) return; SND.init(); startMatch(true); },
+  quick() { if (tacWarn('quick')) return; startMatch(false); },
+  tacFix(d) { me().style = d.s; UI.tacOk = W.season * 100 + W.week; closeModal(); save(); toast(`Switched to ${STYLES[d.s].n}.`); rerender(); },
+  tacAnyway(d) { UI.tacOk = W.season * 100 + W.week; closeModal(); if (d.m === 'live') { SND.init(); startMatch(true); } else startMatch(false); },
+  buildStand(d) { const c = me(), g = ground(), s = GROUND.stands[d.k], cost = standCost(d.k, c);
+    if (g.build || c.cash < cost || c.cap + s.add > groundLimit(c)) return;
+    if (!confirm(`Build the ${s.n.toLowerCase()} for ${money(cost)}? It takes ${s.wk} weeks and ${Math.round(s.add / 4).toLocaleString()} seats close while it's built.`)) return;
+    c.cash -= cost; g.build = {n: s.n, add: s.add, wk: s.wk, closed: Math.round(s.add / 4)}; save(); toast('The builders are in!'); rerender(); },
+  upgrade(d) { const c = me(), g = ground(), cost = upgradeCost(d.k, c); if (g[d.k] >= 3 || c.cash < cost) return; c.cash -= cost; g[d.k]++; save(); toast(d.k === 'boxes' ? 'Executive boxes ready.' : 'Club shop open for business.'); rerender(); },
   mTactics() { closeModal(); UI.msel = null; matchTactics(); },
   mResume() { closeModal(); if (LM) { LM.paused = false; LM.busy = LM.m.done; LM.next = performance.now() + 400; } },
   mSpeed() { W.settings.speed = W.settings.speed % 3 + 1; const b = $('#spd'); if (b) b.textContent = ['', 'Slow', 'Normal', 'Fast'][W.settings.speed]; if (LM) LM.next = Math.min(LM.next, performance.now() + SPEED_MS[W.settings.speed]); },

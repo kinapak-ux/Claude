@@ -328,6 +328,16 @@ div.slot{cursor:pointer}
 .scorers{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:18px;margin-top:8px}
 .scorers div:last-child{text-align:right}
 .press{border-left:6px solid var(--cy)}
+.taccheck{border:2px solid var(--edge);border-left-width:8px;background:var(--dark);padding:8px 10px;margin:8px 0;display:flex;flex-direction:column;gap:6px;text-align:left}
+.taccheck small{font-family:var(--px);font-size:7px;color:var(--dim)}.taccheck b{font-size:21px;line-height:1.1}
+.taccheck.bad{border-color:var(--red);animation:tacpulse 1.2s steps(2) infinite}.taccheck.bad b{color:var(--red)}
+.taccheck.good{border-color:var(--grn)}.taccheck.good b{color:var(--grn)}.taccheck.even{border-color:var(--yel)}.taccheck.even b{color:var(--yel)}
+@keyframes tacpulse{50%{box-shadow:0 0 0 3px rgba(255,75,85,.45)}}
+.panel>.taccheck:only-child{margin:0}
+.upg{border-top:1px solid rgba(255,255,255,.1);padding:8px 0 2px;display:grid;grid-template-columns:1fr auto;gap:4px 8px;align-items:center}
+.upg>div{display:flex;flex-direction:column}.upg small{color:var(--dim);font-size:17px}.upg .note{grid-column:1/-1;margin:0}
+.upg .lvl{color:var(--yel);font-size:14px;letter-spacing:2px}
+.acts.col{flex-direction:column;align-items:stretch}
 .trophy{font-family:var(--px);font-size:10px;color:var(--yel);margin:8px 0;line-height:1.6}
 .cmp{display:grid;grid-template-columns:76px 1fr 72px;gap:8px;align-items:center;margin:4px 0;font-size:19px}
 .cmpbar{height:12px;background:var(--red);border:2px solid #000}

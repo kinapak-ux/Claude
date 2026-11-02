@@ -421,6 +421,7 @@ function finishWeek(userMatch) {
     const gate = att * home.ticket;
     if (f.cup) { home.cash += gate / 2; away.cash += gate / 2; } else home.cash += gate;
     if (f.h === W.clubId || f.a === W.clubId) { report.gate = f.cup ? gate / 2 : f.h === W.clubId ? gate : 0; report.user = r; }
+    if (f.h === W.clubId && !f.neutral && W.ground && W.ground.boxes) { const bx = boxIncome(home); home.cash += bx; report.boxes = bx; }
     if (f.cup) { const wnr = m.winner() === 0 ? f.h : f.a; C(wnr).cash += f.comp === 'tin' ? CUP_PRIZE[W.cup.r] : koPrize(f.comp, f.round); r.win = wnr; }
   });
   // board and morale reaction to the user's game
@@ -443,12 +444,28 @@ function finishWeek(userMatch) {
   report.seasonOver = W.week >= W.cal.length;
   return report;
 }
+// ---------- STADIUM: stands, executive boxes and club shop for the user's club
+const GROUND = {limit: [60000, 38000, 24000, 15000], seat: [300, 220, 150, 110], box: [9000, 6000, 3500, 2000], boxCost: [300000, 200000, 120000, 70000], shopRate: [.25, .2, .15, .12], shopCost: [150000, 100000, 70000, 50000],
+  stands: {small: {n: 'Small stand', add: 1000, wk: 4, disc: 1}, big: {n: 'New main stand', add: 3000, wk: 10, disc: .85}}};
+function ground() { const g = W.ground || (W.ground = {build: null, boxes: 0, shop: 0}); if (g.base == null) g.base = me().cap; return g; }
+const groundLimit = c => GROUND.limit[c.div];
+const standCost = (k, c) => Math.round(GROUND.stands[k].add * GROUND.seat[c.div] * GROUND.stands[k].disc / 1000) * 1000;
+const openSeats = c => c.cap - (c.id === W.clubId && W.ground && W.ground.build ? W.ground.build.closed : 0);
+const boxIncome = c => (W.ground ? W.ground.boxes : 0) * GROUND.box[c.div];
+const shopIncome = c => Math.round((W.ground ? W.ground.shop : 0) * c.cap * GROUND.shopRate[c.div] * (.6 + (W.fans ?? 60) / 125) / 10) * 10;
+const upgradeCost = (k, c) => (k === 'boxes' ? GROUND.boxCost : GROUND.shopCost)[c.div] * ((W.ground ? W.ground[k] : 0) + 1);
 function attendance(home, away, cupR, euro) {
   if (home.foreign) return Math.round(home.cap * (.7 + R() * .28));
   const pos = W.res.length ? posIn(home.id) : 6;
   const f = .42 + home.rep / 260 + (12 - pos) * .015 + (home.formStr || '').split('').filter(x => x === 'W').length * .02 + (cupR != null ? .1 + cupR * .05 : 0) + (euro ? .25 : 0) + (away.rep - home.rep) / 400;
   const fanF = home.id === W.clubId ? .8 + (W.fans ?? 60) / 250 : 1;
-  return Math.round(home.cap * clamp((f + (R() - .5) * .08) * Math.pow(BASE_TICKET[home.div] / home.ticket, .7) * fanF, .15, 1));
+  const ratio = (f + (R() - .5) * .08) * Math.pow(BASE_TICKET[home.div] / home.ticket, .7) * fanF;
+  if (home.id !== W.clubId) return Math.round(home.cap * clamp(ratio, .15, 1));
+  // the user's crowd is driven by real demand, so seats you add only fill if the fans are there
+  const g = ground(), demand = Math.round(g.base * Math.max(ratio, .15) / 10) * 10;
+  const att = Math.min(openSeats(home), demand);
+  W.lastHome = {att, demand, cap: openSeats(home)};
+  return att;
 }
 
 function boardReact(r, e) {
@@ -467,8 +484,10 @@ function weeklyClub(report, played) {
     if (c.foreign) return;
     const wages = c.squad.reduce((s, id) => s + (P(id) ? P(id).wage : 0), 0);
     c.cash += TV[c.div] - wages;
-    if (c.id === W.clubId) { report.wages = wages; report.tv = TV[c.div]; }
+    if (c.id === W.clubId) { report.wages = wages; report.tv = TV[c.div]; const sh = shopIncome(c); if (sh) { c.cash += sh; report.shop = sh; } }
   });
+  const gb = W.ground && W.ground.build;
+  if (gb && --gb.wk <= 0) { club.cap += gb.add; W.ground.build = null; report.msgs.push(`The ${gb.n.toLowerCase()} is open! Capacity now ${club.cap.toLocaleString()}.`); inbox('Stadium Manager', `${gb.n} opened`, `The builders are done. ${gb.add.toLocaleString()} new seats, and the ground now holds ${club.cap.toLocaleString()}.`); }
   if (club.cash < 0) { W.board.conf = clamp(W.board.conf - 2.5, 0, 100); if (W.week % 4 === 0) inbox('The Board', 'We are in the red', `The club is ${money(club.cash)} overdrawn. Get the wage bill down or sell someone, or we'll have to talk about your future.`); }
   // recovery, injuries, training
   const intensity = t.int, focus = TRAINING[t.focus];
@@ -617,6 +636,8 @@ function endSeason() {
   S.promoted.forEach(([id, d]) => { C(id).div = d - 1; });
   S.relegated.forEach(([id, d]) => { C(id).div = d + 1; });
   const oldDiv = {}; S.promoted.concat(S.relegated).forEach(([id]) => oldDiv[id] = 1);
+  // the fanbase grows with success: promotion brings new fans, relegation loses some
+  if (W.ground && W.ground.base) W.ground.base = Math.round(W.ground.base * (S.promoted.some(([id]) => id === W.clubId) ? 1.2 : S.relegated.some(([id]) => id === W.clubId) ? .88 : 1.04) / 100) * 100;
   W.clubs.forEach(cl => { if (cl.foreign) return; cl.rep = clamp(Math.round(cl.rep * .8 + (95 - cl.div * 20) * .2), 5, 99); if (oldDiv[cl.id] || cl.id !== W.clubId) cl.ticket = BASE_TICKET[cl.div]; });
   returnLoans();
   // players age, grow and retire
@@ -687,7 +708,7 @@ function jobOffers(sacked) {
 }
 function takeJob(id) {
   const old = me(); autoPick(old);
-  W.clubId = id; W.career.clubs.push(id); W.joined = W.season + (typeof UI !== 'undefined' && UI.screen === 'season' ? 1 : 0);
+  W.clubId = id; W.ground = null; W.lastHome = null; W.career.clubs.push(id); W.joined = W.season + (typeof UI !== 'undefined' && UI.screen === 'season' ? 1 : 0);
   const c = me(); c.squad.map(P).forEach(p => p.listed = false);
   W.board = {conf: 60}; setTarget(); fixTeam(c);
   W.tactics = null;
