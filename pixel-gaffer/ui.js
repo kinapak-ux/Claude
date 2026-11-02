@@ -159,7 +159,7 @@ function headerHTML() {
   return `<header class="hdr">
     <div class="hclub">${badgeImg(c, 26)}<div><b>${esc(c.name)}</b><small>${dateOf(W.season, W.week)} · ${DIVS[c.div]}</small></div></div>
     <div class="hcash ${c.cash < 0 ? 'c-r' : 'c-g'}">${money(c.cash)}</div>
-    <button class="btn go nextbtn" data-a="go">${fx ? `PLAY<small>v ${esc(C(fx.h === c.id ? fx.a : fx.h).short)}${tacCheck(c, C(fx.h === c.id ? fx.a : fx.h)).st === 'bad' ? ' <i class="c-r">⚠</i>' : ''}</small>` : W.week >= W.cal.length ? 'SEASON<small>review</small>' : `NEXT<small>week</small>`}</button>
+    <button class="btn go nextbtn" data-a="go">${fx ? `PLAY<small>${derbyFx(fx) ? '🔥' : 'v'} ${esc(C(fx.h === c.id ? fx.a : fx.h).short)}${tacCheck(c, C(fx.h === c.id ? fx.a : fx.h)).st === 'bad' ? ' <i class="c-r">⚠</i>' : ''}</small>` : W.week >= W.cal.length ? 'SEASON<small>review</small>' : `NEXT<small>week</small>`}</button>
   </header>${unread ? '' : ''}`;
 }
 function navHTML() {
@@ -176,7 +176,7 @@ function homeHTML() {
   if (fx) {
     const opp = C(fx.h === c.id ? fx.a : fx.h), home = fx.h === c.id;
     next = `<div class="nextfx">${badgeImg(c, 40)}<div class="vs"><small>${fx.cup ? esc(fx.label) : `${DIVS[c.div]} · Round ${e.r + 1}`}</small><b>${fx.neutral ? 'FINAL v' : home ? 'HOME v' : 'AWAY v'}</b><span>${esc(opp.name)}</span><small>${[opp.foreign || opp.div !== c.div ? divName(opp) : '', opp.foreign ? '' : ordinal(posIn(opp.id)), 'form ' + formHTML(opp.formStr)].filter(Boolean).join(' · ')}</small></div>${badgeImg(opp, 40)}</div>
-      ${tacBox(c, opp)}
+      ${derbyFx(fx) ? derbyBanner(opp) : ''}${tacBox(c, opp)}
       <p class="note center">Tap <b class="c-g">PLAY</b> at the top when you're ready. <span class="lnk" data-a="viewOpp" data-id="${opp.id}">Scout ${esc(opp.short)}</span></p>`;
   } else next = e.t === 'K' ? `<p>Midweek cup night${userComp() ? ` in the ${esc(userComp().name)}` : ''}, but you're not playing this round.</p><p class="note center">Tap <b class="c-g">NEXT</b> at the top to move on.</p>` : `<p>${e.t === 'C' ? `${CUP_NAME} ${cupRoundName()} day. ${W.cup.alive.includes(c.id) || W.cup.byes.includes(c.id) ? '' : "You're out, so the lads get a week off."}` : 'A week without a game.'}</p><p class="note center">Tap <b class="c-g">NEXT</b> at the top to move on.</p>`;
   const conf = W.board.conf;
@@ -242,6 +242,27 @@ function stadiumHTML(c) {
     ${upg('boxes', 'Executive boxes', g.boxes ? `${money(boxIncome(c))} every home game` : 'Not built', 'Hospitality for local businesses. Pays every home game, full ground or not.')}
     ${upg('shop', 'Club shop', g.shop ? `about ${money(shopIncome(c))} a week` : 'Not built', 'Shirts and scarves. Weekly income that grows with ground size and happier fans.')}
   </div>`;
+}
+
+// ---------- DERBY UI
+const derbyFx = fx => !!fx && isDerby(fx.h, fx.a);
+function derbyBanner(opp, big) {
+  const d = derbyRec(), all = d.w + d.d + d.l;
+  return `<div class="derbyb${big ? ' big' : ''}"><b>🔥 DERBY DAY</b><span>${all ? `All-time v ${esc(opp.short)}: <i class="c-g">W${d.w}</i> <i class="c-y">D${d.d}</i> <i class="c-r">L${d.l}</i>` : `First derby against ${esc(opp.short)}`}</span>${big ? `<small>Bigger crowd, more cards. Win and the fans, board and squad all lift. Lose and you'll hear about it all week.</small>` : ''}</div>`;
+}
+function derbyPress(opp) {
+  return pick([
+    {q: `It's ${opp.short} on Saturday. What does this one mean to you?`, a: [['Everything. This town is ours.', 5, 1], ['Same three points as any other game.', 0, -1], ['Ask me after we beat them.', 3, 0]]},
+    {q: `${opp.name}'s manager says your club is "the second team in town". Response?`, a: [["Check the history books, mate.", 4, 0], ['Let him talk. We will do ours on the pitch.', 2, 1], ['He might be right...', -4, -3]]},
+    {q: `Fans want blood against ${opp.short}. Can you deliver?`, a: [["We'll run through walls for them.", 4, 1], ['We will stay calm and play our game.', 1, 1], ["I can't promise anything.", -2, -2]]},
+  ]);
+}
+function rivalHTML(c) {
+  const r = C(rivalOf(c)); if (!r) return '';
+  const d = derbyRec(), all = d.w + d.d + d.l, same = r.div === c.div;
+  return `<div class="panel"><h2>Local rivals</h2><div class="nextfx" style="justify-content:flex-start;text-align:left">${badgeImg(r, 36)}<div class="vs"><b>${esc(r.name)}</b><small>${DIVS[r.div]}${same ? ` · ${ordinal(posIn(r.id))}` : ''}</small></div></div>
+    ${all ? `<div class="kv"><span>All-time</span><b><span class="c-g">W${d.w}</span> <span class="c-y">D${d.d}</span> <span class="c-r">L${d.l}</span></b><span>Goals</span><b>${d.gf}-${d.ga}</b><span>This season</span><b>${d.sw}W ${d.sd}D ${d.sl}L</b></div>` : '<p class="note">No derbies played yet in your time here.</p>'}
+    <p class="note">${same ? 'Two league derbies a season. Beat them home and away for the derby double.' : r.div < c.div ? `They're in a higher league. Win promotion to bring the derby back.` : `They're a league below. The derby returns if they come up, or if you meet in a cup.`}</p></div>`;
 }
 
 // ---------- TACTICS CHECK: shown on Home and Match Day so you can't forget to counter the opponent
@@ -616,6 +637,7 @@ function clubHTML() {
     <div class="offer small"><span>Ticket price</span><button class="btn small" data-a="ticket" data-d="-1">−</button><b>£${c.ticket}</b><button class="btn small" data-a="ticket" data-d="1">+</button></div>
     <p class="note">Cheaper tickets fill the ground, dearer ones earn more per fan. League average is £${BASE_TICKET[c.div]}.</p></div>
   ${stadiumHTML(c)}
+  ${rivalHTML(c)}
   <div class="panel"><h2>Trophy cabinet</h2>${W.career.trophies.length ? W.career.trophies.map(t => `<div>🏆 ${esc(t)}</div>`).join('') : '<p class="note">Empty... for now.</p>'}
     <h3 class="divh">Career</h3><p>${esc(W.name)} · ${W.career.seasons} season${W.career.seasons === 1 ? '' : 's'} · <b class="c-y">${W.career.pts}</b> manager points</p>
     ${W.history.length ? `<table class="tbl"><tbody>${W.history.map(h => `<tr><td>${seasonLabel(h.s)}</td><td>${badgeImg(C(h.club), 14)} ${C(h.club).short}</td><td>${DIVS[h.div]}</td><td>${ordinal(h.pos)}</td><td>${h.pts} pts</td></tr>`).join('')}</tbody></table>` : ''}</div>
@@ -676,7 +698,7 @@ function go() {
   const key = W.season * 100 + W.week;
   if (W.scenWeek !== key && W.week >= 1 && W.week - (W.lastScen ?? -9) >= 2 && R() < .45) { W.scenWeek = key; W.lastScen = W.week; return scenarioModal(); }
   W.scenWeek = key;
-  UI.fx = fx; UI.press = R() < .3 ? pressQ(fx) : null;
+  UI.fx = fx; UI.press = derbyFx(fx) ? derbyPress(C(fx.h === W.clubId ? fx.a : fx.h)) : R() < .3 ? pressQ(fx) : null;
   UI.screen = 'prematch'; render();
 }
 function pressQ(fx) {
@@ -699,7 +721,7 @@ function prematchHTML() {
   const pr = UI.press;
   return `<div class="top-simple"><button class="btn ghost small" data-a="backToGame">← Back</button><h2 class="px">MATCH DAY</h2></div>
   <div class="panel"><div class="nextfx">${badgeImg(home ? c : opp, 44)}<div class="vs"><small>${fx.cup ? `${esc(fx.label)}${fx.neutral ? ' · neutral ground' : ''}` : DIVS[c.div]}</small><b>${esc((home ? c : opp).short)} v ${esc((home ? opp : c).short)}</b><small>${esc(C(fx.h).name)} v ${esc(C(fx.a).name)}</small><div class="ttags">${teamTag(C(fx.h))}<span>v</span>${teamTag(C(fx.a))}</div></div>${badgeImg(home ? opp : c, 44)}</div></div>
-  <div class="panel">${tacBox(c, opp)}</div>
+  ${derbyFx(fx) ? `<div class="panel">${derbyBanner(opp, true)}</div>` : ''}<div class="panel">${tacBox(c, opp)}</div>
   <div class="panel"><h2>Scout report: ${esc(opp.name)}</h2>
     <p>${opp.formation}, plays <b class="c-y">${STYLES[opp.style].n}</b>. Form ${formHTML(opp.formStr)}. Danger man: <b>${key ? esc(pname(key)) + ' (' + ovrHTML(key) + ')' : '-'}</b></p>
     ${cmp('Defence', us.def, them.def)}${cmp('Midfield', us.mid, them.mid)}${cmp('Attack', us.att, them.att)}
@@ -915,6 +937,7 @@ function weekHTML() {
     ${groups.map(([n, rs]) => `<div class="c-y">${n}</div>${rs.map(resLine).join('')}`).join('')}</div>
   <div class="panel"><h2>Your week</h2>
     ${rep.user ? (() => { const r = rep.user, home = r.h === c.id, gf = home ? r.hg : r.ag, ga = home ? r.ag : r.hg, wl = r.win != null ? (r.win === c.id ? 'W' : 'L') : gf > ga ? 'W' : gf < ga ? 'L' : 'D'; return `<p><span class="fm ${wl}">${wl}</span> ${gf}-${ga}${r.pens ? ' (pens)' : ''} ${home ? 'v' : 'at'} ${esc(C(home ? r.a : r.h).name)}. ${r.cup ? '' : `You're ${ordinal(posIn(c.id))}.`}</p>`; })() : ''}
+    ${rep.user && rep.user.derby ? `<div class="derbyb"><b>🔥 ${rep.user.derby === 'w' ? 'DERBY WIN!' : rep.user.derby === 'l' ? 'DERBY DEFEAT' : 'DERBY DRAW'}</b><span>${rep.user.derby === 'w' ? 'The town is yours. Fans, board and players all buzzing.' : rep.user.derby === 'l' ? "Fans furious, the chairman isn't happy and the lads are gutted." : 'Honours even. Nobody gets bragging rights this time.'}</span></div>` : ''}
     ${rep.user ? `<p>${rep.gate ? `Gate receipts <b class="c-g">${money(rep.gate)}</b> (${rep.user.att.toLocaleString()} fans). ` : ''}${rep.boxes ? `Boxes <b class="c-g">${money(rep.boxes)}</b>. ` : ''}Wages <b class="c-r">−${money(rep.wages)}</b>. TV <b class="c-g">${money(rep.tv)}</b>.${rep.shop ? ` Shop <b class="c-g">${money(rep.shop)}</b>.` : ''}</p>` : `<p>Wages <b class="c-r">−${money(rep.wages)}</b>. TV <b class="c-g">${money(rep.tv)}</b>.${rep.shop ? ` Shop <b class="c-g">${money(rep.shop)}</b>.` : ''}</p>`}
     ${rep.msgs.map(t => `<div>• ${esc(t)}</div>`).join('')}
     ${grew.map(p => `<div class="c-g">▲ ${esc(pname(p))} has improved in training! Now ${ovr(p)}.</div>`).join('')}

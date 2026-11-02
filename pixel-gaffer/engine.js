@@ -119,7 +119,7 @@ class Match {
   constructor(hId, aId, opts) {
     opts = opts || {};
     this.cup = !!opts.cup; this.neutral = !!opts.neutral; this.live = !!opts.live; this.userSide = opts.userSide ?? -1;
-    this.minute = 0; this.end = 90; this.done = false; this.log = []; this.pending = null; this.pens = null; this.half = 0;
+    this.derby = isDerby(hId, aId); this.minute = 0; this.end = 90; this.done = false; this.log = []; this.pending = null; this.pens = null; this.half = 0;
     this.sides = [hId, aId].map(id => {
       const c = C(id); fixTeam(c);
       return {id, c, on: c.xi.map(x => x != null && P(x) ? x : null), bench: c.bench.filter(x => P(x)), subsLeft: 3, style: c.style, form: c.formation, g: 0, sh: 0, sot: 0, poss: 0, rc: 0,
@@ -195,7 +195,7 @@ class Match {
     // cards and knocks
     S.forEach((s, i) => {
       const hot = s.on.some(id => id != null && P(id).tr === 'hothead') ? 1.3 : 1;
-      if (R() < .016 * hot * (s.style === 'press' ? 1.25 : 1)) {
+      if (R() < .016 * hot * (s.style === 'press' ? 1.25 : 1) * (this.derby ? 1.5 : 1)) {
         const id = wpick(s.on.filter(x => x != null), x => (P(x).tr === 'hothead' ? 2 : 1) * (P(x).pos === 'DF' ? 1.4 : P(x).pos === 'GK' ? .2 : 1) * (s.yc[x] ? .3 : 1));
         s.yc[id] = (s.yc[id] || 0) + 1; s.rt[id] -= .3;
         if (s.yc[id] >= 2) out.push(this.sendOff(i, id, true));
@@ -425,7 +425,7 @@ function finishWeek(userMatch) {
     if (f.cup) { const wnr = m.winner() === 0 ? f.h : f.a; C(wnr).cash += f.comp === 'tin' ? CUP_PRIZE[W.cup.r] : koPrize(f.comp, f.round); r.win = wnr; }
   });
   // board and morale reaction to the user's game
-  if (report.user) boardReact(report.user, e);
+  if (report.user) { boardReact(report.user, e); if (isDerby(report.user.h, report.user.a)) derbyReact(report.user); }
   // cup progress
   if (e.t === 'K') progressComps(report.results);
   if (e.t === 'C') {
@@ -444,6 +444,24 @@ function finishWeek(userMatch) {
   report.seasonOver = W.week >= W.cal.length;
   return report;
 }
+// ---------- DERBIES: every home club has one local rival (paired across each original division, so strong and weak clubs mix)
+const rivalOf = c => !c || c.foreign || c.id >= 48 ? null : Math.floor(c.id / 12) * 12 + (c.id % 12 + 6) % 12;
+const isDerby = (a, b) => rivalOf(C(a)) === b;
+function derbyRec() { const d = W.derby || (W.derby = {w: 0, d: 0, l: 0, gf: 0, ga: 0, s: null, sw: 0, sd: 0, sl: 0, games: 0}); if (d.s !== W.season) Object.assign(d, {s: W.season, sw: 0, sd: 0, sl: 0, games: 0}); return d; }
+function derbyReact(r) {
+  const home = r.h === W.clubId, gf = home ? r.hg : r.ag, ga = home ? r.ag : r.hg, opp = C(home ? r.a : r.h);
+  const won = r.cup ? r.win === W.clubId : gf > ga, lost = r.cup ? r.win !== W.clubId : gf < ga, d = derbyRec();
+  const k = won ? 'w' : lost ? 'l' : 'd'; d[k]++; d['s' + k]++; d.games++; d.gf += gf; d.ga += ga;
+  W.fans = clamp((W.fans ?? 60) + (won ? 6 : lost ? -7 : 0), 0, 100);
+  W.board.conf = clamp(W.board.conf + (won ? 3 : lost ? -4 : 0), 0, 100);
+  me().squad.forEach(id => { const p = P(id); if (p) p.mor = clamp(p.mor + (won ? 6 : lost ? -5 : 0), 5, 100); });
+  r.derby = k;
+  if (won && gf - ga >= 3) inbox("Supporters' Trust", `${opp.short} humiliated!`, `${gf}-${ga} against ${opp.name}. The town is painted in our colours. Nobody will buy a pint for a ${opp.short} fan for months.`);
+  if (!r.cup && d.sw === 2) { W.fans = clamp(W.fans + 5, 0, 100); inbox("Supporters' Trust", 'The derby double!', `Beat ${opp.name} home AND away this season. Bragging rights are ours for the whole summer.`); if (typeof ach === 'function') ach('derbydouble'); }
+  if (!r.cup && d.sl === 2) { W.board.conf = clamp(W.board.conf - 4, 0, 100); inbox('The Chairman', `Beaten twice by ${opp.short}`, `Two derby defeats in one season. I can't show my face at the golf club. This can't happen again.`); }
+  if (won && typeof ach === 'function') ach('derbywin');
+}
+
 // ---------- STADIUM: stands, executive boxes and club shop for the user's club
 const GROUND = {limit: [60000, 38000, 24000, 15000], seat: [300, 220, 150, 110], box: [9000, 6000, 3500, 2000], boxCost: [300000, 200000, 120000, 70000], shopRate: [.25, .2, .15, .12], shopCost: [150000, 100000, 70000, 50000],
   stands: {small: {n: 'Small stand', add: 1000, wk: 4, disc: 1}, big: {n: 'New main stand', add: 3000, wk: 10, disc: .85}}};
@@ -459,7 +477,7 @@ function attendance(home, away, cupR, euro) {
   const pos = W.res.length ? posIn(home.id) : 6;
   const f = .42 + home.rep / 260 + (12 - pos) * .015 + (home.formStr || '').split('').filter(x => x === 'W').length * .02 + (cupR != null ? .1 + cupR * .05 : 0) + (euro ? .25 : 0) + (away.rep - home.rep) / 400;
   const fanF = home.id === W.clubId ? .8 + (W.fans ?? 60) / 250 : 1;
-  const ratio = (f + (R() - .5) * .08) * Math.pow(BASE_TICKET[home.div] / home.ticket, .7) * fanF;
+  const ratio = (isDerby(home.id, away.id) ? 1.2 : 1) * (f + (R() - .5) * .08) * Math.pow(BASE_TICKET[home.div] / home.ticket, .7) * fanF;
   if (home.id !== W.clubId) return Math.round(home.cap * clamp(ratio, .15, 1));
   // the user's crowd is driven by real demand, so seats you add only fill if the fans are there
   const g = ground(), demand = Math.round(g.base * Math.max(ratio, .15) / 10) * 10;

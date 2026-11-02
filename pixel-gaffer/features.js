@@ -58,6 +58,8 @@ const ACHS = [
   ['hattrick', '🎩', 'Hat-trick hero', 'One of your players scores three in a game'],
   ['unbeaten10', '🛡️', 'Unbeatable', 'Go ten games unbeaten'],
   ['sellout', '🏟️', 'Full house', 'Sell out your ground'],
+  ['derbywin', '🔥', 'Local hero', 'Beat your local rivals'],
+  ['derbydouble', '👑', 'Derby double', 'Beat your rivals home and away in one season'],
   ['promo', '⬆️', 'Going up!', 'Win promotion'],
   ['champ', '🏆', 'Champions', 'Win a league title'],
   ['prem', '👑', 'Top of the pile', 'Win the Premier Division'],
