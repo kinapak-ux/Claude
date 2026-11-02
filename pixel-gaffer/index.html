@@ -91,6 +91,13 @@ h2,h3{margin:0}
 .tbl tr.down td:first-child{box-shadow:inset 4px 0 0 var(--red)}
 .tbl tr.dim{opacity:.45}
 .tbl tr.xi td:first-child{box-shadow:inset 4px 0 0 var(--yel)}
+.tbl th.srt{cursor:pointer}.tbl.squad td+td+td,.tbl.squad th+th+th{padding-left:7px}.tbl th.srt.on{color:var(--cy)}
+.sqsum{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:4px 0 8px}
+.sqsum div{background:var(--dark);border:2px solid var(--edge);padding:6px 8px;display:flex;flex-direction:column;min-width:0}
+.sqsum>div>span{font-family:var(--px);font-size:7px;color:var(--dim);text-transform:uppercase}
+.sqsum b{font-family:var(--px);font-size:13px;margin:5px 0 3px;color:var(--tx)}
+.sqsum i{font-style:normal;font-size:15px;line-height:1;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sqviews{display:flex;gap:6px;margin:4px 0}.sqviews .chip{flex:1;justify-content:center}.sqviews .chip.on{background:var(--yel);color:#000;border-color:#000}
 .xi-key{display:inline-block;width:6px;height:14px;background:var(--yel);vertical-align:middle}
 .league td:nth-child(n+4){text-align:right}
 

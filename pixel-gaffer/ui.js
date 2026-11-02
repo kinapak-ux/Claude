@@ -220,13 +220,44 @@ const fansWord = f => f >= 80 ? 'Singing your name' : f >= 60 ? 'Right behind yo
 const confWord = c => c >= 80 ? 'Delighted' : c >= 60 ? 'Happy' : c >= 40 ? 'Watching closely' : c >= 20 ? 'Worried' : 'Your job is on the line';
 
 // ---------- SQUAD
+// three views of the same squad (overview / contract / season), sortable by tapping a column header
+const SQ_VIEWS = [['ovr', 'Overview'], ['con', 'Contract'], ['sea', 'Season']];
+const sqAvg = p => p.s.ap ? p.s.rt / p.s.ap : 0;
+const SQ_COLS = {
+  ovr: [['age', 'Age', p => p.age, p => p.age],
+        ['rat', 'Rat', p => ovr(p), p => `<span class="${ovrCol(ovr(p))}">${ovr(p)}</span>`],
+        ['fit', 'Fit', p => p.fit, p => bar(p.fit, 100, fitCls(p.fit))],
+        ['fm', 'Fm', p => p.form, p => formArrow(p.form)]],
+  con: [['wage', 'Wage', p => p.wage, p => money(p.wage)],
+        ['con', 'Con', p => p.con, p => p.loanFrom != null ? '<span class="c-m">Loan</span>' : p.con <= 0 ? '<span class="c-r">Exp</span>' : `<span class="${p.con === 1 ? 'c-o' : ''}">${p.con}y</span>`],
+        ['val', 'Value', p => valueOf(p), p => money(valueOf(p))]],
+  sea: [['ap', 'Ap', p => p.s.ap, p => p.s.ap || '<span class="c-d">0</span>'],
+        ['gl', 'Gl', p => p.s.gl, p => p.s.gl || '<span class="c-d">0</span>'],
+        ['as', 'As', p => p.s.as, p => p.s.as || '<span class="c-d">0</span>'],
+        ['avg', 'Avg', sqAvg, p => p.s.ap ? `<span class="${sqAvg(p) >= 7.2 ? 'c-g' : sqAvg(p) < 6.2 ? 'c-r' : ''}">${sqAvg(p).toFixed(1)}</span>` : '<span class="c-d">-</span>']]
+};
 function squadHTML() {
-  const c = me(), list = c.squad.map(P).sort((a, b) => POS.indexOf(a.pos) - POS.indexOf(b.pos) || ovrOf(b) - ovrOf(a));
-  const wages = list.reduce((s, p) => s + p.wage, 0);
-  return `<div class="subtabs"><button class="${UI.tab === 'squad' ? 'on' : ''}" data-a="tab" data-t="squad">My squad</button><button class="${UI.tab === 'market' ? 'on' : ''}" data-a="tab" data-t="market">Transfer market</button></div><div class="panel"><h2>First-team squad (${list.length})</h2><p class="note">Tap a player for details, to sell him or to give him a new contract. Wage bill ${money(wages)}/week.</p>
-  <table class="tbl squad"><thead><tr><th></th><th>Name</th><th>Age</th><th>Rat</th><th>Fit</th><th>Fm</th></tr></thead><tbody>
-  ${list.map(p => `<tr data-a="player" data-id="${p.id}" class="${c.xi && c.xi.includes(p.id) ? 'xi' : ''}"><td>${posTag(p.pos)}</td><td class="nm">${esc(pname(p))}${p.tr ? ' <span class="c-m">◆</span>' : ''} ${status(p)}${p.loanFrom != null ? '<span class="tag m">LOAN</span>' : ''}</td><td>${p.age}</td><td class="${ovrCol(ovr(p))}">${ovr(p)}</td><td>${bar(p.fit, 100, fitCls(p.fit))}</td><td>${formArrow(p.form)}</td></tr>`).join('')}
-  </tbody></table>${(() => { const out = Object.values(W.players).filter(p => p.loanFrom === c.id); return out.length ? `<h3 class="divh">Out on loan</h3>${out.map(p => `<div class="row" data-a="player" data-id="${p.id}">${posTag(p.pos)} ${esc(pname(p))} at ${badgeImg(C(p.club), 14)} ${esc(C(p.club).name)} · ${p.s.ap} apps</div>`).join('')}` : ''; })()}<p class="note"><span class="xi-key"></span> = in your starting eleven · ◆ = special trait</p></div>`;
+  const c = me(), view = UI.sqv || 'ovr', cols = SQ_COLS[view], srt = UI.sqs;
+  const list = c.squad.map(P).sort((a, b) => POS.indexOf(a.pos) - POS.indexOf(b.pos) || ovrOf(b) - ovrOf(a));
+  const sc = srt && Object.values(SQ_COLS).flat().find(x => x[0] === srt.k);
+  if (sc) list.sort((a, b) => (sc[2](b) - sc[2](a)) * srt.d || POS.indexOf(a.pos) - POS.indexOf(b.pos));
+  const n = list.length || 1, wages = list.reduce((s, p) => s + p.wage, 0), value = list.reduce((s, p) => s + valueOf(p), 0);
+  const avgAge = list.reduce((s, p) => s + p.age, 0) / n, avgRat = list.reduce((s, p) => s + ovr(p), 0) / n;
+  const tvPct = Math.round(TV[c.div] / Math.max(1, wages) * 100), expiring = list.filter(p => p.loanFrom == null && p.con <= 1).length;
+  const top = list.filter(p => p.s.gl).sort((a, b) => b.s.gl - a.s.gl)[0];
+  const head = (k, label) => `<th data-a="sqSort" data-k="${k}" class="srt${srt && srt.k === k ? ' on' : ''}">${label}${srt && srt.k === k ? (srt.d > 0 ? '▼' : '▲') : ''}</th>`;
+  return `<div class="subtabs"><button class="${UI.tab === 'squad' ? 'on' : ''}" data-a="tab" data-t="squad">My squad</button><button class="${UI.tab === 'market' ? 'on' : ''}" data-a="tab" data-t="market">Transfer market</button></div><div class="panel"><h2>First-team squad (${list.length})</h2>
+  <div class="sqsum">
+    <div><span>Wages/wk</span><b>${money(wages)}</b><i class="${tvPct >= 100 ? 'c-g' : tvPct >= 50 ? 'c-y' : 'c-r'}">TV covers ${tvPct}%</i></div>
+    <div><span>Squad value</span><b>${money(value)}</b><i>${expiring ? `<span class="c-o">${expiring} expiring soon</span>` : 'Contracts OK'}</i></div>
+    <div><span>Avg age</span><b>${avgAge.toFixed(1)}</b><i>U21s: ${list.filter(p => p.age <= 21).length}</i></div>
+    <div><span>Avg rating</span><b class="${ovrCol(Math.round(avgRat))}">${Math.round(avgRat)}</b><i>${top ? `Top scorer ${esc(top.ln)} ${top.s.gl}` : 'No goals yet'}</i></div>
+  </div>
+  <div class="sqviews">${SQ_VIEWS.map(([k, l]) => `<button class="chip${view === k ? ' on' : ''}" data-a="sqView" data-v="${k}">${l}</button>`).join('')}</div>
+  <p class="note">Tap a player for details, to sell him or to give him a new contract. Tap a column to sort${srt ? ', or <span class="lnk" data-a="sqSort" data-k="">reset</span>' : ''}.</p>
+  <table class="tbl squad"><thead><tr><th></th><th data-a="sqSort" data-k="" class="srt">Name</th>${cols.map(x => head(x[0], x[1])).join('')}</tr></thead><tbody>
+  ${list.map(p => `<tr data-a="player" data-id="${p.id}" class="${c.xi && c.xi.includes(p.id) ? 'xi' : ''}"><td>${posTag(p.pos)}</td><td class="nm">${esc(pname(p))}${p.tr ? ' <span class="c-m">◆</span>' : ''} ${status(p)}${p.loanFrom != null ? '<span class="tag m">LOAN</span>' : ''}</td>${cols.map(x => `<td>${x[3](p)}</td>`).join('')}</tr>`).join('')}
+  </tbody></table>${(() => { const out = Object.values(W.players).filter(p => p.loanFrom === c.id); return out.length ? `<h3 class="divh">Out on loan</h3>${out.map(p => `<div class="row" data-a="player" data-id="${p.id}">${posTag(p.pos)} ${esc(pname(p))} at ${badgeImg(C(p.club), 14)} ${esc(C(p.club).name)} · ${p.s.ap} apps</div>`).join('')}` : ''; })()}<p class="note"><span class="xi-key"></span> = in your starting eleven · ◆ = special trait${view === 'sea' ? ' · Avg = average match rating' : ''}</p></div>`;
 }
 function playerModal(id) {
   const p = P(id); if (!p) return;
@@ -994,6 +1025,8 @@ const ACT = {
   tacBack() { fixTeam(me()); UI.screen = 'prematch'; render(); },
   viewOpp(d) { oppModal(d.id === '' ? null : +d.id); },
   oppSel(d, el) { oppModal(+el.value); },
+  sqView(d) { UI.sqv = d.v; render(); },
+  sqSort(d) { const k = d.k; UI.sqs = !k ? null : UI.sqs && UI.sqs.k === k ? (UI.sqs.d > 0 ? {k, d: -1} : null) : {k, d: 1}; render(); },
   tab(d) { UI.ret = null; closeModal(); if (UI.screen !== 'game') UI.screen = 'game'; UI.tab = d.t; UI.sel = null; render(); },
   go() { go(); },
   backToGame() { UI.screen = 'game'; render(); },
