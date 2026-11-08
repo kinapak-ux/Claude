@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Family Arcade</title>
+<meta name="description" content="All the family games in one place.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#120a24">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Arcade">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@700;800;900&display=swap">
+<style>
+:root{--bg:#120a24;--bg2:#3a1d6e;--ink:#f5ecff;--mut:#b9a8d6;--line:rgba(255,255,255,.14);--panel:rgba(255,255,255,.06);--gold:#ffcc4d;--display:"Lilita One","Arial Rounded MT Bold",system-ui,sans-serif}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg)}
+body{margin:0;min-height:100vh;min-height:100dvh;background:radial-gradient(ellipse at 50% -10%,var(--bg2),var(--bg) 62%) fixed;background-color:var(--bg);color:var(--ink);font-family:Nunito,system-ui,sans-serif;font-weight:800;overflow-x:hidden}
+a{color:inherit}
+main{position:relative;z-index:1;max-width:1040px;margin:0 auto;padding:12px 16px calc(36px + env(safe-area-inset-bottom))}
+
+/* ---------- drifting background shapes ---------- */
+#sky{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+#sky span{position:absolute;bottom:-60px;font-size:var(--s);opacity:.16;animation:drift var(--d) linear var(--w) infinite;filter:saturate(.6)}
+@keyframes drift{from{transform:translate(0,0) rotate(0)}to{transform:translate(var(--x),-120vh) rotate(var(--r))}}
+.stars{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:radial-gradient(1.5px 1.5px at 12% 18%,#fff8 50%,transparent 51%),radial-gradient(1px 1px at 72% 9%,#fff9 50%,transparent 51%),radial-gradient(1.5px 1.5px at 88% 34%,#fff6 50%,transparent 51%),radial-gradient(1px 1px at 33% 42%,#fff7 50%,transparent 51%),radial-gradient(1px 1px at 55% 22%,#fff8 50%,transparent 51%),radial-gradient(1.5px 1.5px at 6% 66%,#fff5 50%,transparent 51%),radial-gradient(1px 1px at 92% 76%,#fff6 50%,transparent 51%);animation:twinkle 4s ease-in-out infinite alternate}
+@keyframes twinkle{to{opacity:.45}}
+
+/* ---------- marquee hero ---------- */
+.hero{position:relative;margin:14px auto 22px;max-width:620px;padding:26px 18px 22px;border-radius:26px;text-align:center;background:linear-gradient(180deg,rgba(138,92,255,.22),rgba(18,10,36,.4));border:2px solid rgba(255,204,77,.35);box-shadow:0 0 0 6px rgba(0,0,0,.25),0 20px 60px rgba(0,0,0,.45)}
+.bulbs{position:absolute;inset:-9px;pointer-events:none}
+.bulbs i{position:absolute;width:9px;height:9px;margin:-4.5px;border-radius:50%;background:#ffe9a8;box-shadow:0 0 8px #ffcc4d,0 0 16px #ff9d2e;animation:chase 1.2s steps(1) infinite;animation-delay:calc(var(--i) * -0.4s)}
+@keyframes chase{0%{opacity:1}33%{opacity:.18;box-shadow:none}100%{opacity:.18;box-shadow:none}}
+.logo{margin:0;font-family:var(--display);font-weight:400;line-height:.95;font-size:clamp(44px,13vw,86px);letter-spacing:1px}
+.logo .w{display:inline-block;white-space:nowrap}
+.logo .ch{display:inline-block;color:var(--c);text-shadow:0 5px 0 rgba(0,0,0,.4),0 0 24px color-mix(in srgb,var(--c) 45%,transparent);animation:drop .7s cubic-bezier(.3,1.6,.5,1) both,bob 3.2s ease-in-out infinite;animation-delay:calc(var(--i) * 60ms),calc(var(--i) * 140ms + .9s)}
+@keyframes drop{from{transform:translateY(-120px) rotate(-25deg) scale(.4);opacity:0}}
+@keyframes bob{50%{transform:translateY(-6px) rotate(calc(var(--t) * 1deg))}}
+.tag{margin:12px 0 0;color:var(--mut);font-size:clamp(14px,3.8vw,17px);animation:fadeup .6s 1s both}
+@keyframes fadeup{from{opacity:0;transform:translateY(10px)}}
+.press{display:inline-block;margin-top:14px;padding:6px 14px;border-radius:99px;border:1px solid var(--line);background:rgba(0,0,0,.3);font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);animation:fadeup .6s 1.2s both,blink 1.6s 1.8s steps(2,jump-none) infinite}
+@keyframes blink{50%{opacity:.35}}
+
+/* ---------- filter chips ---------- */
+.filters{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:0 0 18px}
+.filters button{border:1px solid var(--line);background:rgba(0,0,0,.25);color:var(--ink);border-radius:99px;padding:9px 15px;font:inherit;font-size:14px;cursor:pointer;transition:background .2s,color .2s,transform .15s}
+.filters button:active{transform:scale(.94)}
+.filters button.on{background:var(--gold);border-color:var(--gold);color:#3a2000}
+
+/* ---------- game tiles ---------- */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr));gap:16px}
+.tile{--c:#8a5cff;position:relative;display:flex;flex-direction:column;border-radius:22px;overflow:hidden;text-decoration:none;background:var(--panel);border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.35);opacity:0;transform:translateY(28px) scale(.96);transition:opacity .5s,transform .5s cubic-bezier(.2,1.4,.4,1),box-shadow .25s,border-color .25s}
+.tile.in{opacity:1;transform:none}
+.tile.gone{display:none}
+.tile:hover,.tile:focus-visible{transform:translateY(-6px) rotate(-.6deg);border-color:var(--c);box-shadow:0 16px 40px rgba(0,0,0,.5),0 0 0 3px color-mix(in srgb,var(--c) 40%,transparent);outline:none}
+.tile:active{transform:scale(.97)}
+.scene{position:relative;aspect-ratio:16/10;background:var(--sb,#000);overflow:hidden}
+.scene svg{display:block;width:100%;height:100%}
+.scene::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.18) 50%,transparent 60%) no-repeat;background-size:250% 100%;background-position:130% 0;transition:background-position .7s}
+.tile:hover .scene::after{background-position:-30% 0}
+.info{padding:12px 14px 14px;display:flex;flex-direction:column;gap:4px;flex:1}
+.info h2{margin:0;font-family:var(--display);font-weight:400;font-size:22px;letter-spacing:.4px;color:var(--c)}
+.info p{margin:0;color:var(--mut);font-size:14px;line-height:1.35;font-weight:700}
+.meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;padding-top:8px}
+.meta span{font-size:11px;font-weight:900;letter-spacing:.4px;padding:3px 8px;border-radius:99px;background:rgba(255,255,255,.1);color:var(--ink)}
+
+/* Animations pause while a tile is offscreen (and always for reduced motion) */
+.scene *{animation-play-state:paused}
+.tile.play .scene *{animation-play-state:running}
+:where(.scene [class]){transform-box:fill-box;transform-origin:center}
+
+/* ---- Card Battler ---- */
+.cb-card{animation:fan 3.6s cubic-bezier(.5,0,.3,1) infinite}
+.cb-l{--a:-22deg;--x:-26px}.cb-r{--a:22deg;--x:26px}.cb-m{--a:0deg;--x:0px}
+.cb-card{transform-origin:50% 120%}
+@keyframes fan{0%,10%{transform:rotate(0) translateX(0)}35%,75%{transform:rotate(var(--a)) translateX(var(--x))}100%{transform:rotate(0) translateX(0)}}
+.cb-m{animation:fan 3.6s cubic-bezier(.5,0,.3,1) infinite,rise 3.6s ease-in-out infinite}
+@keyframes rise{35%,75%{translate:0 -8px}}
+.cb-spark{animation:spark 3.6s ease-out infinite}
+@keyframes spark{0%,40%{transform:scale(0) rotate(0);opacity:0}50%{transform:scale(1.2) rotate(45deg);opacity:1}70%{transform:scale(0) rotate(90deg);opacity:0}}
+
+/* ---- Scoot City ---- */
+.sc-far{animation:scroll 14s linear infinite}
+.sc-near{animation:scroll 6s linear infinite}
+.sc-road{animation:scroll 1s linear infinite}
+@keyframes scroll{to{transform:translateX(-160px)}}
+.sc-ride{animation:ride .5s ease-in-out infinite alternate}
+@keyframes ride{to{transform:translateY(-1.5px)}}
+.sc-wheel{animation:spin .4s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---- Chess ---- */
+.ch-knight{animation:knight 4s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes knight{0%,15%{transform:translate(0,0)}30%{transform:translate(0,-34px)}45%,60%{transform:translate(17px,-34px)}75%{transform:translate(17px,-17px)}85%,100%{transform:translate(0,0)}}
+.ch-hop{animation:hop 4s ease-in-out infinite}
+@keyframes hop{15%,30%,45%,60%,75%,85%{transform:scale(1)}22%,37%,67%,80%{transform:scale(1.18)}}
+.ch-glow{animation:glow 4s ease-in-out infinite}
+@keyframes glow{0%,40%{opacity:0}48%,58%{opacity:.8}70%{opacity:0}}
+
+/* ---- Hoop Shot ---- */
+.hs-ball{offset-path:path("M 28 82 Q 80 -20 122 42");offset-rotate:0deg;animation:shot 2.6s cubic-bezier(.35,.1,.6,1) infinite}
+@keyframes shot{0%,12%{offset-distance:0%}62%{offset-distance:100%;opacity:1}63%{offset-distance:100%;transform:translateY(0)}80%{transform:translateY(42px);opacity:1}81%,100%{transform:translateY(42px);opacity:0}}
+.hs-net{transform-origin:50% 0;animation:swish 2.6s ease-out infinite}
+@keyframes swish{0%,60%{transform:scaleY(1) scaleX(1)}68%{transform:scaleY(1.35) scaleX(.82)}80%{transform:scaleY(1)}}
+.hs-plus{animation:plus 2.6s ease-out infinite}
+@keyframes plus{0%,64%{opacity:0;transform:translateY(0)}72%{opacity:1}100%{opacity:0;transform:translateY(-16px)}}
+
+/* ---- Echo Wheel ---- */
+.ew-seg{opacity:.28;animation:lit 3.2s steps(1) infinite}
+.ew-s0{animation-delay:0s}.ew-s1{animation-delay:-2.4s}.ew-s2{animation-delay:-.8s}.ew-s3{animation-delay:-1.6s}
+@keyframes lit{0%{opacity:1;filter:drop-shadow(0 0 6px #fff)}25%{opacity:.28;filter:none}}
+.ew-core{animation:pulse 0.8s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(.9)}}
+
+/* ---- Quiz ---- */
+.qz-a{animation:qpop 3s cubic-bezier(.3,1.6,.5,1) infinite}
+.qz-a0{animation-delay:0s}.qz-a1{animation-delay:.12s}.qz-a2{animation-delay:.24s}.qz-a3{animation-delay:.36s}
+@keyframes qpop{0%{transform:scale(0)}12%,100%{transform:scale(1)}}
+.qz-dim{animation:qdim 3s steps(1) infinite}
+@keyframes qdim{0%,65%{opacity:0}66%,96%{opacity:.7}}
+.qz-q{animation:qbob 1.5s ease-in-out infinite alternate}
+@keyframes qbob{to{transform:translateY(-4px) rotate(8deg)}}
+.qz-timer{stroke-dasharray:63;animation:timer 3s linear infinite}
+@keyframes timer{from{stroke-dashoffset:0}65%,to{stroke-dashoffset:63}}
+
+/* ---- Battleships ---- */
+.bs-wave1{animation:wave 3s linear infinite}.bs-wave2{animation:wave 4.5s linear infinite reverse}
+@keyframes wave{to{transform:translateX(-40px)}}
+.bs-ship{animation:rock 2.4s ease-in-out infinite alternate}
+@keyframes rock{from{transform:rotate(-3deg) translateY(0)}to{transform:rotate(3deg) translateY(-2px)}}
+.bs-sweep{transform-origin:0 0;transform-box:view-box;animation:spin 3s linear infinite}
+.bs-splash{animation:splash 3s ease-out infinite}
+@keyframes splash{0%,55%{transform:scale(0);opacity:0}60%{transform:scale(.6);opacity:1}85%{transform:scale(1.4);opacity:0}100%{opacity:0}}
+
+/* ---- Snap Race ---- */
+.sn-l{animation:slapL 2.4s cubic-bezier(.5,0,.2,1.4) infinite}
+.sn-r{animation:slapR 2.4s cubic-bezier(.5,0,.2,1.4) infinite}
+@keyframes slapL{0%{transform:translate(-90px,-20px) rotate(-30deg)}20%,100%{transform:none}}
+@keyframes slapR{0%,20%{transform:translate(90px,-20px) rotate(30deg)}40%,100%{transform:none}}
+.sn-burst{animation:burst 2.4s cubic-bezier(.3,1.8,.5,1) infinite}
+@keyframes burst{0%,42%{transform:scale(0) rotate(-20deg)}55%,85%{transform:scale(1) rotate(-8deg)}95%,100%{transform:scale(0)}}
+
+/* ---- Times Tables ---- */
+.tt-rock{animation:rockfall 3s linear infinite}
+@keyframes rockfall{0%{transform:translate(40px,-14px) rotate(0)}55%{transform:translate(0,0) rotate(120deg);opacity:1}56%,100%{opacity:0;transform:translate(0,0)}}
+.tt-laser{animation:laser 3s steps(1) infinite}
+@keyframes laser{0%,48%{opacity:0}49%,56%{opacity:1}57%{opacity:0}}
+.tt-boom{animation:boom 3s ease-out infinite}
+@keyframes boom{0%,55%{transform:scale(0);opacity:0}58%{opacity:1}80%{transform:scale(1.6);opacity:0}100%{opacity:0}}
+.tt-ship{animation:hover 1.2s ease-in-out infinite alternate}
+@keyframes hover{to{transform:translateY(-3px)}}
+.tt-flame{animation:flame .12s steps(2) infinite}
+@keyframes flame{50%{transform:scaleY(.6)}}
+.tt-star{animation:twk 2s ease-in-out infinite alternate}
+@keyframes twk{to{opacity:.2}}
+
+/* ---- Pumpkin ---- */
+.pk-glow{animation:flick 1.4s ease-in-out infinite}
+@keyframes flick{0%,100%{opacity:1}20%{opacity:.75}35%{opacity:.95}50%{opacity:.6}70%{opacity:.9}85%{opacity:.7}}
+.pk-flame{transform-origin:50% 100%;animation:flamey .9s ease-in-out infinite alternate}
+@keyframes flamey{from{transform:scale(1,1) skewX(-4deg)}to{transform:scale(.85,1.15) skewX(5deg)}}
+.pk-bat{animation:bat 5s ease-in-out infinite}
+@keyframes bat{0%{transform:translate(-30px,10px)}50%{transform:translate(70px,-8px)}100%{transform:translate(170px,6px)}}
+.pk-wing{animation:flap .18s ease-in-out infinite alternate}
+@keyframes flap{to{transform:scaleY(-.4)}}
+
+/* ---- Pixel Gaffer ---- */
+.pg-ball{animation:pgball 3s steps(12) infinite}
+@keyframes pgball{0%{transform:translate(0,0)}60%,100%{transform:translate(84px,-12px)}}
+.pg-keep{animation:pgkeep 3s steps(4) infinite}
+@keyframes pgkeep{0%,40%{transform:translateY(0)}55%,100%{transform:translateY(10px)}}
+.pg-goal{animation:pggoal 3s steps(1) infinite}
+@keyframes pggoal{0%,62%{opacity:0}63%,70%{opacity:1}71%,76%{opacity:0}77%,96%{opacity:1}97%{opacity:0}}
+.pg-net{animation:pgnet 3s steps(1) infinite}
+@keyframes pgnet{0%,60%{transform:none}61%,70%{transform:translateX(2px)}}
+
+/* ---- Moth Synth ---- */
+.ms-wave{animation:wave 1.2s linear infinite}
+.ms-bar{transform-origin:50% 100%;animation:eq .6s ease-in-out infinite alternate}
+@keyframes eq{from{transform:scaleY(.2)}to{transform:scaleY(1)}}
+.ms-moth{animation:moth 6s ease-in-out infinite}
+@keyframes moth{0%,100%{transform:translate(0,0) rotate(-6deg)}25%{transform:translate(14px,-8px) rotate(8deg)}50%{transform:translate(-6px,-14px) rotate(-4deg)}75%{transform:translate(-14px,-4px) rotate(6deg)}}
+.ms-wl,.ms-wr{animation:mflap .15s ease-in-out infinite alternate}
+.ms-wl{transform-origin:100% 50%}.ms-wr{transform-origin:0% 50%}
+@keyframes mflap{to{transform:scaleX(.45)}}
+
+/* ---- Leaderboard ---- */
+.lb-cup{animation:cup 2s cubic-bezier(.3,1.6,.5,1) infinite}
+@keyframes cup{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(-10px) rotate(-8deg)}50%{transform:translateY(0) rotate(6deg)}65%{transform:rotate(0)}}
+.lb-conf{animation:conf 2.8s linear infinite}
+@keyframes conf{from{transform:translateY(-30px) rotate(0)}to{transform:translateY(110px) rotate(540deg)}}
+.lb-shine{animation:shine 2s ease-in-out infinite}
+@keyframes shine{0%,60%{opacity:0}75%{opacity:1}100%{opacity:0}}
+
+/* ---------- warp transition into a game ---------- */
+#warp{position:fixed;z-index:20;left:0;top:0;width:20px;height:20px;margin:-10px;border-radius:50%;pointer-events:none;transform:scale(0);background:var(--c,#8a5cff)}
+#warp.go{transition:transform .5s cubic-bezier(.6,0,.4,1);transform:scale(var(--k,200))}
+
+@media (max-width:520px){.grid{grid-template-columns:1fr 1fr;gap:10px}.info{padding:10px 11px 12px}.info h2{font-size:18px}.info p{font-size:12.5px}.meta span{font-size:10px;padding:2px 6px}.tile{border-radius:18px}}
+footer{margin-top:26px;text-align:center;color:var(--mut);font-size:13px;line-height:1.6}
+footer a{color:var(--gold);text-decoration:none}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .tile{opacity:1;transform:none}
+  #sky{display:none}
+}
+</style>
+</head>
+<body>
+<div class="stars"></div>
+<div id="sky" aria-hidden="true"></div>
+<div id="warp" aria-hidden="true"></div>
+
+<main>
+  <header class="hero">
+    <div class="bulbs" aria-hidden="true"></div>
+    <h1 class="logo" aria-label="Family Arcade"><span class="w" data-word="Family"></span> <span class="w" data-word="Arcade"></span></h1>
+    <p class="tag">Twelve games, one sofa. Pick one and play.</p>
+    <span class="press">Press start</span>
+  </header>
+
+  <nav class="filters" aria-label="Filter games">
+    <button class="on" data-f="all">All</button>
+    <button data-f="party">Party (many phones)</button>
+    <button data-f="solo">Solo</button>
+    <button data-f="learn">Learning</button>
+  </nav>
+
+  <section class="grid" id="grid">
+
+    <!-- Card Battler -->
+    <a class="tile" href="../card-battler/" style="--c:#c48bff;--sb:#1a0f30" data-f="party solo">
+      <div class="scene" aria-hidden="true"><svg viewBox="0 0 160 100">
+        <circle cx="80" cy="56" r="40" fill="#3d2470" opacity=".5"/>
+        <g class="cb-card cb-l"><rect x="62" y="28" width="36" height="52" rx="5" fill="#2d6cdf" stroke="#fff" stroke-width="2"/><circle cx="80" cy="50" r="9" fill="#9cc2ff"/><rect x="68" y="66" width="24" height="4" rx="2" fill="#fff" opacity=".6"/></g>
+        <g class="cb-card cb-r"><rect x="62" y="28" width="36" height="52" rx="5" fill="#2fbf71" stroke="#fff" stroke-width="2"/><path d="M80 40 l8 14 h-16z" fill="#c8ffdf"/><rect x="68" y="66" width="24" height="4" rx="2" fill="#fff" opacity=".6"/></g>
+        <g class="cb-card cb-m"><rect x="62" y="28" width="36" height="52" rx="5" fill="#ffb627" stroke="#fff" stroke-width="2"/><path d="M80 38 l3 7 7 1 -5 5 1 7 -6 -3 -6 3 1 -7 -5 -5 7 -1z" fill="#fff4cc"/><rect x="68" y="66" width="24" height="4" rx="2" fill="#7a4a00" opacity=".6"/></g>
+        <path class="cb-spark" d="M112 26 l2 6 6 2 -6 2 -2 6 -2 -6 -6 -2 6 -2z" fill="#fff"/>
+        <path class="cb-spark" style="animation-delay:.3s" d="M44 34 l1.5 4 4 1.5 -4 1.5 -1.5 4 -1.5 -4 -4 -1.5 4 -1.5z" fill="#ffe08a"/>
+      </svg></div>
+      <div class="info"><h2>Card Battler</h2><p>Fantasy card battles for 2 to 6 players on their own phones.</p><div class="meta"><span>2–6 players</span><span>vs computer</span></div></div>
+    </a>
+
+    <!-- Scoot City -->
+    <a class="tile" href="../scoot-city/" style="--c:#ff7ad9;--sb:#2a1240" data-f="solo">
+      <div class="scene" aria-hidden="true"><svg viewBox="0 0 160 100">
+        <defs><linearGradient id="dusk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b1a6b"/><stop offset="1" stop-color="#ff7a8a"/></linearGradient></defs>
+        <rect width="160" height="100" fill="url(#dusk)"/>
+        <circle cx="120" cy="40" r="16" fill="#ffd36e" opacity=".9"/>
+        <g class="sc-far" fill="#5a2c86"><path id="farA" d="M0 70 V48 h12 V40 h10 V54 h14 V36 h12 V50 h16 V44 h12 V58 h14 V42 h12 V52 h18 V46 h12 V54 h12 V40 h16 V70z"/><use href="#farA" x="160"/></g>
+        <g class="sc-near" fill="#2a1240"><path id="nearA" d="M0 78 V56 h20 V62 h10 V50 h18 V64 h14 V54 h22 V60 h12 V48 h20 V62 h16 V56 h28 V78z"/><use href="#nearA" x="160"/>
+          <g fill="#ffd36e" opacity=".8"><rect x="34" y="54" width="3" height="3"/><rect x="40" y="58" width="3" height="3"/><rect x="88" y="66" width="3" height="3"/><rect x="118" y="52" width="3" height="3"/><rect x="194" y="54" width="3" height="3"/><rect x="200" y="58" width="3" height="3"/><rect x="248" y="66" width="3" height="3"/><rect x="278" y="52" width="3" height="3"/></g></g>
+        <rect y="78" width="160" height="22" fill="#1b0f2a"/>
+        <g class="sc-road" fill="#ffd36e"><rect x="0" y="88" width="14" height="2"/><rect x="40" y="88" width="14" height="2"/><rect x="80" y="88" width="14" height="2"/><rect x="120" y="88" width="14" height="2"/><rect x="160" y="88" width="14" height="2"/><rect x="200" y="88" width="14" height="2"/><rect x="240" y="88" width="14" height="2"/><rect x="280" y="88" width="14" height="2"/></g>
+        <g class="sc-ride">
+          <path d="M52 80 h24 l6 -22" stroke="#00e5ff" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <path d="M78 58 h8" stroke="#00e5ff" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="66" cy="52" r="5" fill="#ffcf9e"/><path d="M61 50 a5 5 0 0 1 10 0z" fill="#ff3d9a"/>
+          <path d="M66 57 l2 12 M66 60 l12 0 M68 69 l-4 10 M68 69 l6 10" stroke="#ff7ad9" stroke-width="3" stroke-linecap="round"/>
+        </g>
+        <g class="sc-wheel"><circle cx="54" cy="82" r="4" fill="#111" stroke="#fff" stroke-width="1.5"/><path d="M54 79 v6" stroke="#fff"/></g>
+        <g class="sc-wheel"><circle cx="80" cy="82" r="4" fill="#111" stroke="#fff" stroke-width="1.5"/><path d="M80 79 v6" stroke="#fff"/></g>
+      </svg></div>
+      <div class="info"><h2>Scoot City</h2><p>Ride your scooter through the city.</p><div class="meta"><span>1 player</span></div></div>
+    </a>
+
+    <!-- Chess -->
+    <a class="tile" href="../chess/" style="--c:#9fd3ff;--sb:#0b0d12" data-f="party solo">
+      <div class="scene" aria-hidden="true"><svg viewBox="0 0 160 100">
+        <g transform="translate(46 13)">
+          <rect width="68" height="68" fill="#e8d6b4"/>
+          <g fill="#8b5a36"><rect x="17" y="0" width="17" height="17"/><rect x="51" y="0" width="17" height="17"/><rect x="0" y="17" width="17" height="17"/><rect x="34" y="17" width="17" height="17"/><rect x="17" y="34" width="17" height="17"/><rect x="51" y="34" width="17" height="17"/><rect x="0" y="51" width="17" height="17"/><rect x="34" y="51" width="17" height="17"/></g>
+          <rect class="ch-glow" x="34" y="17" width="17" height="17" fill="#5cffb0"/>
+          <g><path d="M53 58 h12 l-2 -3 h-8z M56 55 v-6 h6 v6" fill="#20232b"/><circle cx="59" cy="47" r="3" fill="#20232b"/></g>
+          <g class="ch-knight" style="transform-box:view-box;transform-origin:0 0"><g class="ch-hop">
+            <path d="M20 65 h11 l-1 -3 c0 -4 -1 -6 -3 -9 l3 -1 c1 -2 0 -4 -2 -5 c-3 -1 -6 0 -7 3 l-2 3 1 2 3 -1 -1 5 c-1 2 -2 3 -2 3z" fill="#fff" stroke="#20232b" stroke-width="1.2" stroke-linejoin="round"/>
+          </g></g>
+          <rect width="68" height="68" fill="none" stroke="#5a3a20" stroke-width="2"/>
+        </g>
+      </svg></div>
+      <div class="info"><h2>Skirmish Chess</h2><p>3D chess against the computer or a friend.</p><div class="meta"><span>1–2 players</span><span>online</span></div></div>
+    </a>
+
+    <!-- Hoop Shot -->
+    <a class="tile" href="../hoop-shot/" style="--c:#ff9a3d;--sb:#0f2140" data-f="solo">
+      <div class="scene" aria-hidden="true"><svg viewBox="0 0 160 100">
+        <rect y="86" width="160" height="14" fill="#c97a3a"/><path d="M0 86 h160" stroke="#e8a463" stroke-width="2"/>
+        <rect x="136" y="14" width="5" height="72" fill="#5d6b85"/>
+        <rect x="108" y="16" width="34" height="24" rx="2" fill="#fff" opacity=".92"/><rect x="117" y="24" width="16" height="12" fill="none" stroke="#ff5b3d" stroke-width="2"/>
+        <path class="hs-net" d="M112 42 l4 14 h12 l4 -14 M116 42 l3 14 M124 42 v14 M128 42 l-2 14 M114 49 h16" stroke="#fff" stroke-width="1.2" fill="none" opacity=".85"/>
+        <g class="hs-ball"><circle r="7" fill="#ff8a1f" stroke="#7a3300" stroke-width="1.2"/><path d="M-7 0 h14 M0 -7 v14 M-5 -5 q5 5 0 10 M5 -5 q-5 5 0 10" stroke="#7a3300" stroke-width="1" fill="none"/></g>
+        <path d="M110 42 h24" stroke="#ff5b3d" stroke-width="3" stroke-linecap="round"/>
+        <text class="hs-plus" x="86" y="34" font-family="Lilita One,sans-serif" font-size="14" fill="#ffcc4d">+2</text>
+      </svg></div>
+      <div class="info"><h2>Hoop Shot</h2><p>Pull back, aim and shoot hoops.</p><div class="meta"><span>1 player</span></div></div>
+    </a>
+
+    <!-- Echo Wheel -->
+    <a class="tile" href="../echo-wheel/" style="--c:#7cf3a0;--sb:#14121c" data-f="solo">
+      <div class="scene" aria-hidden="true"><svg viewBox="0 0 160 100">
+        <g transform="translate(80 50)">
+          <path class="ew-seg ew-s0" d="M0 -6 V-40 A40 40 0 0 1 40 0 H6 A6 6 0 0 0 0 -6z" fill="#2fe07a" transform="translate(2 -2)"/>
+          <path class="ew-seg ew-s1" d="M6 0 H40 A40 40 0 0 1 0 40 V6 A6 6 0 0 0 6 0z" fill="#3d8bff" transform="translate(2 2)"/>
+          <path class="ew-seg ew-s2" d="M0 6 V40 A40 40 0 0 1 -40 0 H-6 A6 6 0 0 0 0 6z" fill="#ffd23d" transform="translate(-2 2)"/>
+          <path class="ew-seg ew-s3" d="M-6 0 H-40 A40 40 0 0 1 0 -40 V-6 A6 6 0 0 0 -6 0z" fill="#ff4d6d" transform="translate(-2 -2)"/>
+          <circle class="ew-core" r="12" fill="#14121c" stroke="#fff3" stroke-width="2"/>
+        </g>
+      </svg></div>
+      <div class="info"><h2>Echo Wheel</h2><p>Watch the colours, then repeat them.</p><div class="meta"><span>1 player</span><span>memory</span></div></div>
+    </a>
+
+    <!-- Family Quiz -->
+    <a class="tile" href="../family-quiz/" style="--c:#ffcc33;--sb:#1d1340" data-f="party">
+      <div class="scene" aria-hidden="true"><svg viewBox="0 0 160 100">
+        <rect x="22" y="8" width="96" height="22" rx="6" fill="#fff"/><rect x="30" y="15" width="56" height="4" rx="2" fill="#1d1340" opacity=".7"/><rect x="30" y="22" width="40" height="3" rx="1.5" fill="#1d1340" opacity=".4"/>
+        <circle cx="136" cy="19" r="10" fill="#3a2a80"/><circle class="qz-timer" cx="136" cy="19" r="10" fill="none" stroke="#ffcc33" stroke-width="3" transform="rotate(-90 136 19)"/>
+        <text class="qz-q" x="131" y="24" font-family="Lilita One,sans-serif" font-size="14" fill="#fff">?</text>
+        <g class="qz-a qz-a0"><rect x="22" y="36" width="56" height="26" rx="5" fill="#e21b3c"/><path d="M34 54 l6 -10 6 10z" fill="#fff"/></g>
+        <g class="qz-a qz-a1"><rect x="82" y="36" width="56" height="26" rx="5" fill="#1368ce"/><path d="M100 43 l6 6 -6 6 -6 -6z" fill="#fff"/></g>
+        <g class="qz-a qz-a2"><rect x="22" y="66" width="56" height="26" rx="5" fill="#d89e00"/><circle cx="40" cy="79" r="5.5" fill="#fff"/></g>
+        <g class="qz-a qz-a3"><rect x="82" y="66" width="56" height="26" rx="5" fill="#26890c"/><rect x="95" y="74" width="10" height="10" fill="#fff"/><path d="M118 79 l4 4 8 -9" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/></g>
+        <g class="qz-dim" fill="#1d1340"><rect x="22" y="36" width="56" height="26" rx="5"/><rect x="82" y="36" width="56" height="26" rx="5"/><rect x="22" y="66" width="56" height="26" rx="5"/></g>
+      </svg></div>
+      <div class="info"><h2>Family Quiz Night</h2><p>Everyone answers on their own phone. Fastest right answer wins.</p><div class="meta"><span>party</span><span>pass-the-phone</span></div></div>
+    </a>
+
+    <!-- Battleships -->
+    <a class="tile" href="../battleships/" style="--c:#4fd1ff;--sb:#04172b" data-f="party solo">
+      <div class="scene" aria-hidden="true"><svg viewBox="0 0 160 100">
+        <g stroke="#1f4a70" stroke-width=".6"><path d="M0 20 H160 M0 40 H160 M0 60 H160 M0 80 H160 M20 0 V100 M40 0 V100 M60 0 V100 M80 0 V100 M100 0 V100 M120 0 V100 M140 0 V100"/></g>
+        <g transform="translate(130 22)"><circle r="16" fill="#062a45" stroke="#4fd1ff" stroke-width="1"/><circle r="9" fill="none" stroke="#4fd1ff55"/><path class="bs-sweep" d="M0 0 L16 0 A16 16 0 0 0 11 -11.3z" fill="#4fd1ff66"/><circle cx="-6" cy="5" r="1.6" fill="#ff5d5d"/></g>
+        <g class="bs-ship"><path d="M30 64 h60 l-8 10 h-46z" fill="#9aa8b8"/><rect x="48" y="54" width="22" height="10" fill="#c9d3de"/><rect x="56" y="46" width="6" height="8" fill="#7d8a99"/><circle cx="42" cy="68" r="1.6" fill="#2b3644"/><circle cx="52" cy="68" r="1.6" fill="#2b3644"/><circle cx="62" cy="68" r="1.6" fill="#2b3644"/></g>
+        <g class="bs-splash"><circle cx="118" cy="68" r="10" fill="none" stroke="#fff" stroke-width="2"/><path d="M118 52 v-8 M110 56 l-5 -6 M126 56 l5 -6" stroke="#bff0ff" stroke-width="2.5" stroke-linecap="round"/></g>
+        <path class="bs-wave1" d="M0 74 q10 -5 20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 V100 H0z" fill="#0a4a7a" opacity=".85"/>
+        <path class="bs-wave2" d="M-40 82 q10 -5 20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0 V100 H-40z" fill="#0b5f99"/>
+      </svg></div>
+      <div class="info"><h2>Battleships</h2><p>Hide your fleet, hunt theirs, sink them all.</p><div class="meta"><span>2 players</span><span>vs computer</span></div></div>
+    </a>
+
+    <!-- Snap Race -->
+    <a class="tile" href="../snap-race/" style="--c:#ff5c7a;--sb:#1c0610" data-f="party solo">
+      <div class="scene" aria-hidden="true"><svg viewBox="0 0 160 100">
+        <ellipse cx="80" cy="58" rx="62" ry="30" fill="#3d0e22"/>
+        <g class="sn-l"><g transform="rotate(-8 64 56)"><rect x="46" y="30" width="36" height="50" rx="5" fill="#fff" stroke="#ff5c7a" stroke-width="2"/><circle cx="64" cy="52" r="9" fill="#ffcc33"/><circle cx="61" cy="50" r="1.3" fill="#3d0e22"/><circle cx="67" cy="50" r="1.3" fill="#3d0e22"/><path d="M60 55 q4 3 8 0" stroke="#3d0e22" stroke-width="1.3" fill="none"/></g></g>
+        <g class="sn-r"><g transform="rotate(9 96 56)"><rect x="78" y="30" width="36" height="50" rx="5" fill="#fff" stroke="#ff5c7a" stroke-width="2"/><circle cx="96" cy="52" r="9" fill="#ffcc33"/><circle cx="93" cy="50" r="1.3" fill="#3d0e22"/><circle cx="99" cy="50" r="1.3" fill="#3d0e22"/><path d="M92 55 q4 3 8 0" stroke="#3d0e22" stroke-width="1.3" fill="none"/></g></g>
+        <g class="sn-burst"><path d="M80 8 l7 10 12 -4 -3 12 11 6 -12 4 3 12 -12 -5 -6 11 -6 -11 -12 5 3 -12 -12 -4 11 -6 -3 -12 12 4z" fill="#ffcc33" stroke="#3d0e22" stroke-width="1.5"/><text x="80" y="31" text-anchor="middle" font-family="Lilita One,sans-serif" font-size="11" fill="#c8002f">SNAP!</text></g>
+      </svg></div>
+      <div class="info"><h2>Snap Race</h2><p>Same picture twice? Hit SNAP before anyone else.</p><div class="meta"><span>party</span><span>vs computer</span></div></div>
+    </a>
+
+    <!-- Times Tables -->
+    <a class="tile" href="../times-tables/" style="--c:#8fa8ff;--sb:#060b24" data-f="learn solo">
+      <div class="scene" aria-hidden="true"><svg viewBox="0 0 160 100">
+        <g fill="#fff"><circle class="tt-star" cx="14" cy="12" r="1"/><circle class="tt-star" style="animation-delay:-.7s" cx="140" cy="70" r="1.2"/><circle class="tt-star" style="animation-delay:-1.3s" cx="30" cy="60" r=".9"/><circle class="tt-star" style="animation-delay:-.4s" cx="120" cy="14" r="1"/><circle class="tt-star" style="animation-delay:-1.7s" cx="60" cy="90" r=".8"/></g>
+        <g class="tt-rock"><path d="M98 22 l8 -6 12 2 6 10 -3 12 -12 4 -10 -6z" fill="#8a6b52" stroke="#5a4232" stroke-width="1.5"/><text x="110" y="34" text-anchor="middle" font-family="Lilita One,sans-serif" font-size="10" fill="#fff">7×8</text></g>
+        <path class="tt-laser" d="M58 66 L106 34" stroke="#5cffb0" stroke-width="2.5" stroke-linecap="round"/>
+        <g class="tt-boom"><circle cx="110" cy="30" r="12" fill="#ffcc4d"/><circle cx="110" cy="30" r="6" fill="#fff"/><text x="110" y="52" text-anchor="middle" font-family="Lilita One,sans-serif" font-size="11" fill="#5cffb0">56!</text></g>
+        <g transform="rotate(-34 52 72)"><g class="tt-ship">
+          <path class="tt-flame" style="transform-origin:50% 0" d="M47 84 l5 10 5 -10z" fill="#ff9d2e"/>
+          <path d="M52 52 c6 6 8 16 7 30 h-14 c-1 -14 1 -24 7 -30z" fill="#e8ecff"/><circle cx="52" cy="66" r="3.5" fill="#3d6bff" stroke="#fff" stroke-width="1"/><path d="M45 74 l-5 10 h6z M59 74 l5 10 h-6z" fill="#ff4d6d"/>
+        </g></g>
+      </svg></div>
+      <div class="info"><h2>Times Table Blaster</h2><p>Blast asteroids by answering times tables. Earn a star per fact.</p><div class="meta"><span>learning</span><span>1 player</span></div></div>
+    </a>
+
+    <!-- Pumpkin -->
+    <a class="tile" href="../pumpkin/" style="--c:#ff9d2e;--sb:#07040d" data-f="solo">
+      <div class="scene" aria-hidden="true"><svg viewBox="0 0 160 100">
+        <defs><radialGradient id="pkg"><stop offset="0" stop-color="#ff9d2e" stop-opacity=".55"/><stop offset="1" stop-color="#ff9d2e" stop-opacity="0"/></radialGradient></defs>
+        <circle cx="128" cy="20" r="10" fill="#f4eccd"/><circle cx="132" cy="17" r="9" fill="#07040d"/>
+        <circle class="pk-glow" cx="80" cy="62" r="50" fill="url(#pkg)"/>
+        <path d="M80 34 c-2 -6 1 -10 5 -12" stroke="#4b7a2a" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <ellipse cx="66" cy="64" rx="20" ry="26" fill="#e46a12"/><ellipse cx="94" cy="64" rx="20" ry="26" fill="#e46a12"/><ellipse cx="80" cy="64" rx="18" ry="28" fill="#f28a24"/>
+        <g class="pk-glow" fill="#ffd36e"><path d="M62 54 l7 -8 5 9z"/><path d="M98 54 l-7 -8 -5 9z"/><path d="M60 72 q20 14 40 0 l-5 2 -3 5 -4 -4 -4 5 -4 -5 -4 4 -3 -5 -5 -2z"/></g>
+        <path class="pk-flame" d="M80 58 c-3 -4 -1 -8 0 -11 c1 3 3 7 0 11z" fill="#fff4b0" opacity=".9"/>
+        <g class="pk-bat"><g fill="#1a1024"><ellipse cx="0" cy="20" rx="3" ry="2.4"/><g class="pk-wing" style="transform-origin:0 20px;transform-box:view-box"><path d="M-2 20 q-6 -6 -10 0 q3 -1 4 2 q2 -2 6 -2z M2 20 q6 -6 10 0 q-3 -1 -4 2 q-2 -2 -6 -2z"/></g></g></g>
+      </svg></div>
+      <div class="info"><h2>Blow Out the Pumpkin</h2><p>Light a jack-o'-lantern, then blow on the phone to put it out.</p><div class="meta"><span>microphone</span></div></div>
+    </a>
+
+    <!-- Pixel Gaffer -->
+    <a class="tile" href="../pixel-gaffer/" style="--c:#7dff6e;--sb:#0b1650" data-f="solo">
+      <div class="scene" aria-hidden="true"><svg viewBox="0 0 160 100" shape-rendering="crispEdges">
+        <rect y="30" width="160" height="70" fill="#2f9a3a"/>
+        <g fill="#38ab43"><rect y="30" width="20" height="70"/><rect x="40" y="30" width="20" height="70"/><rect x="80" y="30" width="20" height="70"/><rect x="120" y="30" width="20" height="70"/></g>
+        <rect width="160" height="30" fill="#0b1650"/>
+        <g fill="#2a3a8a"><rect x="0" y="16" width="160" height="14"/></g>
+        <g fill="#ffcc4d"><rect x="8" y="20" width="2" height="2"/><rect x="22" y="22" width="2" height="2"/><rect x="36" y="20" width="2" height="2"/><rect x="58" y="22" width="2" height="2"/><rect x="74" y="20" width="2" height="2"/><rect x="96" y="22" width="2" height="2"/><rect x="112" y="20" width="2" height="2"/><rect x="128" y="22" width="2" height="2"/><rect x="146" y="20" width="2" height="2"/></g>
+        <path d="M0 64 h160 M40 30 v70" stroke="#e8ffe8" stroke-width="1.5" opacity=".7" fill="none"/>
+        <rect x="118" y="44" width="40" height="40" fill="none" stroke="#e8ffe8" stroke-width="1.5" opacity=".7"/>
+        <g class="pg-net"><rect x="146" y="50" width="12" height="28" fill="#ffffff22"/><path d="M146 50 h12 M146 78 h12 M146 50 v28" stroke="#fff" stroke-width="2"/><g stroke="#fff" stroke-width=".6" opacity=".7"><path d="M150 50 v28 M154 50 v28 M146 56 h12 M146 62 h12 M146 68 h12 M146 74 h12"/></g></g>
+        <g class="pg-keep"><rect x="140" y="56" width="4" height="4" fill="#ffcf9e"/><rect x="139" y="60" width="6" height="7" fill="#ffcc4d"/><rect x="140" y="67" width="2" height="4" fill="#111"/><rect x="143" y="67" width="2" height="4" fill="#111"/></g>
+        <g><rect x="52" y="64" width="4" height="4" fill="#ffcf9e"/><rect x="51" y="68" width="6" height="7" fill="#e83030"/><rect x="51" y="75" width="6" height="2" fill="#fff"/><rect x="51" y="77" width="2" height="4" fill="#111"/><rect x="56" y="77" width="2" height="3" fill="#111"/></g>
+        <g class="pg-ball"><rect x="60" y="76" width="4" height="4" fill="#fff"/><rect x="61" y="77" width="2" height="2" fill="#222"/></g>
+        <g class="pg-goal"><rect x="44" y="34" width="72" height="18" fill="#000"/><text x="80" y="47" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12" fill="#ffee00">GOAL!!!</text></g>
+      </svg></div>
+      <div class="info"><h2>Pixel Gaffer '96</h2><p>90s-style football management with penalty and free-kick mini-games.</p><div class="meta"><span>1 player</span><span>career</span></div></div>
+    </a>
+
+    <!-- Moth Synth -->
+    <a class="tile" href="../synth/" style="--c:#c7f26b;--sb:#161b19" data-f="solo learn">
+      <div class="scene" aria-hidden="true"><svg viewBox="0 0 160 100">
+        <rect x="10" y="10" width="140" height="40" rx="6" fill="#0c100e" stroke="#2c3a33"/>
+        <g stroke="#1e2a24" stroke-width=".6"><path d="M10 30 h140 M45 10 v40 M80 10 v40 M115 10 v40"/></g>
+        <svg x="10" y="10" width="140" height="40" viewBox="0 0 140 40"><path class="ms-wave" d="M0 20 q5 -14 10 0 t10 0 t10 0 t10 0 t10 0 t10 0 t10 0 t10 0 t10 0 t10 0 t10 0 t10 0 t10 0 t10 0 t10 0 t10 0 t10 0 t10 0" fill="none" stroke="#c7f26b" stroke-width="2" style="filter:drop-shadow(0 0 3px #c7f26b)"/></svg>
+        <g fill="#c7f26b"><rect class="ms-bar" x="14" y="62" width="8" height="30" rx="2" style="animation-delay:-.1s"/><rect class="ms-bar" x="26" y="62" width="8" height="30" rx="2" style="animation-delay:-.35s"/><rect class="ms-bar" x="38" y="62" width="8" height="30" rx="2" style="animation-delay:-.2s;fill:#8fd94a"/><rect class="ms-bar" x="50" y="62" width="8" height="30" rx="2" style="animation-delay:-.5s;fill:#8fd94a"/><rect class="ms-bar" x="62" y="62" width="8" height="30" rx="2" style="animation-delay:-.05s;fill:#5fb036"/></g>
+        <g class="ms-moth" transform="translate(0 0)"><g transform="translate(116 74)">
+          <path class="ms-wl" d="M-2 0 C-14 -14 -24 -6 -18 4 C-14 10 -6 6 -2 2z" fill="#d7c6a2" stroke="#8b7a5a"/>
+          <path class="ms-wr" d="M2 0 C14 -14 24 -6 18 4 C14 10 6 6 2 2z" fill="#d7c6a2" stroke="#8b7a5a"/>
+          <ellipse rx="2.5" ry="9" fill="#6b5a3a"/><path d="M-1 -8 q-4 -6 -7 -6 M1 -8 q4 -6 7 -6" stroke="#6b5a3a" fill="none"/>
+        </g></g>
+      </svg></div>
+      <div class="info"><h2>Moth Synth</h2><p>A synthesizer with a loop recorder and drum machine.</p><div class="meta"><span>music</span><span>make loops</span></div></div>
+    </a>
+
+    <!-- Leaderboard -->
+    <a class="tile" href="../leaderboard/" style="--c:#ffcc4d;--sb:#1d1035" data-f="party solo learn">
+      <div class="scene" aria-hidden="true"><svg viewBox="0 0 160 100">
+        <g><rect class="lb-conf" x="24" y="0" width="4" height="6" fill="#ff5c7a" style="animation-delay:-.4s"/><rect class="lb-conf" x="48" y="0" width="4" height="6" fill="#5cffb0" style="animation-delay:-1.6s"/><rect class="lb-conf" x="108" y="0" width="4" height="6" fill="#4fd1ff" style="animation-delay:-.9s"/><rect class="lb-conf" x="134" y="0" width="4" height="6" fill="#c48bff" style="animation-delay:-2.2s"/><rect class="lb-conf" x="70" y="0" width="3" height="5" fill="#ffcc4d" style="animation-delay:-1.2s"/></g>
+        <rect x="30" y="66" width="32" height="26" fill="#b9c2d0"/><text x="46" y="84" text-anchor="middle" font-family="Lilita One,sans-serif" font-size="14" fill="#4a5568">2</text>
+        <rect x="64" y="56" width="32" height="36" fill="#ffcc4d"/><text x="80" y="78" text-anchor="middle" font-family="Lilita One,sans-serif" font-size="16" fill="#7a4a00">1</text>
+        <rect x="98" y="74" width="32" height="18" fill="#e0a06a"/><text x="114" y="88" text-anchor="middle" font-family="Lilita One,sans-serif" font-size="12" fill="#6b3a12">3</text>
+        <g class="lb-cup" style="transform-origin:50% 100%"><path d="M70 22 h20 v8 c0 8 -4 13 -10 13 c-6 0 -10 -5 -10 -13z" fill="#ffd84d" stroke="#b07a00" stroke-width="1.2"/><path d="M70 25 h-5 c0 6 3 9 6 9 M90 25 h5 c0 6 -3 9 -6 9" stroke="#b07a00" stroke-width="1.5" fill="none"/><rect x="77" y="43" width="6" height="6" fill="#d9a400"/><rect x="72" y="49" width="16" height="4" rx="1" fill="#b07a00"/>
+          <path class="lb-shine" d="M76 26 l2 -2 2 2 -2 2z M86 30 l1 -1 1 1 -1 1z" fill="#fff"/></g>
+      </svg></div>
+      <div class="info"><h2>Family Leaderboard</h2><p>Everyone's best scores, and who's Family Champion.</p><div class="meta"><span>scores</span></div></div>
+    </a>
+
+  </section>
+
+  <footer>
+    Install any game on your phone: open it, then <b>Add to Home Screen</b>.<br>
+    <a href="../">FPL tracker</a>
+  </footer>
+</main>
+
+<script>
+(() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Logo: split each word into bouncing letters in rainbow arcade colours.
+  const colours = ['#ff5c7a','#ffcc4d','#5cffb0','#4fd1ff','#c48bff','#ff9d2e'];
+  let i = 0;
+  document.querySelectorAll('.logo .w').forEach(w => {
+    for (const ch of w.dataset.word) {
+      const s = document.createElement('span');
+      s.className = 'ch'; s.textContent = ch; s.setAttribute('aria-hidden', 'true');
+      s.style.setProperty('--i', i); s.style.setProperty('--c', colours[i % colours.length]);
+      s.style.setProperty('--t', (i % 2 ? 4 : -4));
+      w.appendChild(s); i++;
+    }
+  });
+
+  // Marquee bulbs around the hero, placed along its edge.
+  const bulbs = document.querySelector('.bulbs');
+  function placeBulbs() {
+    bulbs.innerHTML = '';
+    const w = bulbs.offsetWidth, h = bulbs.offsetHeight, gap = 22;
+    const per = 2 * (w + h), n = Math.floor(per / gap);
+    for (let k = 0; k < n; k++) {
+      let d = k * per / n, x, y;
+      if (d < w) { x = d; y = 0; }
+      else if ((d -= w) < h) { x = w; y = d; }
+      else if ((d -= h) < w) { x = w - d; y = h; }
+      else { d -= w; x = 0; y = h - d; }
+      const b = document.createElement('i');
+      b.style.left = x + 'px'; b.style.top = y + 'px'; b.style.setProperty('--i', k % 3);
+      bulbs.appendChild(b);
+    }
+  }
+  placeBulbs();
+  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(placeBulbs, 150); });
+
+  // Drifting game emoji in the background.
+  if (!reduce) {
+    const sky = document.getElementById('sky');
+    const bits = ['🎲','⭐','🃏','🏀','♞','🎃','⚽','🚀','🎹','🏆','❓','⚓'];
+    for (let k = 0; k < 14; k++) {
+      const s = document.createElement('span');
+      s.textContent = bits[k % bits.length];
+      s.style.left = (Math.random() * 100) + '%';
+      s.style.setProperty('--s', (18 + Math.random() * 26) + 'px');
+      s.style.setProperty('--d', (18 + Math.random() * 22) + 's');
+      s.style.setProperty('--w', (-Math.random() * 30) + 's');
+      s.style.setProperty('--x', ((Math.random() - .5) * 160) + 'px');
+      s.style.setProperty('--r', ((Math.random() - .5) * 720) + 'deg');
+      sky.appendChild(s);
+    }
+  }
+
+  // Tiles: stagger in when they scroll into view; only animate scenes on screen.
+  const tiles = [...document.querySelectorAll('.tile')];
+  if ('IntersectionObserver' in window && !reduce) {
+    let order = 0, timer;
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        const t = e.target;
+        if (e.isIntersecting) {
+          if (!t.classList.contains('in')) {
+            t.style.transitionDelay = (order++ * 70) + 'ms';
+            t.classList.add('in');
+            clearTimeout(timer); timer = setTimeout(() => { order = 0; tiles.forEach(x => x.style.transitionDelay = ''); }, 600);
+          }
+          t.classList.add('play');
+        } else t.classList.remove('play');
+      });
+    }, { threshold: .15 });
+    tiles.forEach(t => io.observe(t));
+  } else tiles.forEach(t => t.classList.add('in'));
+
+  // Filter chips.
+  document.querySelectorAll('.filters button').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.filters button').forEach(x => x.classList.toggle('on', x === b));
+    const f = b.dataset.f;
+    tiles.forEach(t => {
+      const show = f === 'all' || t.dataset.f.split(' ').includes(f);
+      t.classList.toggle('gone', !show);
+      if (show && !reduce) { t.classList.remove('in'); requestAnimationFrame(() => requestAnimationFrame(() => t.classList.add('in'))); }
+    });
+  }));
+
+  // Warp: a circle in the game's colour grows from your tap, then the game opens.
+  const warp = document.getElementById('warp');
+  tiles.forEach(t => t.addEventListener('click', e => {
+    if (reduce || e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
+    e.preventDefault();
+    const x = e.clientX || innerWidth / 2, y = e.clientY || innerHeight / 2;
+    const far = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+    warp.style.left = x + 'px'; warp.style.top = y + 'px';
+    warp.style.setProperty('--c', getComputedStyle(t).getPropertyValue('--sb'));
+    warp.style.setProperty('--k', Math.ceil(far / 10) + 1);
+    warp.classList.remove('go'); void warp.offsetWidth; warp.classList.add('go');
+    setTimeout(() => { location.href = t.href; }, 480);
+  }));
+  // Coming back with the Back button: hide the warp circle again.
+  addEventListener('pageshow', () => warp.classList.remove('go'));
+
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>

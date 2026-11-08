@@ -76,6 +76,8 @@ A fantasy Top Trumps game that 2 to 6 players play on their own phones. It lives
 
 All eleven games, plus Moth Synth, are published with the tracker and can be installed on a phone's home screen, where they open full screen with their own icon:
 
+**Family Arcade**, the front page for all the games, is at **https://kinapak-ux.github.io/Claude/games/**. Each game has its own little looping animation; tap one and it opens with a colour-wipe. It can be installed on a phone too, and it respects the phone's *Reduce motion* setting.
+
 | Game | Address |
 |---|---|
 | Card Battler | https://kinapak-ux.github.io/Claude/card-battler/ |
