@@ -48,7 +48,7 @@
     }
   }
 
-  // game: cardbattler | hoopshot | echowheel | scootcity | chess. board: which table within the game.
+  // game: cardbattler | hoopshot | archery | echowheel | scootcity | chess | …. board: which table within the game.
   function submit(game, board, score, opts) {
     opts = opts || {};
     const p = clean(opts.player) || askName(opts.fallbackName);

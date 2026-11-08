@@ -70,6 +70,7 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;',
 const GAME = {
   cardbattler: {n: 'Card Battler', i: '🐉', url: '../card-battler/'},
   hoopshot: {n: 'Hoop Shot', i: '🏀', url: '../hoop-shot/'},
+  archery: {n: 'Archery', i: '🏹', url: '../archery/'},
   echowheel: {n: 'Echo Wheel', i: '🎡', url: '../echo-wheel/'},
   scootcity: {n: 'Scoot City', i: '🛴', url: '../scoot-city/'},
   chess: {n: 'Skirmish Chess', i: '♞', url: '../chess/'},
@@ -81,7 +82,7 @@ const GAME = {
 };
 const ECHO_MODES = {classic: 'Classic', strict: 'Strict', turbo: 'Turbo', reverse: 'Reverse', scramble: 'Scramble', blitz: 'Blitz'};
 const POINTS = [5, 3, 2, 1];
-const S = {rows: null, err: null, tab: {hoop: 'timed', echo: 'classic', chess: 'computer', quiz: 'wins', ships: 'friend', snap: 'wins', tt: 'blast', pg: 'career'}, level: null, loading: false};
+const S = {rows: null, err: null, tab: {hoop: 'timed', arch: 'normal', echo: 'classic', chess: 'computer', quiz: 'wins', ships: 'friend', snap: 'wins', tt: 'blast', pg: 'career'}, level: null, loading: false};
 const key = n => String(n).trim().toLowerCase();
 const meKey = () => key(FamilyScores.name());
 
@@ -119,6 +120,7 @@ function boards(rows) {
   return {
     card: Object.values(cb).sort((a, b) => b.value - a.value || (b.value / b.played) - (a.value / a.played)),
     hoop: {timed: bestBy(g('hoopshot').filter(r => r.b === 'timed')), streak: bestBy(g('hoopshot').filter(r => r.b === 'streak'))},
+    arch: Object.fromEntries(['easy', 'normal', 'hard'].map(m => [m, bestBy(g('archery').filter(r => r.b === m))])),
     echo: Object.fromEntries(Object.keys(ECHO_MODES).map(m => [m, bestBy(g('echowheel').filter(r => r.b === m))])),
     echoBest: Object.values(echoAll).sort((a, b) => b.value - a.value),
     scootLevels, scoot: l => bestBy(g('scootcity').filter(r => r.b === l)),
@@ -134,7 +136,7 @@ function boards(rows) {
 }
 // Family Champion: 5, 3, 2 and 1 points for the top four on each game's main board.
 function champion(B) {
-  const champs = [B.card, B.hoop.timed, B.hoop.streak, B.echoBest, B.scootTotal, B.quiz.wins, B.shipsAll, B.snap.wins, B.tt.blast, B.pg.career, B.chess.computer.concat(B.chess.online).reduce((acc, x) => { const e = acc.find(a => a.k === x.k); if (e) e.value += x.value; else acc.push(Object.assign({}, x)); return acc; }, []).sort((a, b) => b.value - a.value)];
+  const champs = [B.card, B.hoop.timed, B.hoop.streak, B.arch.normal, B.echoBest, B.scootTotal, B.quiz.wins, B.shipsAll, B.snap.wins, B.tt.blast, B.pg.career, B.chess.computer.concat(B.chess.online).reduce((acc, x) => { const e = acc.find(a => a.k === x.k); if (e) e.value += x.value; else acc.push(Object.assign({}, x)); return acc; }, []).sort((a, b) => b.value - a.value)];
   const pts = {};
   champs.forEach(list => list.filter(x => x.value > 0).slice(0, 4).forEach((x, i) => { pts[x.k] = pts[x.k] || {k: x.k, name: x.name, value: 0, firsts: 0}; pts[x.k].value += POINTS[i]; if (!i) pts[x.k].firsts++; }));
   return Object.values(pts).sort((a, b) => b.value - a.value || b.firsts - a.firsts);
@@ -152,6 +154,7 @@ function feedLine(r) {
   switch (r.g) {
     case 'cardbattler': return r.s >= 1 ? `🐉 ${n} won a game of Card Battler!` : `🐉 ${n} played Card Battler (${esc(r.d)})`;
     case 'hoopshot': return r.b === 'timed' ? `🏀 ${n} scored ${r.s} in the 60-second challenge` : `🏀 ${n} hit a streak of ${r.s} in a row`;
+    case 'archery': return `🏹 ${n} scored ${r.s} at Archery on ${esc(r.b.charAt(0).toUpperCase() + r.b.slice(1))}${r.d && !r.d.startsWith('0 ') ? ` with ${esc(r.d)}` : ''}`;
     case 'echowheel': return `🎡 ${n} reached round ${r.s} in Echo Wheel ${ECHO_MODES[r.b] || ''}`;
     case 'scootcity': return `🛴 ${n} scored ${r.s.toLocaleString()} on ${esc(r.b)}`;
     case 'chess': return `♞ ${n} ${r.s >= 1 ? 'won' : r.s > 0 ? 'drew' : 'lost'} a chess game ${r.b === 'online' ? 'online' : 'against the computer'}`;
@@ -177,7 +180,7 @@ function render() {
   if (!S.level || !B.scootLevels.includes(S.level)) S.level = B.scootLevels[0] || null;
   const pod = champ.slice(0, 3);
   const podium = pod.length ? `<div class="podium">${[1, 0, 2].map(i => pod[i] ? `<div class="pod p${i + 1}"><div class="m">${['👑', '🥈', '🥉'][i]}</div><div class="n">${esc(pod[i].name)}</div><div class="pts">${pod[i].value} pts</div></div>` : '<div></div>').join('')}</div>` : '';
-  const playUrl = g => g === 'timestables' && S.tab.tt === 'stars' ? GAME[g].url + '?mode=chart' : g === 'hoopshot' && S.tab.hoop === 'timed' ? GAME[g].url + '?mode=timed' : g === 'echowheel' ? GAME[g].url + '?mode=' + S.tab.echo
+  const playUrl = g => g === 'timestables' && S.tab.tt === 'stars' ? GAME[g].url + '?mode=chart' : g === 'hoopshot' && S.tab.hoop === 'timed' ? GAME[g].url + '?mode=timed' : g === 'archery' ? GAME[g].url + '?mode=' + S.tab.arch : g === 'echowheel' ? GAME[g].url + '?mode=' + S.tab.echo
     : g === 'scootcity' && S.level ? GAME[g].url + '?level=' + encodeURIComponent(S.level) : GAME[g].url;
   const section = (g, body) => `<div class="panel"><h2>${GAME[g].i} ${GAME[g].n}<span class="grow"></span><a class="iconbtn" style="height:32px;margin-left:auto" href="${playUrl(g)}">${g === 'hoopshot' && S.tab.hoop === 'timed' ? 'Play 60s' : 'Play'}</a></h2>${body}</div>`;
   app.innerHTML = top + who + `
@@ -185,6 +188,7 @@ function render() {
       <p class="note">Points from every game: 5 for 1st place, 3 for 2nd, 2 for 3rd and 1 for 4th.</p>${FamilyScores.sheetUpdated() ? '' : '<a class="note" href="how-to-update.html" style="display:block;color:#ffcc4d;font-weight:800">⚠️ Your score sheet needs a quick update for the newest games. Show me how →</a>'}</div>
     ${section('cardbattler', rankHTML(B.card, x => `${x.value} win${x.value === 1 ? '' : 's'}`, x => `${x.played} game${x.played === 1 ? '' : 's'} played · ${Math.round(100 * x.value / x.played)}% won`))}
     ${section('hoopshot', tabs('hoop', {timed: '60-second challenge', streak: 'Longest streak'}) + rankHTML(B.hoop[S.tab.hoop], x => S.tab.hoop === 'streak' ? `${x.value} in a row` : `${x.value} pts`))}
+    ${section('archery', tabs('arch', {easy: 'Easy', normal: 'Normal', hard: 'Hard'}) + rankHTML(B.arch[S.tab.arch], x => `${x.value} pts`))}
     ${section('echowheel', tabs('echo', ECHO_MODES) + rankHTML(B.echo[S.tab.echo], x => `Round ${x.value}`))}
     ${section('scootcity', B.scootLevels.length ? `<select data-act="level">${B.scootLevels.map(l => `<option${l === S.level ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>${rankHTML(B.scoot(S.level))}
       <h2 style="margin-top:14px;font-size:16px">All levels (best scores added up)</h2>${rankHTML(B.scootTotal, null, x => `${x.levels} level${x.levels === 1 ? '' : 's'}`)}` : rankHTML([]))}

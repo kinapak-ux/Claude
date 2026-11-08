@@ -82,6 +82,7 @@
   </div>
 </div>
 
+<script src="../scores.js"></script>
 <script>
 (() => {
   const cv = document.getElementById('c'), ctx = cv.getContext('2d');
@@ -95,7 +96,8 @@
     normal: { wind: 4,  xMin: 600, xMax: 900, move: 0,  guide: 0.4 },
     hard:   { wind: 7,  xMin: 680, xMax: 930, move: 60, guide: 0 },
   };
-  let mode = store.get('archery-mode') || 'normal';
+  const urlMode = new URLSearchParams(location.search).get('mode');
+  let mode = urlMode || store.get('archery-mode') || 'normal';
   if (!MODES[mode]) mode = 'normal';
 
   let W = 0, H = 0, S = 1, OX = 0, OY = 0, dpr = 1;
@@ -251,6 +253,7 @@
     st.playing = false;
     const key = 'archery-best-' + mode, best = +(store.get(key) || 0), isBest = st.score > best;
     if (isBest) store.set(key, st.score);
+    if (window.FamilyScores && st.score > 0) FamilyScores.submit('archery', mode, st.score, { player: FamilyScores.name(), detail: `${st.bulls} bullseye${st.bulls === 1 ? '' : 's'}` });
     hud();
     $('endScore').textContent = st.score;
     $('endTitle').textContent = isBest && st.score > 0 ? 'New best!' : st.score >= 80 ? 'Robin who?' : st.score >= 50 ? 'Nice shooting!' : 'Keep practising!';
