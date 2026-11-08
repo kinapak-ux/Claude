@@ -109,6 +109,13 @@ main{position:relative;z-index:1;max-width:1040px;margin:0 auto;padding:12px 16p
 .hs-plus{animation:plus 2.6s ease-out infinite}
 @keyframes plus{0%,64%{opacity:0;transform:translateY(0)}72%{opacity:1}100%{opacity:0;transform:translateY(-16px)}}
 
+/* ---- Archery ---- */
+.ar-arrow{offset-path:path("M 18 70 Q 70 10 118 46");offset-rotate:auto;animation:arfly 2.6s cubic-bezier(.3,.1,.7,1) infinite}
+@keyframes arfly{0%,10%{offset-distance:0%;opacity:1}55%,92%{offset-distance:100%;opacity:1}100%{offset-distance:100%;opacity:0}}
+.ar-tgt{transform-box:fill-box;transform-origin:50% 50%;animation:arwob 2.6s ease-out infinite}
+@keyframes arwob{0%,54%{transform:rotate(0)}58%{transform:rotate(4deg)}64%{transform:rotate(-3deg)}70%,100%{transform:rotate(0)}}
+.ar-plus{animation:plus 2.6s ease-out infinite}
+
 /* ---- Echo Wheel ---- */
 .ew-seg{opacity:.28;animation:lit 3.2s steps(1) infinite}
 .ew-s0{animation-delay:0s}.ew-s1{animation-delay:-2.4s}.ew-s2{animation-delay:-.8s}.ew-s3{animation-delay:-1.6s}
@@ -298,6 +305,19 @@ footer a{color:var(--gold);text-decoration:none}
         <text class="hs-plus" x="86" y="34" font-family="Lilita One,sans-serif" font-size="14" fill="#ffcc4d">+2</text>
       </svg></div>
       <div class="info"><h2>Hoop Shot</h2><p>Pull back, aim and shoot hoops.</p><div class="meta"><span>1 player</span></div></div>
+    </a>
+
+    <!-- Archery -->
+    <a class="tile" href="../archery/" style="--c:#ff6b4a;--sb:#16324a" data-f="solo">
+      <div class="scene" aria-hidden="true"><svg viewBox="0 0 160 100">
+        <rect y="86" width="160" height="14" fill="#3f7d3a"/><path d="M0 86 h160" stroke="#4f9447" stroke-width="2"/>
+        <path d="M122 56 l-8 30 M124 56 l8 30" stroke="#6b4424" stroke-width="3" stroke-linecap="round"/>
+        <g class="ar-tgt"><ellipse cx="122" cy="46" rx="9" ry="26" fill="#f4f1ea"/><ellipse cx="122" cy="46" rx="7" ry="20" fill="#2a2a2e"/><ellipse cx="122" cy="46" rx="5" ry="14.5" fill="#2f8de4"/><ellipse cx="122" cy="46" rx="3.4" ry="9.5" fill="#e63b3b"/><ellipse cx="122" cy="46" rx="1.8" ry="4.5" fill="#ffd23d"/></g>
+        <g class="ar-arrow"><path d="M-22 0 h20" stroke="#c98a4a" stroke-width="2"/><path d="M2 0 l-6 -3 v6z" fill="#dfe5ea"/><path d="M-22 0 l-5 -4 h4 l5 4 l-5 4 h-4z" fill="#ff6b4a"/></g>
+        <path d="M14 48 q14 22 0 44" stroke="#3b2512" stroke-width="3" fill="none"/><path d="M14 48 v44" stroke="#e8e2d4" stroke-width="1"/>
+        <text class="ar-plus" x="96" y="20" font-family="Lilita One,sans-serif" font-size="14" fill="#ffcc4d">+10</text>
+      </svg></div>
+      <div class="info"><h2>Archery</h2><p>Pull back the bow, watch the wind, hit the bullseye.</p><div class="meta"><span>1 player</span></div></div>
     </a>
 
     <!-- Echo Wheel -->
