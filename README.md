@@ -93,6 +93,7 @@ All twelve games, plus Moth Synth, are published with the tracker and can be ins
 | Blow Out the Pumpkin | https://kinapak-ux.github.io/Claude/pumpkin/ |
 | Pixel Gaffer '96 | https://kinapak-ux.github.io/Claude/pixel-gaffer/ |
 | Moth Synth | https://kinapak-ux.github.io/Claude/synth/ |
+| Overhead (satellite tracker) | https://kinapak-ux.github.io/Claude/satellites/ |
 
 **To install:** on Android, open the game in Chrome, tap **⋮** and then **Install app** (or **Add to Home screen**). On iPhone, open it in Safari, tap **Share** and then **Add to Home Screen**.
 
@@ -110,6 +111,17 @@ Moth Synth is a synthesizer with a loop recorder and a drum machine.
 - **Touch pad:** drag around it to sweep the filter left to right and the resonance, wah, echo or drive up and down.
 - **Sound:** two oscillators plus noise, filter with its own envelope, volume envelope, LFO for vibrato and wah, drive, echo and reverb, Poly/Mono with glide, an arpeggiator that locks to the beat (turn on **Latch** to keep it going), 9 patches and **Surprise me**. Turn knobs by dragging up and down; double-click to reset.
 - Your sound, beat and settings are remembered on that device; recorded loops are not, so save the WAV if you want to keep one. A USB MIDI keyboard works in Chrome on a computer (**Connect MIDI**). On iPhone, if there's no sound, check the silent switch.
+
+**Overhead** is a live tracker for the satellites passing over where you live.
+
+- **Set your place** the first time you open it: use the phone's location, search for a town or postcode, tap the map, or type coordinates. It's only saved on that phone.
+- **Map:** every satellite in the chosen group, moving live. Blue ones are above your horizon right now, green ones might be visible to the naked eye (lit by the Sun while your sky is dark), grey ones are elsewhere. The shaded part of the map is night, and the dashed ring around you shows how far away a satellite at ISS height can be and still be above your horizon. Tap a satellite to see its route (dotted behind, solid ahead, with +10m, +20m marks), the area of Earth that can see it, and a line to you if it's up.
+- **Satellite details:** height, speed, distance from you, where it is in your sky (degrees up and which way to look), whether it's in sunlight, and the journey: roughly how far it has travelled since launch (ticking up live), how many times it has gone round the Earth, how far it has gone while you've been watching, and how much of your sky this pass covers. Plus its orbit and the next 6 passes over you, with ✦ marking the ones you might see.
+- **Sky dome:** a radar-style map of your whole sky, with straight up in the middle and the horizon at the edge, showing the selected satellite's path across it.
+- **Camera:** point your phone at the sky and it draws the satellites where they really are, with an arrow showing which way to turn for the selected one. **Show through the ground** also shows those below the horizon. The Sun is drawn too: if it doesn't line up with the real Sun, use ⟲ ⟳ to correct the compass. On a computer it's a virtual sky you drag around.
+- **Lists:** *Above you now* (sorted by height in the sky or by distance, with a name search) and *Coming over in the next 30 min*.
+- **Groups:** highlights (space stations, the brightest, and new launches), Starlink, OneWeb, GPS, Galileo, weather, Earth-watching, science, amateur radio, geostationary, or everything (over 10,000, slow on older phones).
+- Orbit data comes from CelesTrak. The site downloads a fresh copy every time it rebuilds (twice a day), and the page downloads straight from CelesTrak if that copy is more than a day old. Positions are accurate to a few kilometres.
 
 Online chess works like Card Battler: one player taps **Online** and then **Start a new game**, and the other types in the 5-character code. If either phone drops out, the game pauses until it reconnects. Whoever started the game can reopen it from **Online** and then **Resume**.
 

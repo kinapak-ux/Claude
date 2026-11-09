@@ -49,7 +49,18 @@ jobs:
         run: python build.py --email ${{ inputs.send_email && 'force' || (github.event.schedule == '17 6,18 * * *' && 'auto' || 'off') }}
       - name: Add the family games
         if: steps.check.outcome == 'skipped' || steps.check.outputs.live == 'true'
-        run: cp -r card-battler top-trumps scoot-city chess hoop-shot archery echo-wheel family-quiz battleships snap-race times-tables pumpkin pixel-gaffer synth leaderboard games scores.js party.js kit.css site/
+        run: cp -r card-battler top-trumps scoot-city chess hoop-shot archery echo-wheel family-quiz battleships snap-race times-tables pumpkin pixel-gaffer synth satellites leaderboard games scores.js party.js kit.css site/
+      - name: Download satellite orbit data
+        if: steps.check.outcome == 'skipped' || steps.check.outputs.live == 'true'
+        continue-on-error: true   # the satellite page falls back to downloading from CelesTrak itself
+        run: |
+          mkdir -p site/satellites/tle
+          for g in stations visual last-30-days starlink oneweb gps-ops galileo weather resource science amateur geo active; do
+            curl -sSf --retry 2 -A "kinapak-ux-overhead/1.0" -o "site/satellites/tle/$g.txt" \
+              "https://celestrak.org/NORAD/elements/gp.php?GROUP=$g&FORMAT=tle" || rm -f "site/satellites/tle/$g.txt"
+            sleep 1
+          done
+          ls -la site/satellites/tle
       - if: steps.check.outcome == 'skipped' || steps.check.outputs.live == 'true'
         uses: actions/configure-pages@v5
       - if: steps.check.outcome == 'skipped' || steps.check.outputs.live == 'true'

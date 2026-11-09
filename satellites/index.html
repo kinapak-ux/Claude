@@ -1,0 +1,1198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Overhead</title>
+<meta name="description" content="Live tracker for the satellites passing over where you live.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#070b16">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Overhead">
+<link rel="stylesheet" href="lib/leaflet.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: header bar, then a stage (map / sky dome / camera) beside a scrolling side panel. On phones the panel drops under the stage. One dark "mission control" look. */
+:root{
+  --bg:#070b16; --bg2:#0d1426; --card:#111a30; --card2:#16213d; --line:#24314f;
+  --ink:#e8eefc; --muted:#8d9ab8; --dim:#5b6785;
+  --up:#5ee6ff; --sel:#ffb547; --vis:#7dff9b; --down:#55618a; --sun:#ffd54a; --warn:#ff7a6b;
+  --sans:"Space Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;-webkit-tap-highlight-color:transparent}
+body{min-height:100dvh;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+[hidden]{display:none!important}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--up);outline-offset:2px}
+.mono{font-family:var(--mono)}
+
+/* Header */
+.bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px max(16px,env(safe-area-inset-right)) 10px max(16px,env(safe-area-inset-left));
+  border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0b1222,#070b16)}
+.brand{display:flex;align-items:center;gap:10px;min-width:0;flex:1 1 220px}
+.brand svg{flex:none}
+.brand h1{margin:0;font-size:1.25rem;letter-spacing:.12em;text-transform:uppercase}
+.brand small{display:block;color:var(--muted);font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
+.ctrls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.chip,select{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:8px 13px;font-size:.88rem}
+select{border-radius:10px;max-width:100%}
+.chip:hover{border-color:var(--up)}
+.clock{font-family:var(--mono);font-size:.82rem;color:var(--muted);text-align:right;line-height:1.25}
+
+/* Main */
+.layout{flex:1;display:grid;grid-template-columns:minmax(0,1fr) 390px;grid-template-rows:minmax(0,1fr);min-height:0}
+@media (min-width:901px){body{height:100dvh;overflow:hidden}}
+.stage{position:relative;min-height:0;overflow:hidden;background:#04070f}
+.view{position:absolute;inset:0}
+#map{background:#0a1020}
+.panel{overflow-y:auto;border-left:1px solid var(--line);padding:12px 12px max(16px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;background:var(--bg)}
+@media (max-width:900px){
+  .layout{display:block;flex:none}
+  .stage{height:62dvh;min-height:340px}
+  .panel{border-left:0;border-top:1px solid var(--line);padding-inline:max(12px,env(safe-area-inset-left)) max(12px,env(safe-area-inset-right))}
+}
+
+/* Stage overlays */
+.tabs{position:absolute;z-index:800;top:10px;left:50%;transform:translateX(-50%);display:flex;background:rgba(7,11,22,.82);border:1px solid var(--line);border-radius:999px;padding:3px;backdrop-filter:blur(6px)}
+.tabs button{border:0;background:none;padding:7px 14px;border-radius:999px;font-size:.88rem;color:var(--muted);white-space:nowrap}
+.tabs button.on{background:var(--up);color:#04121a;font-weight:700}
+.legend{position:absolute;z-index:800;left:10px;bottom:10px;background:rgba(7,11,22,.82);border:1px solid var(--line);border-radius:10px;padding:7px 10px;font-size:.76rem;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;max-width:calc(100% - 20px);pointer-events:none}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.toast{position:absolute;z-index:900;top:58px;left:50%;transform:translateX(-50%);background:rgba(17,26,48,.95);border:1px solid var(--line);border-radius:12px;padding:9px 14px;font-size:.88rem;max-width:min(92%,460px);text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.toast button{margin-left:8px}
+.mapbtns{position:absolute;z-index:800;right:10px;bottom:10px;display:flex;flex-direction:column;gap:6px}
+.mapbtns button{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:rgba(7,11,22,.85);font-size:1.05rem}
+.mapbtns button.on{border-color:var(--sel);color:var(--sel)}
+canvas.overlay{position:absolute;inset:0;width:100%;height:100%;z-index:450;pointer-events:none}
+.leaflet-container{font-family:var(--sans)}
+.leaflet-control-attribution{background:rgba(7,11,22,.7)!important;color:var(--dim)!important;font-size:10px}
+.leaflet-control-attribution a{color:var(--muted)!important}
+.leaflet-bar a{background:#111a30!important;color:var(--ink)!important;border-color:var(--line)!important}
+.me-pin{width:18px;height:18px;border-radius:50%;background:var(--sel);border:3px solid #fff;box-shadow:0 0 0 0 rgba(255,181,71,.7);animation:pulse 2s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 18px rgba(255,181,71,0)}100%{box-shadow:0 0 0 0 rgba(255,181,71,0)}}
+#skyWrap canvas,#arWrap canvas{width:100%;height:100%;display:block;touch-action:none}
+#cam{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#arWrap{background:radial-gradient(ellipse at 50% 120%,#13254a,#04070f 70%)}
+.arbar{position:absolute;z-index:5;left:10px;right:10px;bottom:10px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center;align-items:center}
+.arbar button,.arbar label{background:rgba(7,11,22,.85);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:.82rem}
+.arbar input{width:90px;vertical-align:middle;accent-color:var(--up)}
+.arstart{position:absolute;inset:0;z-index:6;display:grid;place-items:center;padding:20px;text-align:center}
+.arstart div{max-width:380px;background:rgba(10,16,32,.92);border:1px solid var(--line);border-radius:16px;padding:20px}
+.arstart p{color:var(--muted);font-size:.9rem;line-height:1.45}
+
+/* Panel cards */
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.card h2{font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card h2 .n{font-family:var(--mono);color:var(--up);letter-spacing:0;font-size:.85rem}
+.find{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:8px}
+.rowopts{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.seg button{background:none;border:0;padding:5px 10px;font-size:.78rem;color:var(--muted)}
+.seg button.on{background:var(--card2);color:var(--ink)}
+ol.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;max-height:420px;overflow-y:auto}
+ol.list li button{width:100%;display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:8px;align-items:center;text-align:left;background:none;border:0;border-radius:8px;padding:6px 6px}
+ol.list li button:hover,ol.list li button.on{background:var(--card2)}
+ol.list .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ol.list .sub{display:block;font-size:.74rem;color:var(--muted)}
+ol.list .val{font-family:var(--mono);font-size:.8rem;text-align:right;color:var(--muted)}
+ol.list .val b{color:var(--ink);font-weight:600}
+.arrow{width:22px;height:22px;display:grid;place-items:center;color:var(--up)}
+.empty{color:var(--muted);font-size:.88rem;margin:4px 0}
+.more{color:var(--dim);font-size:.8rem;padding:4px 6px}
+
+/* Selected satellite */
+#selCard{border-color:var(--sel);background:linear-gradient(180deg,#1a1d2e,#111a30)}
+.selhead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.selhead h3{margin:0;font-size:1.2rem;line-height:1.2}
+.selhead .x{background:none;border:1px solid var(--line);border-radius:8px;width:32px;height:32px;flex:none}
+.tags{display:flex;gap:5px;flex-wrap:wrap;margin:6px 0}
+.tag{font-size:.72rem;border:1px solid var(--line);border-radius:999px;padding:2px 8px;color:var(--muted)}
+.tag.vis{border-color:var(--vis);color:var(--vis)}
+.tag.lit{border-color:var(--sun);color:var(--sun)}
+.tag.up{border-color:var(--up);color:var(--up)}
+.desc{color:var(--muted);font-size:.86rem;margin:4px 0 10px;line-height:1.4}
+.big{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.big div{background:var(--bg2);border-radius:10px;padding:8px}
+.big b{display:block;font-family:var(--mono);font-size:clamp(.8rem,3.4vw,1.05rem);font-weight:600;white-space:nowrap}
+.big span{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+dl.facts{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;margin:0 0 10px;font-size:.86rem}
+dl.facts dt{color:var(--muted)}
+dl.facts dd{margin:0;font-family:var(--mono);font-size:.82rem;text-align:right}
+.sec{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--sel);margin:12px 0 6px}
+.odo{font-family:var(--mono);font-size:1.35rem;color:var(--sel);font-variant-numeric:tabular-nums}
+.odo small{font-size:.75rem;color:var(--muted)}
+table.passes{width:100%;border-collapse:collapse;font-size:.8rem}
+table.passes th{color:var(--muted);font-weight:400;text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;padding:3px 4px}
+table.passes td{padding:5px 4px;border-top:1px solid var(--line);font-family:var(--mono);font-size:.78rem}
+table.passes tr.vis td:first-child{border-left:2px solid var(--vis)}
+.btnrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.btn{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:7px 11px;font-size:.84rem}
+.btn.on{border-color:var(--sel);color:var(--sel)}
+.btn.primary{background:var(--up);border-color:var(--up);color:#04121a;font-weight:700}
+.about p{color:var(--muted);font-size:.84rem;line-height:1.5;margin:6px 0}
+.about a{color:var(--up)}
+
+/* Location dialog */
+dialog{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:18px;padding:0;width:min(440px,calc(100vw - 32px));max-height:calc(100dvh - 32px)}
+dialog::backdrop{background:rgba(2,4,10,.7);backdrop-filter:blur(3px)}
+.dlg{padding:18px}
+.dlg h2{margin:0 0 4px;font-size:1.2rem}
+.dlg p{color:var(--muted);font-size:.88rem;line-height:1.45;margin:4px 0 12px}
+.dlg .btn{width:100%;margin-bottom:8px;padding:11px;text-align:left}
+.dlg form{display:flex;gap:6px;margin-bottom:8px}
+.dlg input{flex:1;min-width:0;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px}
+.results button{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:9px 4px;font-size:.88rem}
+.results button:hover{background:var(--card2)}
+.coords{display:flex;gap:6px;margin-bottom:8px}
+.coords input{width:50%}
+.dlg .muted{color:var(--dim);font-size:.78rem}
+@media (prefers-reduced-motion:reduce){.me-pin{animation:none}}
+@media (max-width:600px){.clock{display:none}.ctrls{width:100%;flex-wrap:nowrap}.ctrls select{flex:1;min-width:0}.legend{max-width:calc(100% - 70px);font-size:.7rem;gap:6px}.brand small{max-width:80vw}}
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="brand">
+    <svg width="34" height="34" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="#0d1426" stroke="#24314f"/><ellipse cx="32" cy="32" rx="26" ry="10" fill="none" stroke="#5ee6ff" stroke-width="2" transform="rotate(-28 32 32)" opacity=".7"/><circle cx="32" cy="32" r="7" fill="#1f6fd1"/><circle cx="52" cy="21" r="4" fill="#ffb547"/></svg>
+    <div><h1>Overhead</h1><small id="placeName">Satellites over your place</small></div>
+  </div>
+  <div class="ctrls">
+    <button class="chip" id="locBtn" type="button">📍 Change place</button>
+    <select id="groupSel" aria-label="Which satellites"></select>
+    <div class="clock" id="clock"></div>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="stage" aria-label="Satellite views">
+    <div class="tabs" role="tablist">
+      <button role="tab" data-v="map" class="on">Map</button>
+      <button role="tab" data-v="sky">Sky dome</button>
+      <button role="tab" data-v="ar">Camera</button>
+    </div>
+    <div id="map" class="view"></div>
+    <div id="skyWrap" class="view" hidden><canvas id="sky"></canvas></div>
+    <div id="arWrap" class="view" hidden>
+      <video id="cam" playsinline muted autoplay hidden></video>
+      <canvas id="ar"></canvas>
+      <div class="arstart" id="arStart"><div>
+        <h2 style="margin:0 0 6px">Point your phone at the sky</h2>
+        <p>This uses your camera and compass to draw the satellites where they really are, even the ones you can't see. Nothing is recorded or uploaded.</p>
+        <p>The Sun is shown too, so you can check the compass lines up. On a computer, drag to look around.</p>
+        <button class="btn primary" id="arGo" type="button">Start camera</button>
+        <button class="btn" id="arNoCam" type="button">Virtual sky (no camera)</button>
+      </div></div>
+      <div class="arbar" id="arBar" hidden>
+        <button type="button" id="nudgeL" title="Turn markers left">⟲ 5°</button>
+        <button type="button" id="nudgeR" title="Turn markers right">5° ⟳</button>
+        <label>Zoom <input type="range" id="fov" min="30" max="100" step="1"></label>
+        <button type="button" id="belowBtn">Show through the ground</button>
+        <button type="button" id="arStop">Stop</button>
+      </div>
+    </div>
+    <div class="legend" id="legend">
+      <span><i style="background:var(--up)"></i>Above your horizon</span>
+      <span><i style="background:var(--vis)"></i>Might be visible now</span>
+      <span><i style="background:var(--down)"></i>Elsewhere</span>
+      <span><i style="background:var(--sel)"></i>Selected / you</span>
+    </div>
+    <div class="mapbtns" id="mapBtns">
+      <button type="button" id="homeBtn" title="Zoom to my place">⌂</button>
+      <button type="button" id="followBtn" title="Follow the selected satellite">◎</button>
+    </div>
+    <div class="toast" id="toast" hidden></div>
+  </section>
+
+  <aside class="panel">
+    <div class="card" id="selCard" hidden></div>
+
+    <div class="card">
+      <h2>Above you now <span class="n" id="nowCount"></span></h2>
+      <input class="find" id="find" type="search" placeholder="Find a satellite by name (e.g. ISS, Hubble)" autocomplete="off">
+      <div class="rowopts">
+        <span class="seg" id="minElSeg" title="How high above the horizon"><button data-v="0" class="on">Any height</button><button data-v="10">10°+</button><button data-v="30">30°+</button></span>
+        <span class="seg" id="sortSeg"><button data-v="el" class="on">Highest</button><button data-v="range">Closest</button></span>
+      </div>
+      <ol class="list" id="nowList"></ol>
+    </div>
+
+    <div class="card">
+      <h2>Coming over in the next 30 min <span class="n" id="soonCount"></span></h2>
+      <ol class="list" id="soonList"></ol>
+    </div>
+
+    <div class="card about">
+      <h2>Settings &amp; about</h2>
+      <div class="rowopts"><span class="seg" id="unitSeg"><button data-v="km">Kilometres</button><button data-v="mi">Miles</button></span></div>
+      <p id="dataAge">Loading orbit data…</p>
+      <p>Positions are worked out live on your phone from the latest published orbit data (<a href="https://celestrak.org" target="_blank" rel="noopener">CelesTrak</a>) using the SGP4 model, accurate to a few kilometres. "Might be visible" means the satellite is lit by the Sun while your sky is dark, so it could show up as a moving star. Bigger ones like the ISS are easy; small ones need dark skies.</p>
+      <p>Your location stays on this device.</p>
+    </div>
+  </aside>
+</main>
+
+<dialog id="locDlg">
+  <div class="dlg">
+    <h2>Where are you?</h2>
+    <p>Overhead shows the satellites passing over this spot. It's only saved on this device.</p>
+    <button class="btn primary" id="gpsBtn" type="button">📍 Use my current location</button>
+    <form id="searchForm"><input id="placeQ" type="search" placeholder="Town, postcode or address" autocomplete="off"><button class="btn" style="width:auto;margin:0" type="submit">Search</button></form>
+    <div class="results" id="results"></div>
+    <button class="btn" id="pickBtn" type="button">🗺️ Tap a spot on the map</button>
+    <div class="coords"><input id="latIn" inputmode="decimal" placeholder="Latitude e.g. 53.72"><input id="lonIn" inputmode="decimal" placeholder="Longitude e.g. -2.73"></div>
+    <button class="btn" id="coordBtn" type="button">Use these coordinates</button>
+    <p class="muted" id="locMsg"></p>
+    <button class="btn" id="locClose" type="button" style="text-align:center">Close</button>
+  </div>
+</dialog>
+
+<script src="lib/leaflet.js"></script>
+<script src="lib/satellite.min.js"></script>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const D2R = Math.PI / 180, R2D = 180 / Math.PI, RE = 6371, MU = 398600.4418, KM_MI = 0.621371;
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('ovh.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('ovh.' + k, JSON.stringify(v)); return true; } catch { return false; } },
+};
+
+/* ---------- Satellite groups (CelesTrak names) ---------- */
+const GROUPS = [
+  { id: 'highlights', name: 'Highlights: stations, brightest, new', src: ['stations', 'visual', 'last-30-days'] },
+  { id: 'stations', name: 'Space stations & crew', src: ['stations'] },
+  { id: 'visual', name: 'Brightest (easiest to spot)', src: ['visual'] },
+  { id: 'last-30-days', name: 'Launched in the last 30 days', src: ['last-30-days'] },
+  { id: 'starlink', name: 'Starlink (thousands)', src: ['starlink'] },
+  { id: 'oneweb', name: 'OneWeb internet', src: ['oneweb'] },
+  { id: 'gps-ops', name: 'GPS satnav', src: ['gps-ops'] },
+  { id: 'galileo', name: 'Galileo satnav', src: ['galileo'] },
+  { id: 'weather', name: 'Weather', src: ['weather'] },
+  { id: 'resource', name: 'Earth-watching cameras', src: ['resource'] },
+  { id: 'science', name: 'Science & telescopes', src: ['science'] },
+  { id: 'amateur', name: 'Amateur radio', src: ['amateur'] },
+  { id: 'geo', name: 'Geostationary (TV & comms)', src: ['geo'] },
+  { id: 'active', name: 'Everything working (very heavy)', src: ['active'] },
+];
+
+/* ---------- State ---------- */
+let sats = [], byId = new Map(), sel = null, obs = store.get('obs', null);
+let units = store.get('units', /en-(US|GB)/.test(navigator.language || '') ? 'mi' : 'km');
+let minEl = store.get('minEl', 0), sortBy = 'el', follow = false, view = 'map', pickMode = false;
+let sun = null, lastCompute = 0, dataTime = null, track = null, passes = null, soon = [], selSince = 0;
+const ui = {};
+
+/* ---------- Formatting ---------- */
+const nf = (v, d = 0) => v.toLocaleString(undefined, { maximumFractionDigits: d, minimumFractionDigits: d });
+const dist = (km, d = 0) => units === 'mi' ? nf(km * KM_MI, d) + ' mi' : nf(km, d) + ' km';
+const bigDist = km => {
+  const v = units === 'mi' ? km * KM_MI : km, u = units === 'mi' ? 'mi' : 'km';
+  if (v >= 1e9) return nf(v / 1e9, 2) + ' billion ' + u;
+  if (v >= 1e6) return nf(v / 1e6, 1) + ' million ' + u;
+  return nf(v) + ' ' + u;
+};
+const speed = kms => units === 'mi' ? nf(kms * 3600 * KM_MI) + ' mph' : nf(kms * 3600) + ' km/h';
+const COMPASS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+const compass = az => COMPASS[Math.round(((az % 360) + 360) % 360 / 22.5) % 16];
+const tfmt = d => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const dfmt = d => {
+  const now = new Date(), tom = new Date(now); tom.setDate(now.getDate() + 1);
+  if (d.toDateString() === now.toDateString()) return 'Today';
+  if (d.toDateString() === tom.toDateString()) return 'Tomorrow';
+  return d.toLocaleDateString([], { weekday: 'short', day: 'numeric' });
+};
+const dur = s => { s = Math.max(0, Math.round(s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return h ? `${h}h ${m}m` : m ? `${m}m ${String(x).padStart(2, '0')}s` : `${x}s`; };
+const ago = ms => { const h = ms / 3600e3; return h < 1 ? Math.max(1, Math.round(h * 60)) + ' min ago' : h < 48 ? Math.round(h) + ' h ago' : Math.round(h / 24) + ' days ago'; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const wrapLon = l => ((l + 540) % 360) - 180;
+
+/* ---------- What is it? ---------- */
+const KNOWN = [
+  [/^ISS \(ZARYA\)|^ISS$/, 'Space station', 'The International Space Station. Usually 7 people live on board, and it is the brightest satellite in the sky: easy to see with your eyes when it passes at dusk or dawn.'],
+  [/TIANHE|^CSS/, 'Space station', "China's Tiangong space station, with 3 astronauts on board. Bright enough to see with your eyes."],
+  [/^HST$|HUBBLE/, 'Telescope', 'The Hubble Space Telescope, taking pictures of deep space since 1990. About the size of a bus.'],
+  [/STARLINK/, 'Internet', "One of SpaceX's Starlink satellites, beaming internet down from low orbit. New ones launch in a line called a \"Starlink train\"."],
+  [/ONEWEB/, 'Internet', "One of OneWeb's internet satellites, a UK-backed network."],
+  [/NAVSTAR|GPS/, 'Satnav', 'A GPS satellite. Your phone listens to several of these at once to work out where you are.'],
+  [/GSAT0|GALILEO/, 'Satnav', "One of Europe's Galileo satnav satellites."],
+  [/NOAA|METOP|METEOSAT|GOES|FENGYUN|METEOR/, 'Weather', 'A weather satellite, photographing clouds and measuring temperatures for forecasts.'],
+  [/SENTINEL|LANDSAT|WORLDVIEW|PLEIADES|SKYSAT|FLOCK/, 'Earth camera', 'A satellite that photographs the Earth, for maps, farming, disasters and science.'],
+  [/CREW DRAGON|DRAGON|SOYUZ|PROGRESS|SHENZHOU|TIANZHOU|CYGNUS|STARLINER/, 'Spacecraft', 'A spacecraft carrying crew or supplies to a space station.'],
+  [/ R\/B|R\/B$/, 'Rocket stage', 'A used rocket stage, left in orbit after launching a satellite. Big and often tumbling, so it can flash as it passes.'],
+  [/ DEB|DEB$/, 'Debris', 'A piece of space junk.'],
+  [/AO-|SO-|FO-|CAS-|AMSAT|OSCAR/, 'Amateur radio', 'A satellite that radio amateurs can talk through with a handheld radio.'],
+];
+function classify(name) { for (const [re, tag, d] of KNOWN) if (re.test(name)) return { tag, desc: d }; return { tag: null, desc: null }; }
+
+/* ---------- Parsing & orbit maths ---------- */
+function parseTLE(text) {
+  const L = text.split(/\r?\n/).map(s => s.replace(/\s+$/, '')).filter(Boolean), out = [];
+  for (let i = 0; i < L.length; i++) {
+    if (L[i].startsWith('1 ') && L[i + 1] && L[i + 1].startsWith('2 ')) {
+      const name = i > 0 && !L[i - 1].startsWith('2 ') && !L[i - 1].startsWith('1 ') ? L[i - 1].trim() : 'NORAD ' + L[i].slice(2, 7).trim();
+      out.push([name, L[i], L[i + 1]]); i++;
+    }
+  }
+  return out;
+}
+function makeSat(name, l1, l2) {
+  let rec;
+  try { rec = satellite.twoline2satrec(l1, l2); } catch { return null; }
+  if (!rec || rec.error || !rec.no) return null;
+  const id = +l1.slice(2, 7);
+  const intl = l1.slice(9, 17).trim();
+  const yy = parseInt(intl.slice(0, 2), 10);
+  const launchYear = intl && !isNaN(yy) ? (yy < 57 ? 2000 + yy : 1900 + yy) : null;
+  const period = 2 * Math.PI / rec.no;                  // minutes
+  const n = rec.no / 60, a = Math.cbrt(MU / (n * n));    // semi-major axis, km
+  const e = rec.ecco, b = a * Math.sqrt(1 - e * e);
+  const circ = Math.PI * (3 * (a + b) - Math.sqrt((3 * a + b) * (a + 3 * b)));
+  const epoch = new Date((rec.jdsatepoch - 2440587.5) * 864e5);
+  // Rev numbers wrap at 100,000 (the ISS has gone round far more), so unwrap using the launch year.
+  let rev = parseInt(l2.slice(63, 68), 10) || 0;
+  if (launchYear) {
+    const est = (epoch - Date.UTC(launchYear, 6, 1)) / 60000 / period;
+    rev += Math.max(0, Math.round((est - rev) / 100000)) * 100000;
+  }
+  const c = classify(name);
+  return { name, id, rec, intl, launchYear, period, a, e, circ, inc: rec.inclo * R2D, epoch, rev,
+    perigee: a * (1 - e) - RE, apogee: a * (1 + e) - RE, tag: c.tag, desc: c.desc, ok: false };
+}
+function observerGd() { return obs ? { latitude: obs.lat * D2R, longitude: obs.lon * D2R, height: (obs.h || 0) / 1000 } : null; }
+
+// Low-precision Sun position (good to ~0.01°) in the same inertial frame as SGP4, km.
+function sunEci(date) {
+  const n = date / 864e5 + 2440587.5 - 2451545.0;
+  const L = (280.460 + 0.9856474 * n) * D2R, g = (357.528 + 0.9856003 * n) * D2R;
+  const lam = L + (1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * D2R, eps = (23.439 - 4e-7 * n) * D2R;
+  const r = (1.00014 - 0.01671 * Math.cos(g) - 0.00014 * Math.cos(2 * g)) * 149597870.7;
+  return { x: r * Math.cos(lam), y: r * Math.cos(eps) * Math.sin(lam), z: r * Math.sin(eps) * Math.sin(lam) };
+}
+function sunState(date, gmst, og) {
+  const s = sunEci(date), r = Math.hypot(s.x, s.y, s.z);
+  const st = { eci: s, u: { x: s.x / r, y: s.y / r, z: s.z / r }, lat: Math.asin(s.z / r) * R2D, lon: wrapLon((Math.atan2(s.y, s.x) - gmst) * R2D) };
+  if (og) { const la = satellite.ecfToLookAngles(og, satellite.eciToEcf(s, gmst)); st.az = la.azimuth * R2D; st.el = la.elevation * R2D; }
+  return st;
+}
+// Earth's shadow as a cylinder: lit unless behind the Earth from the Sun.
+function isLit(p, u) {
+  const d = p.x * u.x + p.y * u.y + p.z * u.z;
+  if (d > 0) return true;
+  return Math.hypot(p.x - d * u.x, p.y - d * u.y, p.z - d * u.z) > RE;
+}
+function computeSat(s, date, gmst, og, su) {
+  const pv = satellite.propagate(s.rec, date);
+  if (!pv || !pv.position || !isFinite(pv.position.x)) { s.ok = false; return; }
+  const p = pv.position, v = pv.velocity, g = satellite.eciToGeodetic(p, gmst);
+  s.lat = g.latitude * R2D; s.lon = wrapLon(g.longitude * R2D); s.alt = g.height;
+  if (!isFinite(s.alt) || s.alt < 80) { s.ok = false; return; }
+  s.spd = Math.hypot(v.x, v.y, v.z); s.p = p; s.ok = true;
+  s.lit = isLit(p, su.u);
+  if (og) {
+    const la = satellite.ecfToLookAngles(og, satellite.eciToEcf(p, gmst));
+    s.az = la.azimuth * R2D; s.el = la.elevation * R2D; s.range = la.rangeSat;
+  } else { s.el = -90; s.az = 0; s.range = 0; }
+  s.vis = s.lit && s.el > 10 && su.el < -6;
+}
+function computeAll(date = new Date()) {
+  const gmst = satellite.gstime(date), og = observerGd();
+  sun = sunState(date, gmst, og);
+  for (const s of sats) computeSat(s, date, gmst, og, sun);
+  lastCompute = date.getTime();
+}
+function lookAt(s, t, og) {
+  const d = new Date(t), pv = satellite.propagate(s.rec, d);
+  if (!pv || !pv.position || !isFinite(pv.position.x)) return null;
+  const gmst = satellite.gstime(d), la = satellite.ecfToLookAngles(og, satellite.eciToEcf(pv.position, gmst));
+  return { el: la.elevation * R2D, az: la.azimuth * R2D, p: pv.position, gmst };
+}
+
+/* ---------- Passes over you ---------- */
+function findPasses(s, from = Date.now(), hours = 72, max = 6) {
+  const og = observerGd(); if (!og) return [];
+  const step = Math.max(10e3, Math.min(60e3, s.period * 60e3 / 50)), end = from + hours * 3600e3;
+  const elAt = t => { const l = lookAt(s, t, og); return l ? l.el : -90; };
+  const refine = (a, b, rising) => { for (let i = 0; i < 18; i++) { const m = (a + b) / 2; ((elAt(m) > 0) === rising) ? (b = m) : (a = m); } return (a + b) / 2; };
+  const out = []; let t = from, prev = elAt(t), cur = null;
+  if (prev > 0) { // already up: walk back to find when it rose
+    let b = t, lim = t - Math.min(s.period, 1440) * 60e3;
+    while (b > lim && elAt(b) > 0) b -= step;
+    if (b <= lim) cur = { rise: null, always: s.period > 1300 }; else cur = { rise: refine(b, b + step, true) };
+    cur.max = -90;
+  }
+  const sample = (t, e) => {
+    if (e > cur.max) { cur.max = e; cur.tmax = t; }
+    if (e > 10 && !cur.vis) {
+      const l = lookAt(s, t, og);
+      if (l) { const su = sunState(new Date(t), l.gmst, og); if (su.el < -6 && isLit(l.p, su.u)) cur.vis = true; }
+    }
+  };
+  if (cur) sample(t, prev);
+  while (t < end && out.length < max) {
+    const tn = t + step, e = elAt(tn);
+    if (!cur && prev <= 0 && e > 0) { cur = { rise: refine(t, tn, true), max: -90 }; }
+    if (cur) {
+      if (e > 0) sample(tn, e);
+      else if (prev > 0) { cur.set = refine(t, tn, false); out.push(cur); cur = null; }
+    }
+    prev = e; t = tn;
+  }
+  if (cur) { cur.set = null; out.push(cur); }
+  for (const p of out) {
+    const og2 = og;
+    if (p.rise) { const l = lookAt(s, p.rise + 1000, og2); p.raz = l && l.az; }
+    if (p.set) { const l = lookAt(s, p.set - 1000, og2); p.saz = l && l.az; }
+    if (p.tmax) { const l = lookAt(s, p.tmax, og2); p.maz = l && l.az; }
+  }
+  return out;
+}
+// The selected satellite's path across your sky (for the dome and camera views).
+function skyPath(s, p) {
+  const og = observerGd(); if (!og || !p) return [];
+  const a = p.rise || Date.now() - 20 * 60e3, b = p.set || Date.now() + 20 * 60e3, n = 80, pts = [];
+  for (let i = 0; i <= n; i++) { const t = a + (b - a) * i / n, l = lookAt(s, t, og); if (l) pts.push({ t, az: l.az, el: Math.max(l.el, 0) }); }
+  return pts;
+}
+function groundTrack(s) {
+  const now = Date.now(), per = Math.min(s.period, 1440) * 60e3, pts = [];
+  const a = now - per * 0.55, b = now + per * 1.6, n = 260;
+  for (let i = 0; i <= n; i++) {
+    const t = a + (b - a) * i / n, d = new Date(t), pv = satellite.propagate(s.rec, d);
+    if (!pv || !pv.position || !isFinite(pv.position.x)) continue;
+    const g = satellite.eciToGeodetic(pv.position, satellite.gstime(d));
+    pts.push({ t, lat: g.latitude * R2D, lon: wrapLon(g.longitude * R2D) });
+  }
+  return pts;
+}
+// Rising soon: for every satellite not already up, look ahead minute by minute.
+let soonJob = 0;
+function computeSoon() {
+  const job = ++soonJob, og = observerGd();
+  if (!og || !sats.length) { soon = []; renderSoon(); return; }
+  if (sats.length > 15000) { soon = null; renderSoon(); return; }
+  const now = Date.now(), res = [], thr = Math.max(minEl, 0);
+  let i = 0;
+  const chunk = () => {
+    if (job !== soonJob) return;
+    const stop = Math.min(sats.length, i + 150);
+    for (; i < stop; i++) {
+      const s = sats[i];
+      if (!s.ok || s.el > thr) continue;
+      for (let m = 1; m <= 30; m++) {
+        const l = lookAt(s, now + m * 60e3, og);
+        if (l && l.el > thr) { res.push({ s, t: now + m * 60e3, az: l.az }); break; }
+      }
+    }
+    if (i < sats.length) setTimeout(chunk, 0);
+    else { soon = res.sort((a, b) => a.t - b.t); renderSoon(); }
+  };
+  chunk();
+}
+
+/* ---------- Loading data ---------- */
+async function fetchGroup(g) {
+  const key = 'tle.' + g, cached = store.get(key, null);
+  if (cached && Date.now() - cached.t < 4 * 3600e3) return cached;
+  let fallback = null;
+  const urls = [`tle/${g}.txt`, `https://celestrak.org/NORAD/elements/gp.php?GROUP=${encodeURIComponent(g)}&FORMAT=tle`];
+  for (const u of urls) {
+    try {
+      const r = await fetch(u, { cache: 'no-cache' });
+      if (!r.ok) continue;
+      const text = await r.text();
+      if (!/^1 /m.test(text)) continue;
+      const lm = Date.parse(r.headers.get('last-modified') || '') || Date.now();
+      const item = { t: Math.min(Date.now(), lm), text };
+      if (Date.now() - item.t > 30 * 3600e3) { fallback = fallback || item; continue; } // our copy is stale: try the live source
+      store.set(key, item);
+      return item;
+    } catch { /* try the next source */ }
+  }
+  if (fallback) return fallback;
+  if (cached) return cached;
+  throw new Error('Could not download ' + g);
+}
+async function loadGroup(id) {
+  const g = GROUPS.find(x => x.id === id) || GROUPS[0];
+  toast(`Downloading ${g.name.toLowerCase()}…`);
+  try {
+    const parts = await Promise.allSettled(g.src.map(fetchGroup));
+    const ok = parts.filter(p => p.status === 'fulfilled').map(p => p.value);
+    if (!ok.length) throw new Error('none');
+    const seen = new Set(), list = [];
+    for (const item of ok) for (const [n, a, b] of parseTLE(item.text)) {
+      const s = makeSat(n, a, b); if (s && !seen.has(s.id)) { seen.add(s.id); list.push(s); }
+    }
+    dataTime = Math.min(...ok.map(x => x.t));
+    const keep = sel && list.find(s => s.id === sel.id);
+    sats = list; byId = new Map(list.map(s => [s.id, s]));
+    computeAll();
+    if (sel) { if (keep) select(keep, false); else select(null); }
+    hideToast();
+    if (!sel && !store.get('welcomed', false)) {
+      const iss = list.find(s => /^ISS \(ZARYA\)/.test(s.name));
+      if (iss && obs) { store.set('welcomed', true); select(iss, true, false); }
+    }
+    tick(true); computeSoon();
+  } catch (e) {
+    toast("Couldn't download the satellite data. Check your connection and try again.", 'Retry', () => loadGroup(id));
+  }
+}
+
+/* ---------- Map ---------- */
+const map = L.map('map', { worldCopyJump: true, zoomControl: false, minZoom: 1, maxBoundsViscosity: 1, attributionControl: true, preferCanvas: true })
+  .setView(obs ? [obs.lat, obs.lon] : [30, 0], obs ? 4 : 2);
+L.control.zoom({ position: 'topright' }).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  subdomains: 'abcd', maxZoom: 12,
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a> · orbits: CelesTrak',
+}).addTo(map);
+map.setMaxBounds([[-89, -1e5], [89, 1e5]]);
+const ov = document.createElement('canvas'); ov.className = 'overlay'; map.getContainer().appendChild(ov);
+const octx = ov.getContext('2d');
+let meMarker = null, dots = [];
+function placeMe() {
+  if (!obs) return;
+  const icon = L.divIcon({ className: '', html: '<div class="me-pin"></div>', iconSize: [18, 18], iconAnchor: [9, 9] });
+  if (meMarker) meMarker.setLatLng([obs.lat, obs.lon]); else meMarker = L.marker([obs.lat, obs.lon], { icon, interactive: false, keyboard: false }).addTo(map);
+}
+function sizeCanvas(c) {
+  const r = c.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
+  if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w: r.width, h: r.height };
+}
+// Which copies of the world are on screen (so things draw across the date line).
+function lonShifts() {
+  const b = map.getBounds(), w = b.getWest(), e = b.getEast(), out = [];
+  for (let k = Math.floor((w + 180) / 360) - 1; k <= Math.ceil((e - 180) / 360) + 1; k++) {
+    if (-180 + 360 * k <= e + 1 && 180 + 360 * k >= w - 1) out.push(360 * k);
+  }
+  return out.length ? out : [0];
+}
+function pt(lat, lon) { return map.latLngToContainerPoint([lat, lon]); }
+function drawPolyline(ctx, pts, shifts) { // pts: [{lat,lon}] with unwrapped lon
+  for (const k of shifts) {
+    ctx.beginPath();
+    pts.forEach((p, i) => { const q = pt(p.lat, p.lon + k); i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); });
+    ctx.stroke();
+  }
+}
+function unwrap(pts) {
+  const out = []; let off = 0, prev = null;
+  for (const p of pts) {
+    if (prev !== null) { const d = p.lon - prev; if (d > 180) off -= 360; else if (d < -180) off += 360; }
+    prev = p.lon; out.push({ ...p, lon: p.lon + off });
+  }
+  return out;
+}
+function circlePts(lat, lon, angDeg, n = 90) {
+  const out = [], la = lat * D2R, lo = lon * D2R, d = angDeg * D2R;
+  for (let i = 0; i <= n; i++) {
+    const b = i / n * 2 * Math.PI;
+    const lat2 = Math.asin(Math.sin(la) * Math.cos(d) + Math.cos(la) * Math.sin(d) * Math.cos(b));
+    const lon2 = lo + Math.atan2(Math.sin(b) * Math.sin(d) * Math.cos(la), Math.cos(d) - Math.sin(la) * Math.sin(lat2));
+    out.push({ lat: lat2 * R2D, lon: wrapLon(lon2 * R2D) });
+  }
+  return out;
+}
+function drawMap() {
+  if (view !== 'map') return;
+  const { ctx, w, h } = sizeCanvas(ov);
+  ctx.clearRect(0, 0, w, h);
+  const shifts = lonShifts();
+  // Night side of the Earth
+  if (sun) {
+    const tl = Math.tan(Math.abs(sun.lat) < 0.1 ? 0.1 * D2R * Math.sign(sun.lat || 1) : sun.lat * D2R), pole = sun.lat > 0 ? -85 : 85;
+    ctx.fillStyle = 'rgba(2,4,14,.42)';
+    for (const k of shifts) {
+      ctx.beginPath();
+      for (let lon = -180; lon <= 180; lon += 2) {
+        const lat = Math.max(-85, Math.min(85, Math.atan(-Math.cos((lon - sun.lon) * D2R) / tl) * R2D));
+        const q = pt(lat, lon + k); lon === -180 ? ctx.moveTo(q.x, q.y) : ctx.lineTo(q.x, q.y);
+      }
+      const a = pt(pole, 180 + k), b = pt(pole, -180 + k); ctx.lineTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.closePath(); ctx.fill();
+    }
+  }
+  // Your low-orbit horizon: satellites at ISS height inside this ring are above your horizon.
+  if (obs) {
+    ctx.save(); ctx.setLineDash([4, 6]); ctx.strokeStyle = 'rgba(255,181,71,.45)'; ctx.lineWidth = 1;
+    const ang = Math.acos(RE / (RE + 420)) * R2D;
+    drawPolyline(ctx, unwrap(circlePts(obs.lat, obs.lon, ang)), shifts);
+    ctx.restore();
+  }
+  // Selected: footprint and ground track
+  if (sel && sel.ok) {
+    const ang = Math.acos(RE / (RE + sel.alt)) * R2D, ring = unwrap(circlePts(sel.lat, sel.lon, ang));
+    const polar = Math.abs(sel.lat) + ang > 89;
+    ctx.strokeStyle = 'rgba(255,181,71,.8)'; ctx.fillStyle = 'rgba(255,181,71,.08)'; ctx.lineWidth = 1.2;
+    for (const k of shifts) {
+      ctx.beginPath(); ring.forEach((p, i) => { const q = pt(p.lat, p.lon + k); i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); });
+      if (!polar) ctx.fill(); ctx.stroke();
+    }
+    if (track) {
+      const now = Date.now(), u = unwrap(track);
+      // shift the unwrapped track so its "now" point sits on the satellite's own longitude
+      let nowI = u.findIndex(p => p.t >= now); if (nowI < 0) nowI = u.length - 1;
+      const off = sel.lon - u[nowI].lon, sh = u.map(p => ({ ...p, lon: p.lon + Math.round(off / 360) * 360 }));
+      ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,181,71,.3)'; ctx.setLineDash([3, 5]);
+      drawPolyline(ctx, sh.slice(0, nowI + 1), shifts);
+      ctx.setLineDash([]); ctx.strokeStyle = 'rgba(255,181,71,.9)';
+      drawPolyline(ctx, sh.slice(nowI), shifts);
+      // tick marks every 10 minutes ahead
+      ctx.fillStyle = '#ffb547'; ctx.font = '10px JetBrains Mono, monospace';
+      for (let i = nowI + 1; i < sh.length; i++) {
+        const mins = Math.round((sh[i].t - now) / 60e3), prevM = Math.round((sh[i - 1].t - now) / 60e3);
+        if (Math.floor(mins / 10) !== Math.floor(prevM / 10) && mins <= 120) {
+          for (const k of shifts) { const q = pt(sh[i].lat, sh[i].lon + k); ctx.beginPath(); ctx.arc(q.x, q.y, 2.5, 0, 7); ctx.fill(); ctx.fillText('+' + Math.floor(mins / 10) * 10 + 'm', q.x + 5, q.y - 4); }
+        }
+      }
+    }
+    if (obs && sel.el > 0) { // a line from you to it
+      ctx.strokeStyle = 'rgba(94,230,255,.7)'; ctx.lineWidth = 1.2; ctx.setLineDash([2, 3]);
+      const a = { lat: obs.lat, lon: obs.lon }, b = { lat: sel.lat, lon: sel.lon };
+      if (b.lon - a.lon > 180) b.lon -= 360; else if (a.lon - b.lon > 180) b.lon += 360;
+      drawPolyline(ctx, [a, b], shifts); ctx.setLineDash([]);
+    }
+  }
+  // All satellites
+  dots = [];
+  const many = sats.length > 1500, r0 = many ? 1.4 : 2.2;
+  const layers = [[s => !s.ok || s.el > 0 || s === sel, 'down'], [s => !s.ok || s.el <= 0 || s.vis || s === sel, 'up'], [s => !s.ok || !s.vis || s === sel, 'vis']];
+  for (const [skip, kind] of layers) {
+    ctx.fillStyle = kind === 'down' ? 'rgba(120,135,180,.75)' : kind === 'up' ? '#5ee6ff' : '#7dff9b';
+    const r = kind === 'down' ? r0 : r0 + 1.3;
+    ctx.beginPath();
+    for (const s of sats) {
+      if (skip(s)) continue;
+      for (const k of shifts) {
+        const q = pt(s.lat, s.lon + k);
+        if (q.x < -5 || q.y < -5 || q.x > w + 5 || q.y > h + 5) continue;
+        ctx.moveTo(q.x + r, q.y); ctx.arc(q.x, q.y, r, 0, 7); dots.push([q.x, q.y, s]);
+      }
+    }
+    ctx.fill();
+  }
+  // Labels: space stations always, and the highest few above you
+  ctx.font = '600 11px Space Grotesk, sans-serif'; ctx.textBaseline = 'middle';
+  const labelled = new Set(sats.filter(s => s.ok && s.tag === 'Space station'));
+  sats.filter(s => s.ok && s.el > 0).sort((a, b) => b.el - a.el).slice(0, many ? 4 : 8).forEach(s => labelled.add(s));
+  for (const s of labelled) {
+    if (s === sel) continue;
+    for (const k of shifts) {
+      const q = pt(s.lat, s.lon + k); if (q.x < 0 || q.x > w || q.y < 0 || q.y > h) continue;
+      label(ctx, short(s.name), q.x + 7, q.y, s.el > 0 ? '#bff4ff' : '#9aa6c6');
+    }
+  }
+  if (sel && sel.ok) {
+    for (const k of shifts) {
+      const q = pt(sel.lat, sel.lon + k);
+      ctx.fillStyle = '#ffb547'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(q.x, q.y, 6, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,181,71,.6)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(q.x, q.y, 12 + 4 * Math.sin(Date.now() / 300), 0, 7); ctx.stroke();
+      ctx.font = '700 12px Space Grotesk, sans-serif';
+      label(ctx, `${short(sel.name)} · ${dist(sel.alt)} up`, q.x + 16, q.y, '#ffd38a');
+      dots.push([q.x, q.y, sel]);
+    }
+  }
+}
+function label(ctx, text, x, y, color) {
+  ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(4,7,15,.85)'; ctx.strokeText(text, x, y); ctx.fillStyle = color; ctx.fillText(text, x, y);
+}
+const short = n => n.replace(/ \(ZARYA\)/, '').replace(/^CSS \(TIANHE\)/, 'TIANGONG').slice(0, 24);
+function nearestDot(x, y, list, maxD = 16) {
+  let best = null, bd = maxD * maxD;
+  for (const [dx, dy, s] of list) { const d = (dx - x) ** 2 + (dy - y) ** 2; if (d < bd) { bd = d; best = s; } }
+  return best;
+}
+map.on('click', e => {
+  if (pickMode) { pickMode = false; setObs({ lat: e.latlng.lat, lon: wrapLon(e.latlng.lng), name: 'the spot you picked' }); hideToast(); return; }
+  const s = nearestDot(e.containerPoint.x, e.containerPoint.y, dots);
+  if (s) select(s, false);
+});
+map.on('move zoom resize', () => drawMap());
+map.on('zoomanim', () => { ov.style.visibility = 'hidden'; });
+map.on('zoomend', () => { ov.style.visibility = ''; drawMap(); });
+map.on('dragstart', () => { if (follow) setFollow(false); });
+
+/* ---------- Sky dome ---------- */
+const skyC = $('#sky'); let skyDots = [];
+function drawSky() {
+  if (view !== 'sky') return;
+  const { ctx, w, h } = sizeCanvas(skyC);
+  ctx.clearRect(0, 0, w, h);
+  const top = 64, bot = h - 46, cx = w / 2, cy = (top + bot) / 2, R = Math.max(40, Math.min(w / 2 - 34, (bot - top) / 2 - 20));
+  const P = (az, el) => { const r = R * (90 - el) / 90, a = az * D2R; return [cx + r * Math.sin(a), cy - r * Math.cos(a)]; };
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+  const night = !sun || sun.el < -6, dusk = sun && sun.el < 0 && sun.el >= -6;
+  g.addColorStop(0, night ? '#0b1530' : dusk ? '#1d2c5a' : '#21508f'); g.addColorStop(1, night ? '#050913' : dusk ? '#3a2d4a' : '#5c86b8');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.fill();
+  // radar sweep
+  const sw = (Date.now() / 4000 % 1) * 2 * Math.PI;
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    ctx.save(); ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, R, sw - 0.5 - Math.PI / 2, sw - Math.PI / 2); ctx.closePath();
+    const sg = ctx.createLinearGradient(cx, cy, cx + R * Math.sin(sw), cy - R * Math.cos(sw)); sg.addColorStop(0, 'rgba(94,230,255,.0)'); sg.addColorStop(1, 'rgba(94,230,255,.10)');
+    ctx.fillStyle = sg; ctx.fill(); ctx.restore();
+  }
+  ctx.strokeStyle = 'rgba(141,154,184,.35)'; ctx.lineWidth = 1;
+  for (const el of [0, 30, 60]) { ctx.beginPath(); ctx.arc(cx, cy, R * (90 - el) / 90, 0, 7); ctx.stroke(); }
+  for (let az = 0; az < 360; az += 30) { const [x, y] = P(az, 0); ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x, y); ctx.stroke(); }
+  ctx.fillStyle = '#8d9ab8'; ctx.font = '10px JetBrains Mono, monospace'; ctx.textAlign = 'left';
+  for (const el of [30, 60]) ctx.fillText(el + '°', cx + 3, cy - R * (90 - el) / 90 + 11);
+  ctx.font = '700 14px Space Grotesk, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  [['N', 0], ['E', 90], ['S', 180], ['W', 270]].forEach(([t, az]) => { const [x, y] = P(az, -14); ctx.fillStyle = t === 'N' ? '#ff7a6b' : '#e8eefc'; ctx.fillText(t, x, y); });
+  ctx.font = '11px Space Grotesk, sans-serif'; ctx.fillStyle = '#8d9ab8';
+  ctx.fillText('Middle = straight up, edge = horizon. Hold your phone above your head with N pointing north to match the sky.', cx, Math.min(h - 26, cy + R + 22));
+  if (!obs) { ctx.fillStyle = '#e8eefc'; ctx.fillText('Set your place first (📍 at the top).', cx, cy); return; }
+  if (sun && sun.el > 0) { const [x, y] = P(sun.az, sun.el); ctx.fillStyle = '#ffd54a'; ctx.beginPath(); ctx.arc(x, y, 8, 0, 7); ctx.fill(); ctx.fillText('Sun', x, y + 16); }
+  // selected path
+  if (sel && passes && sel.ok) {
+    const p = passes.find(p => !p.set || p.set > Date.now());
+    const path = p && (sel._skyPath && sel._skyPathFor === p.rise ? sel._skyPath : (sel._skyPath = skyPath(sel, p), sel._skyPathFor = p.rise, sel._skyPath));
+    if (path && path.length > 1) {
+      ctx.strokeStyle = 'rgba(255,181,71,.85)'; ctx.lineWidth = 2; ctx.beginPath();
+      path.forEach((q, i) => { const [x, y] = P(q.az, q.el); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
+      ctx.font = '10px JetBrains Mono, monospace'; ctx.fillStyle = '#ffd38a';
+      if (p.rise) { const [x, y] = P(path[0].az, 0); ctx.fillText('rises ' + tfmt(new Date(p.rise)), x, y + (y > cy ? 12 : -12)); }
+      if (p.set) { const q = path[path.length - 1], [x, y] = P(q.az, 0); ctx.fillText('sets ' + tfmt(new Date(p.set)), x, y + (y > cy ? 12 : -12)); }
+    }
+  }
+  skyDots = [];
+  const up = sats.filter(s => s.ok && s.el > 0);
+  for (const s of up) {
+    const [x, y] = P(s.az, s.el);
+    ctx.fillStyle = s.vis ? '#7dff9b' : '#5ee6ff'; ctx.beginPath(); ctx.arc(x, y, up.length > 300 ? 1.8 : 3, 0, 7); ctx.fill();
+    skyDots.push([x, y, s]);
+  }
+  ctx.font = '600 11px Space Grotesk, sans-serif'; ctx.textAlign = 'left';
+  up.sort((a, b) => b.el - a.el).slice(0, up.length > 300 ? 6 : 14).forEach(s => { if (s !== sel) { const [x, y] = P(s.az, s.el); label(ctx, short(s.name), x + 6, y, '#bff4ff'); } });
+  if (sel && sel.ok && sel.el > 0) {
+    const [x, y] = P(sel.az, sel.el);
+    ctx.fillStyle = '#ffb547'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.font = '700 12px Space Grotesk, sans-serif'; label(ctx, short(sel.name), x + 10, y, '#ffd38a');
+    skyDots.push([x, y, sel]);
+  }
+  ctx.textAlign = 'center'; ctx.font = '12px Space Grotesk, sans-serif'; ctx.fillStyle = '#8d9ab8';
+  ctx.fillText(`${up.length} above your horizon right now`, cx, Math.min(h - 10, cy + R + 38));
+}
+skyC.addEventListener('click', e => { const r = skyC.getBoundingClientRect(); const s = nearestDot(e.clientX - r.left, e.clientY - r.top, skyDots, 20); if (s) select(s, false); });
+
+/* ---------- Camera / AR ---------- */
+const arC = $('#ar'), cam = $('#cam');
+const ar = { on: false, stream: null, ori: null, last: 0, nudge: store.get('nudge', 0), fov: store.get('fov', 62), below: false,
+  look: { h: 180, p: 25 }, iosOff: null, abs: false, basis: null, dots: [] };
+$('#fov').value = ar.fov;
+const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const norm = a => { const l = Math.hypot(...a) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+const enu = (az, el) => [Math.cos(el * D2R) * Math.sin(az * D2R), Math.cos(el * D2R) * Math.cos(az * D2R), Math.sin(el * D2R)];
+function onOri(e) {
+  if (e.alpha == null) return;
+  if (e.type === 'deviceorientationabsolute') ar.abs = true;
+  else if (ar.abs) return; // prefer the absolute (compass) version when the phone has one
+  let alpha = e.alpha;
+  if (e.webkitCompassHeading != null && e.type === 'deviceorientation') { // iPhone: alpha is relative, so anchor it to the compass
+    const off = (((360 - e.webkitCompassHeading - e.alpha) % 360) + 360) % 360;
+    if (ar.iosOff == null) ar.iosOff = off;
+    else { let d = ((off - ar.iosOff + 540) % 360) - 180; ar.iosOff = (ar.iosOff + d * 0.1 + 360) % 360; }
+    alpha = e.alpha + ar.iosOff;
+  }
+  ar.ori = { a: (alpha + ar.nudge) * D2R, b: (e.beta || 0) * D2R, g: (e.gamma || 0) * D2R };
+  ar.last = performance.now();
+}
+function deviceBasis() {
+  const { a, b, g } = ar.ori, cA = Math.cos(a), sA = Math.sin(a), cB = Math.cos(b), sB = Math.sin(b), cG = Math.cos(g), sG = Math.sin(g);
+  const right = [cA * cG - sA * sB * sG, cG * sA + cA * sB * sG, -cB * sG];
+  const up = [-cB * sA, cA * cB, sB];
+  const out = [cA * sG + cG * sA * sB, sA * sG - cA * cG * sB, cB * cG];
+  const th = ((screen.orientation && screen.orientation.angle) || window.orientation || 0) * D2R;
+  const sr = [0, 1, 2].map(i => Math.cos(th) * right[i] - Math.sin(th) * up[i]);
+  const su = [0, 1, 2].map(i => Math.sin(th) * right[i] + Math.cos(th) * up[i]);
+  return { right: sr, up: su, fwd: out.map(v => -v) };
+}
+function manualBasis() {
+  const h = ar.look.h * D2R, p = ar.look.p * D2R;
+  const fwd = [Math.cos(p) * Math.sin(h), Math.cos(p) * Math.cos(h), Math.sin(p)];
+  const right = [Math.cos(h), -Math.sin(h), 0];
+  const up = [right[1] * fwd[2] - right[2] * fwd[1], right[2] * fwd[0] - right[0] * fwd[2], right[0] * fwd[1] - right[1] * fwd[0]];
+  return { right, up, fwd };
+}
+function drawAR() {
+  if (view !== 'ar' || !ar.on) return;
+  const { ctx, w, h } = sizeCanvas(arC);
+  ctx.clearRect(0, 0, w, h);
+  const live = ar.ori && performance.now() - ar.last < 1500;
+  let B = live ? deviceBasis() : manualBasis();
+  if (ar.basis && live) { const k = 0.3; B = { right: norm(ar.basis.right.map((v, i) => v + (B.right[i] - v) * k)), up: norm(ar.basis.up.map((v, i) => v + (B.up[i] - v) * k)), fwd: norm(ar.basis.fwd.map((v, i) => v + (B.fwd[i] - v) * k)) }; }
+  ar.basis = B;
+  const f = (h / 2) / Math.tan(ar.fov / 2 * D2R), cx = w / 2, cy = h / 2;
+  const P = v => { const z = dot3(v, B.fwd); if (z < 0.08) return null; return [cx + dot3(v, B.right) / z * f, cy - dot3(v, B.up) / z * f, z]; };
+  { // tint the ground: the horizon is a straight line on screen, so shade the half below it
+    const hd = Math.atan2(B.fwd[0], B.fwd[1]) * R2D, a = P(enu(hd - 25, 0)), b = P(enu(hd + 25, 0)), g = P(enu(hd, -40));
+    ctx.fillStyle = ar.stream ? 'rgba(30,18,6,.25)' : 'rgba(30,20,10,.7)';
+    if (a && b) {
+      let dx = b[0] - a[0], dy = b[1] - a[1]; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
+      let nx = -dy, ny = dx; const gx = g ? g[0] - a[0] : cx - a[0], gy = g ? g[1] - a[1] : h - a[1];
+      if (nx * gx + ny * gy < 0) { nx = -nx; ny = -ny; }
+      const F = 1e4; ctx.beginPath(); ctx.moveTo(a[0] - dx * F, a[1] - dy * F); ctx.lineTo(b[0] + dx * F, b[1] + dy * F);
+      ctx.lineTo(b[0] + dx * F + nx * F, b[1] + dy * F + ny * F); ctx.lineTo(a[0] - dx * F + nx * F, a[1] - dy * F + ny * F); ctx.fill();
+    } else if (B.fwd[2] < 0) ctx.fillRect(0, 0, w, h);
+  }
+  // horizon and height lines
+  ctx.lineWidth = 1.2;
+  for (const [el, col] of [[0, 'rgba(255,181,71,.8)'], [30, 'rgba(141,154,184,.4)'], [60, 'rgba(141,154,184,.3)']]) {
+    ctx.strokeStyle = col; ctx.beginPath(); let pen = false;
+    for (let az = 0; az <= 360; az += 2) { const q = P(enu(az, el)); if (!q) { pen = false; continue; } pen ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); pen = true; }
+    ctx.stroke();
+  }
+  ctx.font = '700 15px Space Grotesk, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let az = 0; az < 360; az += 45) {
+    const q = P(enu(az, 0)); if (!q) continue;
+    ctx.fillStyle = az === 0 ? '#ff7a6b' : '#ffd38a'; ctx.fillText(compass(az), q[0], q[1] - 12);
+  }
+  for (const el of [30, 60]) { const q = P(enu(ar.look.h, el)); if (q && !live) { ctx.font = '10px JetBrains Mono, monospace'; ctx.fillStyle = '#8d9ab8'; ctx.fillText(el + '°', q[0], q[1] - 7); } }
+  const zen = P([0, 0, 1]); if (zen) { ctx.fillStyle = '#8d9ab8'; ctx.font = '11px Space Grotesk, sans-serif'; ctx.fillText('straight up', zen[0], zen[1]); }
+  if (sun) { const q = P(enu(sun.az, sun.el)); if (q) { ctx.fillStyle = sun.el > 0 ? '#ffd54a' : 'rgba(255,213,74,.4)'; ctx.beginPath(); ctx.arc(q[0], q[1], 14, 0, 7); ctx.fill(); ctx.fillStyle = '#ffd54a'; ctx.font = '12px Space Grotesk, sans-serif'; ctx.fillText(sun.el > 0 ? 'Sun' : 'Sun (below horizon)', q[0], q[1] + 24); } }
+  if (!obs) return;
+  // selected pass path
+  if (sel && passes) {
+    const p = passes.find(p => !p.set || p.set > Date.now());
+    const path = p && sel._skyPath && sel._skyPathFor === p.rise ? sel._skyPath : p ? (sel._skyPath = skyPath(sel, p), sel._skyPathFor = p.rise, sel._skyPath) : null;
+    if (path) { ctx.strokeStyle = 'rgba(255,181,71,.7)'; ctx.lineWidth = 2; ctx.setLineDash([6, 6]); ctx.beginPath(); let pen = false; for (const q of path) { const s = P(enu(q.az, q.el)); if (!s) { pen = false; continue; } pen ? ctx.lineTo(s[0], s[1]) : ctx.moveTo(s[0], s[1]); pen = true; } ctx.stroke(); ctx.setLineDash([]); }
+  }
+  ar.dots = [];
+  const show = sats.filter(s => s.ok && (s.el > 0 || ar.below));
+  ctx.textAlign = 'left';
+  const labels = [];
+  for (const s of show) {
+    const q = P(enu(s.az, s.el)); if (!q || q[0] < -20 || q[0] > w + 20 || q[1] < -20 || q[1] > h + 20) continue;
+    const upNow = s.el > 0;
+    ctx.fillStyle = s === sel ? '#ffb547' : !upNow ? 'rgba(120,135,180,.6)' : s.vis ? '#7dff9b' : '#5ee6ff';
+    const r = upNow ? Math.max(2.5, 6 - s.range / 800) : 2;
+    ctx.beginPath(); ctx.arc(q[0], q[1], r, 0, 7); ctx.fill();
+    ar.dots.push([q[0], q[1], s]);
+    if (upNow) labels.push([s, q]);
+  }
+  labels.sort((a, b) => a[0].range - b[0].range).slice(0, show.length > 400 ? 10 : 30).forEach(([s, q]) => {
+    if (s === sel) return;
+    ctx.font = '600 12px Space Grotesk, sans-serif'; label(ctx, short(s.name), q[0] + 8, q[1] - 2, s.vis ? '#c9ffd6' : '#d6f7ff');
+    ctx.font = '10px JetBrains Mono, monospace'; label(ctx, `${dist(s.alt)} up · ${dist(s.range)} away`, q[0] + 8, q[1] + 11, '#9aa6c6');
+  });
+  if (sel && sel.ok) {
+    const v = enu(sel.az, sel.el), q = P(v);
+    if (q && q[0] > 0 && q[0] < w && q[1] > 0 && q[1] < h) {
+      ctx.strokeStyle = '#ffb547'; ctx.lineWidth = 2; const s = 18 + 3 * Math.sin(Date.now() / 250);
+      ctx.strokeRect(q[0] - s, q[1] - s, s * 2, s * 2);
+      ctx.font = '700 14px Space Grotesk, sans-serif'; label(ctx, short(sel.name), q[0] + s + 6, q[1] - 6, '#ffd38a');
+      ctx.font = '11px JetBrains Mono, monospace'; label(ctx, `${dist(sel.alt)} up · ${speed(sel.spd)}`, q[0] + s + 6, q[1] + 10, '#ffd38a');
+      if (sel.el < 0) label(ctx, '(below your horizon, through the ground)', q[0] + s + 6, q[1] + 24, '#9aa6c6');
+    } else { // arrow at the edge pointing the way to turn
+      let x = dot3(v, B.right), y = dot3(v, B.up); const l = Math.hypot(x, y) || 1; x /= l; y /= l;
+      const m = Math.min((w / 2 - 40) / Math.abs(x || 1e-6), (h / 2 - 60) / Math.abs(y || 1e-6));
+      const ax = cx + x * m, ay = cy - y * m, ang = Math.atan2(-y, x);
+      ctx.save(); ctx.translate(ax, ay); ctx.rotate(ang); ctx.fillStyle = '#ffb547';
+      ctx.beginPath(); ctx.moveTo(18, 0); ctx.lineTo(-10, -12); ctx.lineTo(-4, 0); ctx.lineTo(-10, 12); ctx.closePath(); ctx.fill(); ctx.restore();
+      ctx.textAlign = 'center'; ctx.font = '700 13px Space Grotesk, sans-serif';
+      label(ctx, `${short(sel.name)} this way`, Math.max(80, Math.min(w - 80, ax - x * 50)), ay + y * 34 + 4, '#ffd38a');
+      if (sel.el < 0) { ctx.font = '11px Space Grotesk, sans-serif'; label(ctx, 'below the horizon now', Math.max(80, Math.min(w - 80, ax - x * 50)), ay + y * 34 + 20, '#9aa6c6'); }
+    }
+  }
+  ctx.textAlign = 'center'; ctx.font = '12px Space Grotesk, sans-serif';
+  if (!live) label(ctx, ar.stream ? 'Waiting for the compass… on a computer, drag to look around' : 'Drag to look around', cx, 64, '#bfc8e0');
+  else if (!ar.abs && ar.iosOff == null) label(ctx, "This phone doesn't share its compass with web pages, so directions may be off. Use ⟲ ⟳ to line up the Sun.", cx, 64, '#ffb3a8');
+}
+async function startAR(withCam) {
+  try { if (typeof DeviceOrientationEvent !== 'undefined' && DeviceOrientationEvent.requestPermission) await DeviceOrientationEvent.requestPermission(); } catch { }
+  window.addEventListener('deviceorientationabsolute', onOri, true);
+  window.addEventListener('deviceorientation', onOri, true);
+  if (withCam && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    try {
+      ar.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+      cam.srcObject = ar.stream; cam.hidden = false; await cam.play().catch(() => { });
+    } catch { toast("Couldn't open the camera, so here's the virtual sky instead."); setTimeout(hideToast, 4000); }
+  }
+  ar.on = true; $('#arStart').hidden = true; $('#arBar').hidden = false;
+}
+function stopAR() {
+  if (ar.stream) ar.stream.getTracks().forEach(t => t.stop());
+  ar.stream = null; cam.hidden = true; cam.srcObject = null; ar.on = false;
+  window.removeEventListener('deviceorientationabsolute', onOri, true); window.removeEventListener('deviceorientation', onOri, true);
+  $('#arStart').hidden = false; $('#arBar').hidden = true;
+}
+$('#arGo').onclick = () => startAR(true);
+$('#arNoCam').onclick = () => startAR(false);
+$('#arStop').onclick = stopAR;
+$('#nudgeL').onclick = () => { ar.nudge -= 5; store.set('nudge', ar.nudge); ar.look.h += 5; };
+$('#nudgeR').onclick = () => { ar.nudge += 5; store.set('nudge', ar.nudge); ar.look.h -= 5; };
+$('#fov').oninput = e => { ar.fov = +e.target.value; store.set('fov', ar.fov); };
+$('#belowBtn').onclick = e => { ar.below = !ar.below; e.target.classList.toggle('on', ar.below); e.target.textContent = ar.below ? 'Hide below-horizon' : 'Show through the ground'; };
+{
+  let drag = null;
+  arC.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, h: ar.look.h, p: ar.look.p, moved: false }; arC.setPointerCapture(e.pointerId); });
+  arC.addEventListener('pointermove', e => {
+    if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
+    const k = ar.fov / arC.getBoundingClientRect().height;
+    ar.look.h = (drag.h - dx * k + 360) % 360; ar.look.p = Math.max(-80, Math.min(89, drag.p + dy * k));
+  });
+  arC.addEventListener('pointerup', e => {
+    if (drag && !drag.moved) { const r = arC.getBoundingClientRect(); const s = nearestDot(e.clientX - r.left, e.clientY - r.top, ar.dots, 26); if (s) select(s, false); }
+    drag = null;
+  });
+}
+
+/* ---------- Panel ---------- */
+function arrowSvg(az) { return `<svg width="18" height="18" viewBox="0 0 20 20" style="transform:rotate(${az}deg)"><path d="M10 2 L15 16 L10 13 L5 16 Z" fill="currentColor"/></svg>`; }
+function renderNow() {
+  const q = ui.q.trim().toLowerCase();
+  let list;
+  if (q) list = sats.filter(s => s.name.toLowerCase().includes(q) || String(s.id) === q).slice(0, 60);
+  else list = sats.filter(s => s.ok && s.el > minEl);
+  $('#nowCount').textContent = q ? `${list.length} found` : obs ? list.length : '';
+  if (!q) list.sort(sortBy === 'el' ? (a, b) => b.el - a.el : (a, b) => a.range - b.range);
+  const el = $('#nowList');
+  if (!obs && !q) { el.innerHTML = '<li class="empty">Set your place (📍 at the top) to see what\'s over you.</li>'; return; }
+  if (!sats.length) { el.innerHTML = '<li class="empty">Loading satellites…</li>'; return; }
+  if (!list.length) { el.innerHTML = `<li class="empty">${q ? 'No satellite by that name in this group. Try another group at the top.' : 'Nothing that high right now in this group. Try "Any height" or a bigger group.'}</li>`; return; }
+  const shown = list.slice(0, 80);
+  el.innerHTML = shown.map(s => {
+    const up = s.ok && s.el > 0;
+    const sub = !s.ok ? 'no position' : up ? `${Math.round(s.el)}° up in the ${compass(s.az)} · ${dist(s.alt)} high` : `below your horizon · ${dist(s.alt)} high`;
+    return `<li><button data-id="${s.id}" class="${s === sel ? 'on' : ''}"><span class="arrow" style="color:${s.vis ? 'var(--vis)' : up ? 'var(--up)' : 'var(--down)'}">${up ? arrowSvg(s.az) : '·'}</span>
+      <span><span class="nm">${esc(s.name)}</span><span class="sub">${sub}${s.vis ? ' · <span style="color:var(--vis)">might be visible</span>' : ''}</span></span>
+      <span class="val"><b>${s.ok ? dist(s.range) : ''}</b><br>away</span></button></li>`;
+  }).join('') + (list.length > shown.length ? `<li class="more">and ${list.length - shown.length} more…</li>` : '');
+}
+function renderSoon() {
+  const el = $('#soonList');
+  if (!obs) { el.innerHTML = ''; $('#soonCount').textContent = ''; return; }
+  if (soon === null) { el.innerHTML = '<li class="empty">Too many satellites in this group to look ahead. Pick a smaller group.</li>'; $('#soonCount').textContent = ''; return; }
+  const now = Date.now(), list = soon.filter(x => x.t > now - 60e3);
+  $('#soonCount').textContent = list.length || '';
+  if (!list.length) { el.innerHTML = '<li class="empty">Nothing new rising in the next half hour.</li>'; return; }
+  el.innerHTML = list.slice(0, 40).map(({ s, t, az }) => `<li><button data-id="${s.id}" class="${s === sel ? 'on' : ''}"><span class="arrow" style="color:var(--muted)">${arrowSvg(az)}</span>
+    <span><span class="nm">${esc(s.name)}</span><span class="sub">rises in the ${compass(az)} · ${dist(s.alt)} high</span></span>
+    <span class="val"><b>${t - now < 60e3 ? 'now' : Math.round((t - now) / 60e3) + ' min'}</b><br>${tfmt(new Date(t))}</span></button></li>`).join('')
+    + (list.length > 40 ? `<li class="more">and ${list.length - 40} more…</li>` : '');
+}
+for (const id of ['#nowList', '#soonList']) $(id).addEventListener('click', e => { const b = e.target.closest('button[data-id]'); if (b) { const s = byId.get(+b.dataset.id); if (s) select(s, true); } });
+
+function select(s, fly, scroll = fly) {
+  sel = s; track = null; passes = null; selSince = Date.now();
+  if (!s) { $('#selCard').hidden = true; setFollow(false); drawAll(); renderNow(); return; }
+  delete s._skyPath;
+  track = groundTrack(s);
+  passes = obs ? findPasses(s) : [];
+  $('#selCard').hidden = false;
+  renderSel(true);
+  if (fly && view === 'map' && s.ok) map.flyTo([s.lat, s.lon], Math.max(map.getZoom(), 3), { duration: 1 });
+  renderNow(); renderSoon(); drawAll();
+  if (window.innerWidth <= 900 && scroll) $('#selCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function renderSel(full) {
+  const s = sel; if (!s) return;
+  const card = $('#selCard'), now = Date.now();
+  const orbits = s.rev + (now - s.epoch) / 60000 / s.period;
+  const travelled = orbits * s.circ;
+  const watched = s.ok ? s.spd * (now - selSince) / 1000 : 0;
+  const cur = passes && passes.find(p => (p.rise || 0) <= now && (!p.set || p.set > now));
+  const nextP = passes && passes.find(p => p.rise && p.rise > now);
+  if (full) {
+    const tags = [s.tag && `<span class="tag">${esc(s.tag)}</span>`, `<span class="tag">#${s.id}</span>`, s.launchYear && `<span class="tag">launched ${s.launchYear}</span>`,
+      `<span class="tag" id="tLit"></span>`, `<span class="tag" id="tUp" hidden></span>`, `<span class="tag vis" id="tVis" hidden>Might be visible now!</span>`].filter(Boolean).join('');
+    let pHtml;
+    if (!obs) pHtml = '<p class="empty">Set your place to see when it passes over.</p>';
+    else if (passes.length && passes[0].always) pHtml = '<p class="empty">It stays above your horizon all the time. It goes round once a day, at the same speed as the Earth spins, so it seems to hang still in your sky.</p>';
+    else if (!passes.length) pHtml = `<p class="empty">It doesn't come over your horizon in the next 3 days${s.inc < Math.abs(obs.lat) - 20 ? ' (its orbit stays too close to the equator to reach you)' : ''}.</p>`;
+    else pHtml = `<table class="passes"><tr><th>When</th><th>Rises</th><th>Highest</th><th>Sets</th></tr>${passes.slice(0, 6).map(p => `<tr class="${p.vis ? 'vis' : ''}">
+      <td>${p.rise ? dfmt(new Date(p.rise)) + ' ' + tfmt(new Date(p.rise)) : 'Up now'}${p.vis ? '<br><span style="color:var(--vis)">visible ✦</span>' : ''}</td>
+      <td>${p.raz != null ? compass(p.raz) : '–'}</td>
+      <td>${Math.round(p.max)}° ${p.maz != null ? compass(p.maz) : ''}<br><span style="color:var(--muted)">${p.tmax ? tfmt(new Date(p.tmax)) : ''}</span></td>
+      <td>${p.set ? tfmt(new Date(p.set)) + ' ' + (p.saz != null ? compass(p.saz) : '') : '–'}<br><span style="color:var(--muted)">${p.rise && p.set ? dur((p.set - p.rise) / 1000) : ''}</span></td></tr>`).join('')}</table>
+      <p class="empty" style="font-size:.78rem">✦ = lit by the Sun while your sky is dark, so you might see it with your own eyes. Highest is in degrees above the horizon: 90° is straight up.</p>`;
+    card.innerHTML = `<div class="selhead"><div><h3>${esc(s.name)}</h3></div><button class="x" type="button" id="selX" aria-label="Close">✕</button></div>
+      <div class="tags">${tags}</div>
+      ${s.desc ? `<p class="desc">${esc(s.desc)}</p>` : ''}
+      <div class="big"><div><span>Height</span><b id="vAlt"></b></div><div><span>Speed</span><b id="vSpd"></b></div><div><span>From you</span><b id="vRng"></b></div></div>
+      <dl class="facts">
+        <dt>In your sky</dt><dd id="vSky"></dd>
+        <dt>Right now it's over</dt><dd id="vPos"></dd>
+        <dt>Next over you</dt><dd id="vNext"></dd>
+      </dl>
+      <div class="sec">The journey</div>
+      <dl class="facts">
+        <dt>Distance since launch</dt><dd></dd>
+      </dl>
+      <div class="odo" id="vOdo"></div>
+      <dl class="facts" style="margin-top:8px">
+        <dt>Trips round the Earth</dt><dd id="vOrb"></dd>
+        <dt>While you've been watching</dt><dd id="vWatch"></dd>
+        <dt id="vPassL">This pass over you</dt><dd id="vPass"></dd>
+      </dl>
+      <div class="sec">Its orbit</div>
+      <dl class="facts">
+        <dt>Once round the Earth</dt><dd>${dur(s.period * 60)} (${nf(1440 / s.period, 1)} a day)</dd>
+        <dt>Height range</dt><dd>${dist(Math.max(0, s.perigee))} – ${dist(s.apogee)}</dd>
+        <dt>Tilt to the equator</dt><dd>${nf(s.inc, 1)}°${s.inc > 80 && s.inc < 100 ? ' (passes over the poles)' : ''}</dd>
+        <dt>Reaches as far as</dt><dd>${nf(Math.min(s.inc, 180 - s.inc), 0)}° N and S</dd>
+        <dt>Orbit data from</dt><dd>${ago(now - s.epoch)}</dd>
+      </dl>
+      <div class="sec">Passes over you</div>
+      ${pHtml}
+      <div class="btnrow"><button class="btn" id="selFollow" type="button">◎ Follow on map</button><button class="btn" id="selSky" type="button">See it in the sky</button></div>`;
+    $('#selX').onclick = () => select(null);
+    $('#selFollow').onclick = () => { setView('map'); setFollow(!follow); };
+    $('#selSky').onclick = () => setView(s.el > 0 ? 'sky' : 'ar');
+    $('#selFollow').classList.toggle('on', follow);
+  }
+  if (!s.ok) { $('#vAlt').textContent = '—'; $('#vSky').textContent = 'No position (may have come down)'; return; }
+  $('#vAlt').textContent = dist(s.alt);
+  $('#vSpd').textContent = speed(s.spd);
+  $('#vRng').textContent = obs ? dist(s.range) : '—';
+  $('#vSky').textContent = !obs ? '—' : s.el > 0 ? `${Math.round(s.el)}° up, look ${compass(s.az)} (${Math.round(s.az)}°)` : `below the horizon (${Math.round(-s.el)}° under)`;
+  $('#vPos').textContent = `${nf(Math.abs(s.lat), 2)}°${s.lat >= 0 ? 'N' : 'S'} ${nf(Math.abs(s.lon), 2)}°${s.lon >= 0 ? 'E' : 'W'}`;
+  $('#vNext').textContent = !obs ? '—' : cur && cur.always ? 'always up' : cur ? 'overhead now!' : nextP ? `${dfmt(new Date(nextP.rise))} ${tfmt(new Date(nextP.rise))} (in ${dur((nextP.rise - now) / 1000)})` : 'not in the next 3 days';
+  const lit = $('#tLit'); lit.textContent = s.lit ? '☀ in sunlight' : '☾ in Earth\'s shadow'; lit.className = 'tag' + (s.lit ? ' lit' : '');
+  const tu = $('#tUp'); tu.hidden = !(obs && s.el > 0); tu.textContent = 'above you now'; tu.className = 'tag up';
+  $('#tVis').hidden = !s.vis;
+  $('#vOdo').innerHTML = `${units === 'mi' ? nf(travelled * KM_MI) : nf(travelled)} <small>${units} (about)</small>`;
+  $('#vOrb').textContent = nf(orbits, 2);
+  $('#vWatch').textContent = dist(watched, 1);
+  const pl = $('#vPass');
+  if (cur && cur.rise && !cur.always) {
+    $('#vPassL').textContent = 'This pass over you';
+    pl.textContent = `up ${dur((now - cur.rise) / 1000)}, ${dist(s.spd * (now - cur.rise) / 1000)} so far${cur.set ? `, sets in ${dur((cur.set - now) / 1000)}` : ''}`;
+  } else if (nextP) { $('#vPassL').textContent = 'Next pass covers'; pl.textContent = `about ${dist(s.spd * (nextP.set - nextP.rise) / 1000)} across your sky`; }
+  else { $('#vPassL').textContent = 'This pass over you'; pl.textContent = '—'; }
+}
+
+/* ---------- Location ---------- */
+const dlg = $('#locDlg');
+function setObs(o) {
+  obs = { lat: +o.lat, lon: +o.lon, h: 0, name: o.name || 'your place' };
+  store.set('obs', obs);
+  $('#placeName').textContent = `Satellites over ${obs.name} · ${nf(Math.abs(obs.lat), 2)}°${obs.lat >= 0 ? 'N' : 'S'} ${nf(Math.abs(obs.lon), 2)}°${obs.lon >= 0 ? 'E' : 'W'}`;
+  placeMe();
+  if (dlg.open) dlg.close();
+  map.flyTo([obs.lat, obs.lon], 4, { duration: 1 });
+  computeAll();
+  if (sel) select(sel, false);
+  else if (!store.get('welcomed', false)) { const iss = sats.find(s => /^ISS \(ZARYA\)/.test(s.name)); if (iss) { store.set('welcomed', true); select(iss, false); } }
+  computeSoon(); tick(true);
+}
+$('#locBtn').onclick = () => { $('#locMsg').textContent = ''; dlg.showModal(); };
+$('#locClose').onclick = () => dlg.close();
+$('#gpsBtn').onclick = () => {
+  if (!navigator.geolocation) { $('#locMsg').textContent = "This browser can't share its location. Search for your town instead."; return; }
+  $('#locMsg').textContent = 'Finding you…';
+  navigator.geolocation.getCurrentPosition(
+    p => setObs({ lat: p.coords.latitude, lon: p.coords.longitude, name: 'your location' }),
+    () => { $('#locMsg').textContent = "Couldn't get your location (permission was refused or there was no signal). Search for your town instead."; },
+    { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 });
+};
+$('#searchForm').onsubmit = async e => {
+  e.preventDefault();
+  const q = $('#placeQ').value.trim(); if (!q) return;
+  const box = $('#results'); box.innerHTML = '<p class="muted">Searching…</p>';
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&q=${encodeURIComponent(q)}`, { headers: { 'Accept-Language': navigator.language || 'en' } });
+    const js = await r.json();
+    if (!js.length) { box.innerHTML = '<p class="muted">Nothing found. Try a town name or a full postcode.</p>'; return; }
+    box.innerHTML = js.map((x, i) => `<button type="button" data-i="${i}">${esc(x.display_name)}</button>`).join('');
+    box.querySelectorAll('button').forEach(b => b.onclick = () => { const x = js[+b.dataset.i]; setObs({ lat: x.lat, lon: x.lon, name: x.display_name.split(',')[0] }); box.innerHTML = ''; });
+  } catch { box.innerHTML = '<p class="muted">Search isn\'t working right now. Use your location or type coordinates.</p>'; }
+};
+$('#pickBtn').onclick = () => { dlg.close(); setView('map'); pickMode = true; toast('Tap the map where you live.', 'Cancel', () => { pickMode = false; hideToast(); }); };
+$('#coordBtn').onclick = () => {
+  const la = parseFloat($('#latIn').value), lo = parseFloat($('#lonIn').value);
+  if (!(Math.abs(la) <= 90) || !(Math.abs(lo) <= 180)) { $('#locMsg').textContent = 'Latitude must be between -90 and 90, longitude between -180 and 180 (west is negative).'; return; }
+  setObs({ lat: la, lon: lo, name: 'your place' });
+};
+
+/* ---------- Views, controls, loop ---------- */
+function setView(v) {
+  view = v;
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  $('#map').hidden = v !== 'map'; $('#skyWrap').hidden = v !== 'sky'; $('#arWrap').hidden = v !== 'ar';
+  $('#legend').hidden = v === 'ar'; $('#mapBtns').hidden = v !== 'map';
+  if (v === 'map') { map.invalidateSize(); drawMap(); }
+  if (v !== 'ar' && ar.on && ar.stream) stopAR();
+  drawAll();
+}
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => setView(b.dataset.v));
+function setFollow(on) {
+  follow = on && !!sel; $('#followBtn').classList.toggle('on', follow);
+  const b = $('#selFollow'); if (b) b.classList.toggle('on', follow);
+  if (follow && sel && sel.ok) map.panTo([sel.lat, sel.lon]);
+}
+$('#followBtn').onclick = () => { if (!sel) { toast('Pick a satellite first (tap one on the map or in the list).'); setTimeout(hideToast, 3000); return; } setFollow(!follow); };
+$('#homeBtn').onclick = () => obs ? map.flyTo([obs.lat, obs.lon], 4) : $('#locBtn').click();
+function segment(id, val, cb) {
+  const el = $(id);
+  el.querySelectorAll('button').forEach(b => { b.classList.toggle('on', b.dataset.v === String(val)); b.onclick = () => { el.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); cb(b.dataset.v); }; });
+}
+segment('#minElSeg', minEl, v => { minEl = +v; store.set('minEl', minEl); renderNow(); computeSoon(); });
+segment('#sortSeg', sortBy, v => { sortBy = v; renderNow(); });
+segment('#unitSeg', units, v => { units = v; store.set('units', v); renderNow(); renderSoon(); if (sel) renderSel(true); drawAll(); });
+ui.q = '';
+$('#find').addEventListener('input', e => { ui.q = e.target.value; renderNow(); });
+const gs = $('#groupSel');
+gs.innerHTML = GROUPS.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('');
+gs.value = store.get('group', 'highlights');
+gs.onchange = () => { store.set('group', gs.value); loadGroup(gs.value); };
+
+const toastEl = $('#toast');
+function toast(msg, btn, fn) {
+  toastEl.innerHTML = esc(msg) + (btn ? ` <button class="btn" type="button">${esc(btn)}</button>` : '');
+  if (btn) toastEl.querySelector('button').onclick = fn;
+  toastEl.hidden = false;
+}
+function hideToast() { toastEl.hidden = true; }
+
+function drawAll() { drawMap(); drawSky(); drawAR(); }
+let lastList = 0, lastSoon = 0, lastTrack = 0;
+function tick(force) {
+  const now = Date.now(), every = sats.length > 3000 ? 3000 : sats.length > 800 ? 2000 : 1000;
+  if (force || now - lastCompute >= every) {
+    computeAll(new Date(now));
+    if (sel && (now - lastTrack > 60e3 || !track)) { track = groundTrack(sel); lastTrack = now; }
+    if (sel && passes && passes.length && passes[0].set && passes[0].set < now - 1000) passes = findPasses(sel), renderSel(true);
+    if (follow && sel && sel.ok && view === 'map') map.panTo([sel.lat, sel.lon], { animate: true, duration: 0.8 });
+    if (force || now - lastList > 2000) { renderNow(); renderSoon(); lastList = now; }
+    if (now - lastSoon > 180e3) { lastSoon = now; computeSoon(); }
+    if (dataTime) $('#dataAge').textContent = `${nf(sats.length)} satellites loaded. Orbit data downloaded ${ago(now - dataTime)}.`;
+  }
+  if (sel) { // the selected one moves every frame-ish
+    const og = observerGd(), d = new Date(now), gmst = satellite.gstime(d);
+    if (sun) computeSat(sel, d, gmst, og, sun);
+    renderSel(false);
+  }
+  drawAll();
+}
+function clock() {
+  const d = new Date();
+  $('#clock').innerHTML = `${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}<br>${d.toISOString().slice(11, 19)} UTC`;
+}
+setInterval(clock, 1000); clock();
+// Map and dome redraw a few times a second; the camera view redraws every frame.
+setInterval(() => { if (!document.hidden && view !== 'ar') tick(false); }, 250);
+(function frame() { if (view === 'ar' && ar.on && !document.hidden) tick(false); requestAnimationFrame(frame); })();
+window.addEventListener('resize', () => drawAll());
+
+/* ---------- Start ---------- */
+if (obs) { setObs(obs); } else { setTimeout(() => dlg.showModal(), 300); }
+loadGroup(gs.value);
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => { });
+</script>
+</body>
+</html>
