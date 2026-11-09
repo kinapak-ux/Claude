@@ -1,6 +1,6 @@
 // Offline helper: always tries the network first so updates and fresh orbit data show straight away,
 // and falls back to the last saved copy when there's no signal.
-const CACHE = 'overhead-v1';
+const CACHE = 'overhead-v2';
 const SHELL = ['./', './manifest.webmanifest', './icon-192.png', './icon-512.png', './lib/leaflet.js', './lib/leaflet.css', './lib/satellite.min.js'];
 const STATIC_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 

@@ -74,6 +74,7 @@ select{border-radius:10px;max-width:100%}
 .mapbtns button.on{border-color:var(--sel);color:var(--sel)}
 canvas.overlay{position:absolute;inset:0;width:100%;height:100%;z-index:450;pointer-events:none}
 .leaflet-container{font-family:var(--sans)}
+.night-tiles{filter:invert(1) hue-rotate(185deg) brightness(.82) contrast(.92) saturate(.45)}
 .leaflet-control-attribution{background:rgba(7,11,22,.7)!important;color:var(--dim)!important;font-size:10px}
 .leaflet-control-attribution a{color:var(--muted)!important}
 .leaflet-bar a{background:#111a30!important;color:var(--ink)!important;border-color:var(--line)!important}
@@ -552,9 +553,10 @@ async function loadGroup(id) {
 const map = L.map('map', { worldCopyJump: true, zoomControl: false, minZoom: 1, maxBoundsViscosity: 1, attributionControl: true, preferCanvas: true })
   .setView(obs ? [obs.lat, obs.lon] : [30, 0], obs ? 4 : 2);
 L.control.zoom({ position: 'topright' }).addTo(map);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-  subdomains: 'abcd', maxZoom: 12,
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a> · orbits: CelesTrak',
+// Standard OpenStreetMap tiles (no key needed), turned into a night-mode map with a CSS filter.
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 12, className: 'night-tiles',
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · orbits: CelesTrak',
 }).addTo(map);
 map.setMaxBounds([[-89, -1e5], [89, 1e5]]);
 const ov = document.createElement('canvas'); ov.className = 'overlay'; map.getContainer().appendChild(ov);
