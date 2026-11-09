@@ -195,6 +195,13 @@ main{position:relative;z-index:1;max-width:1040px;margin:0 auto;padding:12px 16p
 .ms-wl{transform-origin:100% 50%}.ms-wr{transform-origin:0% 50%}
 @keyframes mflap{to{transform:scaleX(.45)}}
 
+/* ---- Overhead ---- */
+.ov-orb{animation:ovorb 5s linear infinite}
+@keyframes ovorb{to{transform:rotate(360deg)}}
+.ov-ping{animation:ovping 2.4s ease-out infinite}
+@keyframes ovping{from{transform:scale(.2);opacity:.9}to{transform:scale(2.2);opacity:0}}
+.ov-tw{animation:shine 3s ease-in-out infinite}
+
 /* ---- Leaderboard ---- */
 .lb-cup{animation:cup 2s cubic-bezier(.3,1.6,.5,1) infinite}
 @keyframes cup{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(-10px) rotate(-8deg)}50%{transform:translateY(0) rotate(6deg)}65%{transform:rotate(0)}}
@@ -436,6 +443,18 @@ footer a{color:var(--gold);text-decoration:none}
         </g></g>
       </svg></div>
       <div class="info"><h2>Moth Synth</h2><p>A synthesizer with a loop recorder and drum machine.</p><div class="meta"><span>music</span><span>make loops</span></div></div>
+    </a>
+
+    <!-- Overhead -->
+    <a class="tile" href="../satellites/" style="--c:#5ee6ff;--sb:#070b16" data-f="solo learn">
+      <div class="scene" aria-hidden="true"><svg viewBox="0 0 160 100">
+        <g fill="#fff"><circle class="ov-tw" cx="18" cy="14" r="1.2"/><circle class="ov-tw" cx="140" cy="20" r="1" style="animation-delay:-1s"/><circle class="ov-tw" cx="128" cy="84" r="1.2" style="animation-delay:-2s"/><circle class="ov-tw" cx="30" cy="80" r="1" style="animation-delay:-.5s"/></g>
+        <circle cx="80" cy="50" r="20" fill="#1f6fd1"/><path d="M70 42 q8 -6 16 0 t10 8 q-6 6 -14 3z" fill="#2fbf71"/>
+        <g transform="translate(80 50) rotate(-22) scale(1 .4)"><circle r="58" fill="none" stroke="#5ee6ff" stroke-width="2.5" opacity=".6"/>
+          <g class="ov-orb"><circle r="58" fill="none"/><g transform="translate(58 0) scale(1 2.5)"><rect x="-9" y="-3" width="6" height="6" fill="#5ee6ff"/><rect x="3" y="-3" width="6" height="6" fill="#5ee6ff"/><rect x="-3" y="-4" width="6" height="8" rx="1.5" fill="#ffb547"/></g></g></g>
+        <circle class="ov-ping" cx="80" cy="50" r="6" fill="none" stroke="#ffb547" stroke-width="1.5"/><circle cx="80" cy="50" r="2.5" fill="#ffb547"/>
+      </svg></div>
+      <div class="info"><h2>Overhead</h2><p>Track the satellites passing over your house, live.</p><div class="meta"><span>space</span><span>live map</span></div></div>
     </a>
 
     <!-- Leaderboard -->
