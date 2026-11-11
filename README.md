@@ -98,7 +98,7 @@ All thirteen games, plus Moth Synth, are published with the tracker and can be i
 
 **To install:** on Android, open the game in Chrome, tap **⋮** and then **Install app** (or **Add to Home screen**). On iPhone, open it in Safari, tap **Share** and then **Add to Home Screen**.
 
-Once a game has been opened, it also works with no signal. The exception is anything that needs other phones, such as Card Battler multiplayer.
+Once a game has been opened, it also works with no signal. Opening one game doesn't disturb the saved copies of the others. Board School (Backgammon and Go) is also saved as soon as the Family Games list at https://kinapak-ux.github.io/ has been opened, even if it has never been opened itself. The exception is anything that needs other phones, such as Card Battler multiplayer.
 
 Family Quiz Night, Battleships and Snap Race also work like Card Battler: one phone hosts and shows a 4-letter code, and the others join with it. Each also has a no-internet mode (pass-the-phone quiz, Battleships against the computer, Snap practice against computer racers). Their shared code is in `party.js` (connecting phones) and `kit.css` (the look).
 
