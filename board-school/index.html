@@ -180,6 +180,7 @@ h1,h2,h3{font-family:var(--display);font-weight:400;margin:0;letter-spacing:.5px
 
 <div id="modal"><div class="mbox" id="mbox"></div></div>
 
+<script src="../scores.js"></script>
 <script src="bg.js"></script>
 <script src="go.js"></script>
 <script>
@@ -200,7 +201,20 @@ const store = {
 };
 const progress = store.get('board-school-progress', { bg: [], go: [] });
 function markDone(game, id) {
-  if (!progress[game].includes(id)) { progress[game].push(id); store.set('board-school-progress', progress); }
+  if (!progress[game].includes(id)) { progress[game].push(id); store.set('board-school-progress', progress); sendLessons(); }
+}
+// Family leaderboard: wins against the computer, and how many lessons are done.
+// Lessons only go up once this phone has a leaderboard name, so nobody is asked for one mid-lesson.
+function sendLessons() {
+  const n = progress.bg.length + progress.go.length;
+  if (!window.FamilyScores || !FamilyScores.name() || n <= store.get('board-school-lessons-sent', 0)) return;
+  FamilyScores.submit('boardschool', 'lessons', n, { player: FamilyScores.name() });
+  store.set('board-school-lessons-sent', n);
+}
+function sendResult(board, won, detail) {
+  if (!window.FamilyScores) return;
+  FamilyScores.submit('boardschool', board, won ? 1 : 0, { detail });
+  sendLessons();
 }
 function confetti() {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -1165,6 +1179,7 @@ function startBgGame() {
     playSay(vsCpu ? (youWon ? `🎉 <b>You won</b> ${word}! Great racing.` : `The computer won ${word}. Have another go, you'll get it!`) : `🎉 <b>${names[G.turn]} wins</b> ${word}!`);
     if (youWon || !vsCpu) confetti();
     draw();
+    if (vsCpu) sendResult('backgammon', youWon, `${['', 'single game', 'gammon', 'backgammon'][kind]}, ${level ? 'normal' : 'easy'} computer`);
   }
 
   G.phase = 'opening';
@@ -1327,6 +1342,7 @@ function startGoGame() {
     else playSay(`🎉 <b>${bw ? 'Black' : 'White'} wins by ${Math.abs(sc.margin)}!</b> ${res}`);
     if (bw || !vsCpu) confetti();
     draw();
+    if (vsCpu) sendResult('go', bw, `by ${Math.abs(sc.margin)} on ${size}×${size}, ${level ? 'normal' : 'easy'} computer`);
   }
   playSay(vsCpu ? `You play <b>black</b> and go first. Tap a point to place a stone. Try starting in a corner, about three lines in. White gets <b>${komi}</b> points (komi) for going second.` : `<b>Black</b> goes first. Take turns tapping to place stones. White gets ${komi} points (komi) for going second.`);
   draw();

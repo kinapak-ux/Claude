@@ -108,7 +108,7 @@ Blow Out the Pumpkin: tap **Light the candle**, allow the microphone, then blow 
 
 - **Backgammon:** 8 lessons (the board, moving, blocked points, hitting, the bar, doubles, bearing off, winning and strategy), each with a real position to play. Then a full game against the computer (easy or normal) or a friend on the same phone. While you play, legal moves glow, **Hint** shows what the owl would play, and **Undo** takes back moves until you tap **End turn**. There's no doubling cube.
 - **Go:** 9 lessons (stones, liberties, capturing, escaping atari, ladders, suicide, ko, eyes, scoring). Then a full game on 9×9 or 13×13 against the computer or a friend. Stones in atari get a red ring, **Hint** shows a suggested move, and when both players pass, the owl marks stones it thinks are dead (tap a group to change it) and counts the score (area scoring, 6.5 komi).
-- Finished lessons get a tick, saved on that phone. It doesn't send scores to the leaderboard.
+- Finished lessons get a tick, saved on that phone. Games against the computer (won or lost) and the number of lessons finished go to the family leaderboard; games against a friend don't.
 
 Moth Synth is a synthesizer with a loop recorder and a drum machine.
 
@@ -158,6 +158,6 @@ Every game except Blow Out the Pumpkin sends its results to one shared leaderboa
 - The scores are kept in a Google Sheet in your own Google Drive, through a small Google Apps Script (`leaderboard/apps-script.txt`). The leaderboard page shows the setup steps until it's connected. Once deployed, its web app address goes into `ENDPOINT` in `scores.js`.
 - Each phone keeps its results until they've been sent, so nothing is lost while it's offline or before the sheet is connected.
 - Names come from the game (Card Battler, Hoop Shot) or are asked for once per phone. Each phone's name can be changed on the leaderboard page.
-- The newer games (Family Quiz, Battleships, Snap Race, Times Table Blaster, Pixel Gaffer, Archery) need version 2 of the script. To update it, paste the new `leaderboard/apps-script.txt` into the Apps Script editor, then **Deploy → Manage deployments → ✏️ → Version: New version → Deploy**. The address stays the same. Until then, those games' scores wait on the phones.
+- The newer games (Family Quiz, Battleships, Snap Race, Times Table Blaster, Pixel Gaffer, Archery, Board School) need version 2 of the script. To update it, paste the new `leaderboard/apps-script.txt` into the Apps Script editor, then **Deploy → Manage deployments → ✏️ → Version: New version → Deploy**. The address stays the same. Until then, those games' scores wait on the phones.
 - To fix or remove a score, edit or delete its row in the sheet's **Scores** tab.
 - The web app address is in this public repository, so anyone who found it could read or add scores. First names or nicknames are best.
