@@ -74,6 +74,7 @@ const GAME = {
   echowheel: {n: 'Echo Wheel', i: '🎡', url: '../echo-wheel/'},
   scootcity: {n: 'Scoot City', i: '🛴', url: '../scoot-city/'},
   chess: {n: 'Skirmish Chess', i: '♞', url: '../chess/'},
+  boardschool: {n: 'Board School', i: '🦉', url: '../board-school/'},
   familyquiz: {n: 'Family Quiz Night', i: '❓', url: '../family-quiz/'},
   battleships: {n: 'Battleships', i: '🚢', url: '../battleships/'},
   snaprace: {n: 'Snap Race', i: '⚡', url: '../snap-race/'},
@@ -82,7 +83,7 @@ const GAME = {
 };
 const ECHO_MODES = {classic: 'Classic', strict: 'Strict', turbo: 'Turbo', reverse: 'Reverse', scramble: 'Scramble', blitz: 'Blitz'};
 const POINTS = [5, 3, 2, 1];
-const S = {rows: null, err: null, tab: {hoop: 'timed', arch: 'normal', echo: 'classic', chess: 'computer', quiz: 'wins', ships: 'friend', snap: 'wins', tt: 'blast', pg: 'career'}, level: null, loading: false};
+const S = {rows: null, err: null, tab: {hoop: 'timed', arch: 'normal', echo: 'classic', chess: 'computer', bs: 'backgammon', quiz: 'wins', ships: 'friend', snap: 'wins', tt: 'blast', pg: 'career'}, level: null, loading: false};
 const key = n => String(n).trim().toLowerCase();
 const meKey = () => key(FamilyScores.name());
 
@@ -126,6 +127,8 @@ function boards(rows) {
     scootLevels, scoot: l => bestBy(g('scootcity').filter(r => r.b === l)),
     scootTotal: Object.values(scootTotal).sort((a, b) => b.value - a.value),
     chess: {computer: chessOf('computer'), online: chessOf('online')},
+    bs: {backgammon: winsOf(g('boardschool').filter(r => r.b === 'backgammon')), go: winsOf(g('boardschool').filter(r => r.b === 'go')), lessons: bestBy(g('boardschool').filter(r => r.b === 'lessons'))},
+    bsAll: winsOf(g('boardschool').filter(r => r.b !== 'lessons')),
     quiz: {wins: winsOf(g('familyquiz').filter(r => r.b === 'wins')), best: bestBy(g('familyquiz').filter(r => r.b === 'best'))},
     ships: {friend: winsOf(g('battleships').filter(r => r.b === 'friend')), computer: winsOf(g('battleships').filter(r => r.b === 'computer'))},
     shipsAll: winsOf(g('battleships')),
@@ -136,7 +139,7 @@ function boards(rows) {
 }
 // Family Champion: 5, 3, 2 and 1 points for the top four on each game's main board.
 function champion(B) {
-  const champs = [B.card, B.hoop.timed, B.hoop.streak, B.arch.normal, B.echoBest, B.scootTotal, B.quiz.wins, B.shipsAll, B.snap.wins, B.tt.blast, B.pg.career, B.chess.computer.concat(B.chess.online).reduce((acc, x) => { const e = acc.find(a => a.k === x.k); if (e) e.value += x.value; else acc.push(Object.assign({}, x)); return acc; }, []).sort((a, b) => b.value - a.value)];
+  const champs = [B.card, B.hoop.timed, B.hoop.streak, B.arch.normal, B.echoBest, B.scootTotal, B.quiz.wins, B.shipsAll, B.snap.wins, B.tt.blast, B.pg.career, B.bsAll, B.chess.computer.concat(B.chess.online).reduce((acc, x) => { const e = acc.find(a => a.k === x.k); if (e) e.value += x.value; else acc.push(Object.assign({}, x)); return acc; }, []).sort((a, b) => b.value - a.value)];
   const pts = {};
   champs.forEach(list => list.filter(x => x.value > 0).slice(0, 4).forEach((x, i) => { pts[x.k] = pts[x.k] || {k: x.k, name: x.name, value: 0, firsts: 0}; pts[x.k].value += POINTS[i]; if (!i) pts[x.k].firsts++; }));
   return Object.values(pts).sort((a, b) => b.value - a.value || b.firsts - a.firsts);
@@ -158,6 +161,7 @@ function feedLine(r) {
     case 'echowheel': return `🎡 ${n} reached round ${r.s} in Echo Wheel ${ECHO_MODES[r.b] || ''}`;
     case 'scootcity': return `🛴 ${n} scored ${r.s.toLocaleString()} on ${esc(r.b)}`;
     case 'chess': return `♞ ${n} ${r.s >= 1 ? 'won' : r.s > 0 ? 'drew' : 'lost'} a chess game ${r.b === 'online' ? 'online' : 'against the computer'}`;
+    case 'boardschool': return r.b === 'lessons' ? `🦉 ${n} has finished ${r.s} Board School lesson${r.s === 1 ? '' : 's'}` : `🦉 ${n} ${r.s >= 1 ? 'beat' : 'lost to'} the computer at ${r.b === 'go' ? 'Go' : 'backgammon'}${r.d ? ` (${esc(r.d)})` : ''}`;
     case 'familyquiz': return r.b === 'wins' ? (r.s >= 1 ? `❓ ${n} won Family Quiz Night!` : `❓ ${n} played Family Quiz Night${r.d ? ` (${esc(r.d)})` : ''}`) : `❓ ${n} scored ${r.s.toLocaleString()} in the quiz`;
     case 'battleships': return `🚢 ${n} ${r.s >= 1 ? 'won' : 'lost'} a sea battle${r.b === 'computer' ? ' against the computer' : r.d ? ' ' + esc(r.d) : ''}`;
     case 'timestables': return r.b === 'stars' ? `🚀 ${n} has ${r.s} times-table star${r.s === 1 ? '' : 's'} ⭐` : r.b === 'bubble' ? `🫧 ${n} popped ${r.s.toLocaleString()} points in Bubble Pop` : `🚀 ${n} blasted ${r.s.toLocaleString()} points in Times Table Blaster`;
@@ -193,6 +197,7 @@ function render() {
     ${section('scootcity', B.scootLevels.length ? `<select data-act="level">${B.scootLevels.map(l => `<option${l === S.level ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>${rankHTML(B.scoot(S.level))}
       <h2 style="margin-top:14px;font-size:16px">All levels (best scores added up)</h2>${rankHTML(B.scootTotal, null, x => `${x.levels} level${x.levels === 1 ? '' : 's'}`)}` : rankHTML([]))}
     ${section('chess', tabs('chess', {computer: 'Against the computer', online: 'Online'}) + rankHTML(B.chess[S.tab.chess], x => `${x.value} win${x.value === 1 ? '' : 's'}`, x => `${x.played} game${x.played === 1 ? '' : 's'} played`))}
+    ${section('boardschool', tabs('bs', {backgammon: 'Backgammon wins', go: 'Go wins', lessons: 'Lessons'}) + (S.tab.bs === 'lessons' ? rankHTML(B.bs.lessons, x => `🎓 ${x.value} of 18`) : rankHTML(B.bs[S.tab.bs], x => `${x.value} win${x.value === 1 ? '' : 's'}`, x => `${x.played} game${x.played === 1 ? '' : 's'} against the computer`)))}
     ${section('familyquiz', tabs('quiz', {wins: 'Quiz wins', best: 'Best score'}) + (S.tab.quiz === 'wins' ? rankHTML(B.quiz.wins, x => `${x.value} win${x.value === 1 ? '' : 's'}`, x => `${x.played} quiz${x.played === 1 ? '' : 'zes'} played`) : rankHTML(B.quiz.best, x => `${x.value.toLocaleString()} pts`)))}
     ${section('battleships', tabs('ships', {friend: 'Against a friend', computer: 'Against the computer'}) + rankHTML(B.ships[S.tab.ships], x => `${x.value} win${x.value === 1 ? '' : 's'}`, x => `${x.played} battle${x.played === 1 ? '' : 's'}`))}
     ${section('snaprace', tabs('snap', {wins: 'Race wins', fastest: 'Fastest snap'}) + (S.tab.snap === 'wins' ? rankHTML(B.snap.wins, x => `${x.value} win${x.value === 1 ? '' : 's'}`, x => `${x.played} race${x.played === 1 ? '' : 's'}`) : rankHTML(B.snap.fastest, x => `${(x.value / 1000).toFixed(2)}s`)))}
