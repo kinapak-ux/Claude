@@ -116,6 +116,14 @@ main{position:relative;z-index:1;max-width:1040px;margin:0 auto;padding:12px 16p
 @keyframes arwob{0%,54%{transform:rotate(0)}58%{transform:rotate(4deg)}64%{transform:rotate(-3deg)}70%,100%{transform:rotate(0)}}
 .ar-plus{animation:plus 2.6s ease-out infinite}
 
+/* ---- Board School ---- */
+.bs-die{animation:bsroll 3s cubic-bezier(.3,1.4,.5,1) infinite}
+@keyframes bsroll{0%{transform:translate(-30px,-26px) rotate(-200deg);opacity:0}25%,85%{transform:none;opacity:1}100%{opacity:0}}
+.bs-stone{animation:bsdrop 3s ease-out infinite}
+@keyframes bsdrop{0%,40%{transform:scale(1.8);opacity:0}52%,90%{transform:scale(1);opacity:1}100%{opacity:0}}
+.bs-ck{animation:bsck 3s ease-in-out infinite}
+@keyframes bsck{0%,20%{transform:translateY(0)}45%,100%{transform:translateY(-22px)}}
+
 /* ---- Echo Wheel ---- */
 .ew-seg{opacity:.28;animation:lit 3.2s steps(1) infinite}
 .ew-s0{animation-delay:0s}.ew-s1{animation-delay:-2.4s}.ew-s2{animation-delay:-.8s}.ew-s3{animation-delay:-1.6s}
@@ -325,6 +333,22 @@ footer a{color:var(--gold);text-decoration:none}
         <text class="ar-plus" x="96" y="20" font-family="Lilita One,sans-serif" font-size="14" fill="#ffcc4d">+10</text>
       </svg></div>
       <div class="info"><h2>Archery</h2><p>Pull back the bow, watch the wind, hit the bullseye.</p><div class="meta"><span>1 player</span></div></div>
+    </a>
+
+    <!-- Board School -->
+    <a class="tile" href="../board-school/" style="--c:#e2b067;--sb:#14211b" data-f="learn solo party">
+      <div class="scene" aria-hidden="true"><svg viewBox="0 0 160 100">
+        <rect x="6" y="10" width="72" height="80" rx="4" fill="#4a2e18"/><rect x="10" y="14" width="64" height="72" fill="#1e5a3c"/>
+        <path d="M10 86 l8 -34 8 34z M42 86 l8 -34 8 34z" fill="#b0412e"/><path d="M26 86 l8 -34 8 34z M58 86 l8 -34 8 34z" fill="#e8d6b4"/>
+        <circle cx="18" cy="79" r="6.5" fill="#efe3c8" stroke="#9c8a6a"/><circle class="bs-ck" cx="50" cy="79" r="6.5" fill="#efe3c8" stroke="#9c8a6a"/><circle cx="66" cy="79" r="6.5" fill="#5a1e14" stroke="#000"/><circle cx="66" cy="66" r="6.5" fill="#5a1e14" stroke="#000"/>
+        <g class="bs-die"><rect x="30" y="22" width="20" height="20" rx="4" fill="#fffaf0" stroke="#9c8a6a"/><circle cx="35" cy="27" r="1.8" fill="#222"/><circle cx="40" cy="32" r="1.8" fill="#222"/><circle cx="45" cy="37" r="1.8" fill="#222"/></g>
+        <rect x="84" y="10" width="72" height="80" rx="4" fill="#dcb35c"/>
+        <g stroke="#3a2a10" stroke-width=".9"><path d="M92 20 h56 M92 34 h56 M92 48 h56 M92 62 h56 M92 76 h56 M92 20 v56 M106 20 v56 M120 20 v56 M134 20 v56 M148 20 v56"/></g>
+        <circle cx="106" cy="34" r="6" fill="#151515"/><circle cx="120" cy="34" r="6" fill="#f2eee4" stroke="#9a9384" stroke-width=".8"/><circle cx="134" cy="48" r="6" fill="#151515"/><circle cx="120" cy="62" r="6" fill="#151515"/><circle cx="106" cy="48" r="6" fill="#f2eee4" stroke="#9a9384" stroke-width=".8"/>
+        <circle class="bs-stone" cx="120" cy="48" r="6" fill="#151515"/>
+        <text x="132" y="96" font-size="11">🦉</text>
+      </svg></div>
+      <div class="info"><h2>Board School</h2><p>Learn backgammon and Go with the owl, then play the computer or a friend.</p><div class="meta"><span>learning</span><span>vs computer</span><span>2 players</span></div></div>
     </a>
 
     <!-- Echo Wheel -->
