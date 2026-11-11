@@ -1402,7 +1402,9 @@ function startGoGame() {
   for (const [x, y, c] of pts) el('circle', { cx: 10 + x * 25, cy: 10 + y * 25, r: 11.5, fill: c === 1 ? 'url(#hb)' : 'url(#hw)', stroke: c === 1 ? '#000' : '#9a9384' }, stones);
 })();
 
-openHome();
+// Links like ?game=bg or ?game=go (from the Family Games list) open straight into that game's lessons.
+const startGame = new URLSearchParams(location.search).get('game');
+if (startGame === 'bg' || startGame === 'go') openList(startGame); else openHome();
 // Offline: the helper (sw.js) keeps a copy of everything the game needs. On the very first visit the page
 // loads before the helper is running, so once it's ready we ask for each file again and it saves them.
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
