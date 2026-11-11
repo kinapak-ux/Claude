@@ -1,0 +1,1365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Board School</title>
+<meta name="description" content="Learn backgammon and Go step by step, then play the computer or a friend.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#14211b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Board School">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@700;800;900&display=swap">
+<style>
+:root{--bg:#14211b;--bg2:#2c4a35;--ink:#f6efe2;--mut:#b8c4b4;--line:rgba(255,255,255,.14);--panel:rgba(255,255,255,.07);--gold:#ffcc4d;--good:#5cffb0;--bad:#ff6b85;--bgc:#e2b067;--goc:#9fd3ff;--display:"Lilita One","Arial Rounded MT Bold",system-ui,sans-serif;color-scheme:dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg)}
+body{margin:0;min-height:100vh;min-height:100dvh;background:radial-gradient(ellipse at 50% -10%,var(--bg2),var(--bg) 62%) fixed;background-color:var(--bg);color:var(--ink);font-family:Nunito,system-ui,sans-serif;font-weight:700;overflow-x:hidden}
+button{font:inherit;color:inherit}
+.wrap{max-width:620px;margin:0 auto;padding:calc(10px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom))}
+.top{display:flex;align-items:center;gap:8px;margin-bottom:8px;min-height:42px}
+.top .grow{flex:1;min-width:0;font-family:var(--display);font-size:22px;letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
+.iconbtn{border:1px solid var(--line);background:var(--panel);border-radius:12px;min-width:42px;height:42px;padding:0 12px;font-size:15px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;color:var(--ink);text-decoration:none}
+.spacer{min-width:42px}
+h1,h2,h3{font-family:var(--display);font-weight:400;margin:0;letter-spacing:.5px}
+.logo{text-align:center;font-size:clamp(42px,12vw,64px);line-height:1;color:var(--gold);text-shadow:0 4px 0 rgba(0,0,0,.35);margin:14px 0 4px}
+.sub{text-align:center;color:var(--mut);margin:4px 0 20px}
+.cards{display:grid;gap:14px}
+.gcard{border-radius:22px;background:var(--panel);border:1px solid var(--line);overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+.gcard .pic{height:120px;display:block;width:100%}
+.gcard .body{padding:14px 16px 16px;display:grid;gap:10px}
+.gcard h2{font-size:28px;color:var(--c)}
+.gcard p{margin:0;color:var(--mut);line-height:1.4}
+.bar{height:8px;border-radius:9px;background:rgba(0,0,0,.35);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--c);border-radius:9px;transition:width .5s}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>*{flex:1}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:14px;padding:13px 16px;font-weight:900;font-size:16px;cursor:pointer;color:#2a1a00;background:var(--gold);box-shadow:0 4px 0 rgba(0,0,0,.35);text-decoration:none;transition:transform .08s;white-space:nowrap}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.35)}
+.btn.ghost{background:var(--panel);color:var(--ink);box-shadow:none;border:1px solid var(--line)}
+.btn.green{background:#2fbf71;color:#fff}
+.btn.sm{padding:10px 12px;font-size:14px;border-radius:12px}
+.btn:disabled{opacity:.4;pointer-events:none}
+.btn.pulse{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 4px 0 rgba(0,0,0,.35),0 0 0 6px rgba(255,204,77,.35)}}
+[hidden]{display:none!important}
+
+/* lesson list */
+.llist{display:grid;gap:10px}
+.litem{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;background:var(--panel);border:1px solid var(--line);cursor:pointer;text-align:left;width:100%}
+.litem .n{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-size:18px;background:rgba(0,0,0,.3);flex:none}
+.litem.done .n{background:var(--good);color:#06301a}
+.litem .t{flex:1;min-width:0}
+.litem .t b{display:block;font-size:17px}
+.litem .t span{display:block;color:var(--mut);font-size:13px;font-weight:700}
+.litem.playit{border-color:var(--gold);background:rgba(255,204,77,.12)}
+
+/* coach */
+.coach{display:flex;gap:10px;align-items:flex-start;margin:6px 0 10px}
+.owl{font-size:34px;line-height:1;flex:none;filter:drop-shadow(0 3px 0 rgba(0,0,0,.3))}
+.bubble{position:relative;flex:1;background:#f6efe2;color:#2a2418;border-radius:16px;padding:11px 14px;font-weight:700;line-height:1.42;font-size:15.5px;min-height:46px}
+.bubble::before{content:"";position:absolute;left:-8px;top:14px;border:8px solid transparent;border-left:0;border-right-color:#f6efe2}
+.bubble b{color:#7a3a00}
+.bubble .ok{color:#137a43}
+.bubble .no{color:#b3243f}
+.bubble ul{margin:6px 0 0;padding-left:20px}
+.bubble li{margin:3px 0}
+.steps{display:flex;gap:5px;justify-content:center;margin:2px 0 8px}
+.steps i{width:22px;height:6px;border-radius:4px;background:rgba(255,255,255,.18)}
+.steps i.on{background:var(--gold)}
+.steps i.ok{background:var(--good)}
+
+/* boards */
+.board{display:block;width:100%;height:auto;user-select:none;-webkit-user-select:none;touch-action:manipulation;border-radius:14px;box-shadow:0 12px 30px rgba(0,0,0,.45)}
+.hit{cursor:pointer}
+.info{display:flex;justify-content:space-between;gap:8px;color:var(--mut);font-size:14px;margin:8px 2px;flex-wrap:wrap}
+.info b{color:var(--ink)}
+.controls{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.controls .btn{flex:1}
+.ring{animation:ring 1s ease-in-out infinite}
+@keyframes ring{50%{opacity:.35}}
+.drop{animation:drop .25s ease-out}
+@keyframes drop{from{transform:scale(1.35);opacity:.3}}
+.drop{transform-box:fill-box;transform-origin:center}
+
+/* modal */
+#modal{position:fixed;inset:0;z-index:40;display:none;place-items:center;padding:16px;background:rgba(5,10,8,.78);backdrop-filter:blur(4px)}
+#modal.on{display:grid}
+.mbox{width:min(92vw,400px);background:#1e2f26;border:1px solid var(--line);border-radius:20px;padding:20px;display:grid;gap:12px;text-align:center;animation:popin .25s ease-out}
+.mbox h2{font-size:28px;color:var(--gold)}
+.mbox p{margin:0;color:var(--mut);line-height:1.4}
+.chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.chip{border:1px solid var(--line);background:rgba(0,0,0,.25);border-radius:99px;padding:9px 14px;font-weight:800;font-size:14px;cursor:pointer}
+.chip.on{background:var(--gold);color:#2a1a00;border-color:var(--gold)}
+.label{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mut);font-weight:900}
+@keyframes popin{from{transform:scale(.8);opacity:0}}
+.conf{position:fixed;top:-20px;font-size:22px;pointer-events:none;animation:confall linear forwards;z-index:50}
+@keyframes confall{to{transform:translateY(110vh) rotate(720deg)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="iconbtn" id="back" href="../games/" aria-label="Back">←</a>
+    <div class="grow" id="topTitle"></div>
+    <button class="iconbtn" id="rulesBtn" hidden aria-label="Lessons">📖</button>
+    <div class="spacer" id="topSpacer"></div>
+  </div>
+
+  <!-- Home -->
+  <section id="home">
+    <h1 class="logo">Board School</h1>
+    <p class="sub">Learn two of the oldest games in the world, one step at a time.</p>
+    <div class="cards">
+      <div class="gcard" style="--c:var(--bgc)">
+        <svg class="pic" viewBox="0 0 320 120" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <rect width="320" height="120" fill="#4a2e18"/><rect x="8" y="8" width="304" height="104" rx="4" fill="#1e5a3c"/>
+          <g id="homeBgPoints"></g>
+          <rect x="154" y="8" width="12" height="104" fill="#4a2e18"/>
+          <g transform="translate(48 47)"><rect width="26" height="26" rx="5" fill="#fff"/><circle cx="7" cy="7" r="2.6" fill="#222"/><circle cx="19" cy="19" r="2.6" fill="#222"/><circle cx="13" cy="13" r="2.6" fill="#222"/></g>
+          <g transform="translate(84 47) rotate(12 13 13)"><rect width="26" height="26" rx="5" fill="#fff"/><circle cx="7" cy="7" r="2.6" fill="#222"/><circle cx="19" cy="19" r="2.6" fill="#222"/><circle cx="19" cy="7" r="2.6" fill="#222"/><circle cx="7" cy="19" r="2.6" fill="#222"/></g>
+        </svg>
+        <div class="body">
+          <h2>Backgammon</h2>
+          <p>A race with dice. Move all 15 checkers home and off the board before the computer does, and knock its lonely checkers back to the start.</p>
+          <div class="bar"><i id="bgProg" style="width:0"></i></div>
+          <div class="row"><button class="btn" data-go="lessons" data-game="bg">📖 Lessons</button><button class="btn ghost" data-go="play" data-game="bg">🎲 Play</button></div>
+        </div>
+      </div>
+      <div class="gcard" style="--c:var(--goc)">
+        <svg class="pic" viewBox="0 0 320 120" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <defs><radialGradient id="hb" cx=".35" cy=".3"><stop offset="0" stop-color="#666"/><stop offset="1" stop-color="#111"/></radialGradient><radialGradient id="hw" cx=".35" cy=".3"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#cfcabf"/></radialGradient></defs>
+          <rect width="320" height="120" fill="#dcb35c"/>
+          <g stroke="#3a2a10" stroke-width="1.2" id="homeGoLines"></g>
+          <g id="homeGoStones"></g>
+        </svg>
+        <div class="body">
+          <h2>Go</h2>
+          <p>Take turns placing stones to surround empty space. Capture stones by taking away all their breathing room. Simple rules, endless depth.</p>
+          <div class="bar"><i id="goProg" style="width:0"></i></div>
+          <div class="row"><button class="btn" data-go="lessons" data-game="go">📖 Lessons</button><button class="btn ghost" data-go="play" data-game="go">⚫ Play</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Lesson list -->
+  <section id="lessons" hidden>
+    <div class="coach"><div class="owl">🦉</div><div class="bubble" id="listIntro"></div></div>
+    <div class="llist" id="llist"></div>
+  </section>
+
+  <!-- One lesson -->
+  <section id="lesson" hidden>
+    <div class="steps" id="steps"></div>
+    <div class="coach"><div class="owl">🦉</div><div class="bubble" id="lessonText"></div></div>
+    <div id="lessonBoard"></div>
+    <div class="info" id="lessonInfo"></div>
+    <div class="controls">
+      <button class="btn ghost sm" id="lReset">↺ Start again</button>
+      <button class="btn ghost sm" id="lHint">💡 Hint</button>
+      <button class="btn green" id="lNext" disabled>Next →</button>
+    </div>
+  </section>
+
+  <!-- Play -->
+  <section id="play" hidden>
+    <div class="coach"><div class="owl">🦉</div><div class="bubble" id="playText"></div></div>
+    <div id="playBoard"></div>
+    <div class="info" id="playInfo"></div>
+    <div class="controls" id="playControls"></div>
+  </section>
+</div>
+
+<div id="modal"><div class="mbox" id="mbox"></div></div>
+
+<script src="bg.js"></script>
+<script src="go.js"></script>
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const SVGNS = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs = {}, parent) => {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+};
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+const progress = store.get('board-school-progress', { bg: [], go: [] });
+function markDone(game, id) {
+  if (!progress[game].includes(id)) { progress[game].push(id); store.set('board-school-progress', progress); }
+}
+function confetti() {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const bits = ['🎉', '⭐', '✨', '🟡', '⚪', '⚫'];
+  for (let i = 0; i < 26; i++) {
+    const s = document.createElement('div');
+    s.className = 'conf'; s.textContent = bits[i % bits.length];
+    s.style.left = Math.random() * 100 + 'vw';
+    s.style.animationDuration = 1.6 + Math.random() * 1.6 + 's';
+    s.style.animationDelay = Math.random() * .4 + 's';
+    document.body.appendChild(s);
+    setTimeout(() => s.remove(), 3800);
+  }
+}
+function modal(html, buttons) {
+  const box = $('#mbox');
+  box.innerHTML = html;
+  const row = document.createElement('div');
+  row.style.cssText = 'display:grid;gap:8px';
+  for (const b of buttons) {
+    const x = document.createElement('button');
+    x.className = 'btn ' + (b.cls || '');
+    x.textContent = b.label;
+    x.onclick = () => { if (!b.keep) $('#modal').classList.remove('on'); b.fn && b.fn(); };
+    row.appendChild(x);
+  }
+  box.appendChild(row);
+  $('#modal').classList.add('on');
+}
+const closeModal = () => $('#modal').classList.remove('on');
+
+/* =====================================================================
+   BACKGAMMON BOARD DRAWING
+   Positions here are always "absolute": the light checkers (you, or player 1)
+   are positive and move 24 -> 1; dark checkers are negative.
+   ===================================================================== */
+const BGW = 600, BGH = 450, TOP = 25, BOT = 425, PH = 165;
+function pointX(p) {
+  if (p <= 6) return 295 + (6 - p) * 40 + 20;
+  if (p <= 12) return 15 + (12 - p) * 40 + 20;
+  if (p <= 18) return 15 + (p - 13) * 40 + 20;
+  return 295 + (p - 19) * 40 + 20;
+}
+const isTop = p => p >= 13;
+function stackY(p, k, n) {
+  const gap = n > 5 ? 144 / (n - 1) : 36;
+  return isTop(p) ? TOP + 19 + k * gap : BOT - 19 - k * gap;
+}
+function drawChecker(g, x, y, light, extra = {}) {
+  const c = el('g', { class: extra.cls || '' }, g);
+  el('circle', { cx: x, cy: y, r: 18, fill: light ? 'url(#ckL)' : 'url(#ckD)', stroke: light ? '#9c8a6a' : '#000', 'stroke-width': 1.5 }, c);
+  el('circle', { cx: x, cy: y, r: 11, fill: 'none', stroke: light ? 'rgba(120,100,70,.45)' : 'rgba(255,255,255,.15)', 'stroke-width': 1.5 }, c);
+  return c;
+}
+
+function BGBoard(container, onTap) {
+  const svg = el('svg', { viewBox: `0 0 ${BGW} ${BGH}`, class: 'board', role: 'img', 'aria-label': 'Backgammon board' });
+  container.innerHTML = '';
+  container.appendChild(svg);
+  const defs = el('defs', {}, svg);
+  const gL = el('radialGradient', { id: 'ckL', cx: '.38', cy: '.32' }, defs);
+  el('stop', { offset: 0, 'stop-color': '#fffaf0' }, gL); el('stop', { offset: 1, 'stop-color': '#e0d2b4' }, gL);
+  const gD = el('radialGradient', { id: 'ckD', cx: '.38', cy: '.32' }, defs);
+  el('stop', { offset: 0, 'stop-color': '#7a3328' }, gD); el('stop', { offset: 1, 'stop-color': '#3a120c' }, gD);
+  const layer = el('g', {}, svg);
+
+  function render(st) {
+    const { pos, dice = [], used = [], sources = [], dests = [], sel = null, recent = [], marks = {}, darkDice = false, labels = true } = st;
+    layer.innerHTML = '';
+    // frame and felt
+    el('rect', { x: 0, y: 0, width: BGW, height: BGH, rx: 14, fill: '#4a2e18' }, layer);
+    el('rect', { x: 15, y: TOP, width: 240, height: 400, fill: '#1e5a3c' }, layer);
+    el('rect', { x: 295, y: TOP, width: 240, height: 400, fill: '#1e5a3c' }, layer);
+    el('rect', { x: 545, y: TOP, width: 45, height: 400, rx: 6, fill: '#2e1c0e' }, layer);
+    el('rect', { x: 255, y: TOP, width: 40, height: 400, fill: '#3b2412' }, layer);
+    // home board shading for the lesson about the board
+    if (marks.home) el('rect', { x: 295, y: 260, width: 240, height: 165, fill: 'rgba(255,204,77,.18)', class: 'ring' }, layer);
+    if (marks.cpuHome) el('rect', { x: 295, y: TOP, width: 240, height: 165, fill: 'rgba(255,107,133,.16)' }, layer);
+    // the 24 points
+    for (let p = 1; p <= 24; p++) {
+      const x = pointX(p), top = isTop(p);
+      const tip = top ? TOP + PH : BOT - PH, base = top ? TOP : BOT;
+      const dark = p % 2 === 0;
+      el('path', { d: `M${x - 19} ${base} L${x} ${tip} L${x + 19} ${base} Z`, fill: dark ? '#b0412e' : '#e8d6b4' }, layer);
+      if (labels) {
+        const t = el('text', { x, y: top ? 17 : 442, 'text-anchor': 'middle', 'font-size': 13, 'font-weight': 800, fill: '#e9d3a8', 'font-family': 'Nunito,sans-serif' }, layer);
+        t.textContent = p;
+      }
+    }
+    // path arrows for lesson 1
+    if (marks.arrows) {
+      const a = el('g', { stroke: '#ffcc4d', 'stroke-width': 4, fill: 'none', 'stroke-linecap': 'round', opacity: .9, class: 'ring' }, layer);
+      el('path', { d: 'M515 120 H330 M250 120 H40 Q20 120 20 160 V290 Q20 330 40 330 H250 M300 330 H500', 'stroke-dasharray': '8 10' }, a);
+      el('path', { d: 'M490 318 L505 330 L490 342', 'stroke-dasharray': 'none' }, a);
+    }
+    // destination highlights
+    for (const d of dests) {
+      if (d === 'off') { el('rect', { x: 545, y: st.turn === 1 ? TOP : 260, width: 45, height: 165, rx: 6, fill: 'rgba(92,255,176,.35)', class: 'ring' }, layer); continue; }
+      const x = pointX(d), top = isTop(d), n = Math.abs(pos[d]);
+      const base = top ? TOP : BOT, tip = top ? TOP + PH : BOT - PH;
+      el('path', { d: `M${x - 19} ${base} L${x} ${tip} L${x + 19} ${base} Z`, fill: 'rgba(92,255,176,.35)' }, layer);
+      el('circle', { cx: x, cy: stackY(d, Math.min(n, 5) - (pos[d] === -1 ? 1 : 0), Math.max(n, 1)), r: 16, fill: 'none', stroke: '#5cffb0', 'stroke-width': 3, 'stroke-dasharray': '5 4', class: 'ring' }, layer);
+    }
+    // blocked marks
+    for (const b of marks.blocked || []) {
+      const x = pointX(b), y = isTop(b) ? TOP + PH + 14 : BOT - PH - 14;
+      const t = el('text', { x, y: y + 6, 'text-anchor': 'middle', 'font-size': 20, fill: '#ff6b85', 'font-weight': 900 }, layer);
+      t.textContent = '✕';
+    }
+    for (const b of marks.spot || []) {
+      const x = pointX(b), y = isTop(b) ? TOP + PH + 14 : BOT - PH - 14;
+      el('circle', { cx: x, cy: y, r: 8, fill: '#ffcc4d', class: 'ring' }, layer);
+    }
+    // checkers on points
+    for (let p = 1; p <= 24; p++) {
+      const n = Math.abs(pos[p]);
+      if (!n) continue;
+      const light = pos[p] > 0, x = pointX(p);
+      for (let k = 0; k < n; k++) {
+        const top = k === n - 1;
+        drawChecker(layer, x, stackY(p, k, n), light, { cls: top && recent.includes(p) ? 'drop' : '' });
+      }
+      const ty = stackY(p, n - 1, n);
+      if (n > 5) {
+        const t = el('text', { x, y: ty + 5, 'text-anchor': 'middle', 'font-size': 15, 'font-weight': 900, fill: light ? '#4a3a20' : '#fff' }, layer);
+        t.textContent = n;
+      }
+      if (recent.includes(p)) el('circle', { cx: x, cy: ty, r: 19.5, fill: 'none', stroke: '#ff9d2e', 'stroke-width': 2.5 }, layer);
+      if (sources.includes(p)) el('circle', { cx: x, cy: ty, r: 20, fill: 'none', stroke: sel === p ? '#5cffb0' : '#ffcc4d', 'stroke-width': sel === p ? 4 : 3, class: sel === p ? '' : 'ring' }, layer);
+    }
+    // bar: light on top half, dark on bottom half
+    for (let k = 0; k < pos[25]; k++) drawChecker(layer, 275, 165 - k * 30, true);
+    for (let k = 0; k < pos[26]; k++) drawChecker(layer, 275, 285 + k * 30, false);
+    if (sources.includes('bar')) {
+      const y = st.turn === 1 ? 285 + (pos[26] - 1) * 30 : 165 - (pos[25] - 1) * 30;
+      el('circle', { cx: 275, cy: y, r: 20, fill: 'none', stroke: sel === 'bar' ? '#5cffb0' : '#ffcc4d', 'stroke-width': sel === 'bar' ? 4 : 3, class: sel === 'bar' ? '' : 'ring' }, layer);
+    }
+    // borne-off trays: light at the bottom (next to its home), dark at the top
+    for (let k = 0; k < pos[0]; k++) el('rect', { x: 550, y: BOT - 6 - k * 10, width: 35, height: 8, rx: 3, fill: '#efe3c8', stroke: '#9c8a6a' }, layer);
+    for (let k = 0; k < pos[27]; k++) el('rect', { x: 550, y: TOP + 2 + k * 10, width: 35, height: 8, rx: 3, fill: '#5a1e14', stroke: '#000' }, layer);
+    // dice
+    if (dice.length) {
+      const cx = darkDice ? 135 : 415, cy = 225;
+      const shown = dice.length === 4 ? [dice[0], dice[1]] : dice;
+      shown.forEach((d, i) => {
+        const x = cx - 40 + i * 46, y = cy - 20;
+        const usedN = dice.length === 4 ? used.length : 0;
+        const faded = dice.length === 4 ? false : used[i];
+        drawDie(layer, x, y, d, darkDice, faded);
+        if (dice.length === 4) {
+          // little pips under the dice show how many of the four moves are left
+          for (let j = 0; j < 2; j++) {
+            const idx = i * 2 + j;
+            el('circle', { cx: x + 12 + j * 14, cy: y + 48, r: 4, fill: idx < 4 - usedN ? '#ffcc4d' : 'rgba(255,255,255,.2)' }, layer);
+          }
+        }
+      });
+    }
+    if (st.prompt) {
+      const cx = st.prompt.dark ? 135 : 415;
+      const g = el('g', { class: 'ring' }, layer);
+      el('rect', { x: cx - 70, y: 205, width: 140, height: 40, rx: 12, fill: 'rgba(0,0,0,.45)', stroke: '#ffcc4d', 'stroke-width': 2 }, g);
+      const t = el('text', { x: cx, y: 231, 'text-anchor': 'middle', 'font-size': 18, 'font-weight': 900, fill: '#ffcc4d', 'font-family': 'Nunito,sans-serif' }, g);
+      t.textContent = st.prompt.text;
+    }
+    // invisible tap targets
+    for (let p = 1; p <= 24; p++) {
+      const x = pointX(p);
+      const r = el('rect', { x: x - 20, y: isTop(p) ? TOP : 225, width: 40, height: 200, fill: 'transparent', class: 'hit' }, layer);
+      r.addEventListener('click', () => onTap(p));
+    }
+    const bar = el('rect', { x: 255, y: TOP, width: 40, height: 400, fill: 'transparent', class: 'hit' }, layer);
+    bar.addEventListener('click', () => onTap('bar'));
+    const tray = el('rect', { x: 545, y: TOP, width: 45, height: 400, fill: 'transparent', class: 'hit' }, layer);
+    tray.addEventListener('click', () => onTap('off'));
+    const diceHit = el('rect', { x: 335, y: 195, width: 160, height: 60, fill: 'transparent', class: 'hit' }, layer);
+    diceHit.addEventListener('click', () => onTap('dice'));
+    const diceHit2 = el('rect', { x: 55, y: 195, width: 160, height: 60, fill: 'transparent', class: 'hit' }, layer);
+    diceHit2.addEventListener('click', () => onTap('dice'));
+  }
+  return { render, svg };
+}
+const PIPS = { 1: [[.5, .5]], 2: [[.27, .27], [.73, .73]], 3: [[.25, .25], [.5, .5], [.75, .75]], 4: [[.27, .27], [.73, .27], [.27, .73], [.73, .73]], 5: [[.25, .25], [.75, .25], [.5, .5], [.25, .75], [.75, .75]], 6: [[.27, .23], [.73, .23], [.27, .5], [.73, .5], [.27, .77], [.73, .77]] };
+function drawDie(g, x, y, n, dark, faded) {
+  const d = el('g', { opacity: faded ? .3 : 1 }, g);
+  el('rect', { x, y, width: 40, height: 40, rx: 8, fill: dark ? '#4a1810' : '#fffaf0', stroke: dark ? '#000' : '#9c8a6a', 'stroke-width': 1.5 }, d);
+  for (const [a, b] of PIPS[n]) el('circle', { cx: x + a * 40, cy: y + b * 40, r: 4, fill: dark ? '#fff' : '#222' }, d);
+}
+
+/* =====================================================================
+   BACKGAMMON TURN HELPER
+   Wraps the engine for one player's turn on an absolute position.
+   turn 0 = light (moves 24->1), turn 1 = dark.
+   ===================================================================== */
+const toMover = (abs, turn) => turn === 0 ? abs.slice() : BG.flip(abs);
+const fromMover = (p, turn) => turn === 0 ? p.slice() : BG.flip(p);
+function absMove(m, turn) {
+  return {
+    from: m.from === BG.BAR ? 'bar' : (turn ? 25 - m.from : m.from),
+    to: m.to === BG.OFF ? 'off' : (turn ? 25 - m.to : m.to),
+    die: m.die, hit: m.hit, raw: m
+  };
+}
+const fmtPt = (x, turn) => x === 'bar' ? 'bar' : x === 'off' ? 'off' : (turn ? 25 - x : x);
+function notation(moves, turn) {
+  // Written from the mover's own point of view, like real backgammon notation: 13/7* 8/7
+  return moves.map(m => `${fmtPt(m.from, turn)}/${fmtPt(m.to, turn)}${m.hit ? '*' : ''}`).join('  ');
+}
+
+function Turn(abs, turn, dice) {
+  const t = { abs: abs.slice(), turn, dice: dice.length === 2 && dice[0] === dice[1] ? [dice[0], dice[0], dice[0], dice[0]] : dice.slice(), made: [], hist: [] };
+  t.left = t.dice.slice();
+  t.used = t.dice.map(() => false);
+  t.legal = () => BG.legalMoves(toMover(t.abs, turn), t.left, t.made.length === 0).map(m => absMove(m, turn));
+  t.play = am => {
+    t.hist.push({ abs: t.abs.slice(), left: t.left.slice(), used: t.used.slice() });
+    t.abs = fromMover(BG.apply(toMover(t.abs, turn), am.raw), turn);
+    t.left.splice(t.left.indexOf(am.die), 1);
+    // fade the die that was used
+    for (let i = 0; i < t.dice.length; i++) if (!t.used[i] && t.dice[i] === am.die) { t.used[i] = true; break; }
+    t.made.push(am);
+  };
+  t.undo = () => {
+    const h = t.hist.pop();
+    if (!h) return false;
+    t.abs = h.abs; t.left = h.left; t.used = h.used; t.made.pop();
+    return true;
+  };
+  t.over = () => !t.left.length || !t.legal().length;
+  return t;
+}
+const rollDie = () => 1 + Math.floor(Math.random() * 6);
+
+/* =====================================================================
+   GO BOARD DRAWING
+   ===================================================================== */
+const COLS = 'ABCDEFGHJKLMNOPQRST';
+function GoBoard(container, size, onTap) {
+  const S = 40, W = (size + 1) * S;
+  const svg = el('svg', { viewBox: `0 0 ${W} ${W}`, class: 'board', role: 'img', 'aria-label': 'Go board' });
+  container.innerHTML = '';
+  container.appendChild(svg);
+  const defs = el('defs', {}, svg);
+  const gb = el('radialGradient', { id: 'stB', cx: '.35', cy: '.3' }, defs);
+  el('stop', { offset: 0, 'stop-color': '#6a6a6a' }, gb); el('stop', { offset: 1, 'stop-color': '#0b0b0b' }, gb);
+  const gw = el('radialGradient', { id: 'stW', cx: '.35', cy: '.3' }, defs);
+  el('stop', { offset: 0, 'stop-color': '#ffffff' }, gw); el('stop', { offset: 1, 'stop-color': '#cbc5b8' }, gw);
+  const P = i => [S + (i % size) * S, S + Math.floor(i / size) * S];
+  // static wood and grid
+  el('rect', { width: W, height: W, rx: 14, fill: '#dcb35c' }, svg);
+  const grid = el('g', { stroke: '#3a2a10', 'stroke-width': 1.3 }, svg);
+  for (let k = 0; k < size; k++) {
+    el('line', { x1: S, y1: S + k * S, x2: S + (size - 1) * S, y2: S + k * S }, grid);
+    el('line', { x1: S + k * S, y1: S, x2: S + k * S, y2: S + (size - 1) * S }, grid);
+    const a = el('text', { x: S + k * S, y: S * .45, 'text-anchor': 'middle', 'font-size': 13, 'font-weight': 800, fill: '#6a4a1c', 'font-family': 'Nunito,sans-serif' }, svg);
+    a.textContent = COLS[k];
+    const b = el('text', { x: S * .42, y: S + k * S + 5, 'text-anchor': 'middle', 'font-size': 13, 'font-weight': 800, fill: '#6a4a1c', 'font-family': 'Nunito,sans-serif' }, svg);
+    b.textContent = size - k;
+  }
+  const stars = size === 9 ? [20, 24, 40, 56, 60] : size === 13 ? [42, 48, 84, 120, 126] : size === 7 ? [24] : size === 19 ? [60, 66, 72, 174, 180, 186, 288, 294, 300] : [];
+  for (const s of stars) { const [x, y] = P(s); el('circle', { cx: x, cy: y, r: 4, fill: '#3a2a10' }, svg); }
+  const layer = el('g', {}, svg);
+  const ghost = el('circle', { r: S * .46, opacity: 0, 'pointer-events': 'none' }, svg);
+  const hits = el('g', {}, svg);
+  for (let i = 0; i < size * size; i++) {
+    const [x, y] = P(i);
+    const r = el('rect', { x: x - S / 2, y: y - S / 2, width: S, height: S, fill: 'transparent', class: 'hit' }, hits);
+    r.addEventListener('click', () => onTap(i));
+    r.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse' && api.ghostColor && api.canGhost(i)) { ghost.setAttribute('cx', x); ghost.setAttribute('cy', y); ghost.setAttribute('fill', api.ghostColor === 1 ? '#111' : '#fff'); ghost.setAttribute('opacity', .45); } else ghost.setAttribute('opacity', 0); });
+  }
+  svg.addEventListener('pointerleave', () => ghost.setAttribute('opacity', 0));
+
+  function render(st) {
+    const { b, last = -1, marks = {} } = st;
+    layer.innerHTML = '';
+    ghost.setAttribute('opacity', 0);
+    // territory
+    if (marks.owner) {
+      for (let i = 0; i < b.length; i++) {
+        const o = marks.owner[i];
+        if (!o || (b[i] && !(marks.dead && marks.dead.has(i)))) continue;
+        const [x, y] = P(i);
+        el('rect', { x: x - 7, y: y - 7, width: 14, height: 14, rx: 2, fill: o === 1 ? '#111' : '#fff', stroke: o === 1 ? '#000' : '#888', opacity: .85 }, layer);
+      }
+    }
+    for (let i = 0; i < b.length; i++) {
+      if (!b[i]) continue;
+      const [x, y] = P(i);
+      const dead = marks.dead && marks.dead.has(i);
+      const g = el('g', { opacity: dead ? .4 : 1, class: i === last ? 'drop' : '' }, layer);
+      el('circle', { cx: x + 1.5, cy: y + 2.5, r: S * .46, fill: 'rgba(0,0,0,.25)' }, g);
+      el('circle', { cx: x, cy: y, r: S * .46, fill: b[i] === 1 ? 'url(#stB)' : 'url(#stW)', stroke: b[i] === 1 ? '#000' : '#9a9384', 'stroke-width': 1 }, g);
+      if (dead) {
+        el('path', { d: `M${x - 8} ${y - 8} L${x + 8} ${y + 8} M${x + 8} ${y - 8} L${x - 8} ${y + 8}`, stroke: '#ff3b5c', 'stroke-width': 3.5, 'stroke-linecap': 'round' }, layer);
+      }
+    }
+    if (last >= 0 && b[last]) {
+      const [x, y] = P(last);
+      el('circle', { cx: x, cy: y, r: 7, fill: 'none', stroke: b[last] === 1 ? '#fff' : '#111', 'stroke-width': 2.5 }, layer);
+    }
+    for (const i of marks.atari || []) {
+      const [x, y] = P(i);
+      el('circle', { cx: x, cy: y, r: S * .5, fill: 'none', stroke: '#ff3b5c', 'stroke-width': 3, class: 'ring' }, layer);
+    }
+    for (const i of marks.dots || []) {
+      const [x, y] = P(i);
+      el('circle', { cx: x, cy: y, r: 7, fill: '#2f8de4', stroke: '#fff', 'stroke-width': 2 }, layer);
+    }
+    for (const i of marks.targets || []) {
+      const [x, y] = P(i);
+      el('circle', { cx: x, cy: y, r: S * .42, fill: 'rgba(92,255,176,.25)', stroke: '#13a35b', 'stroke-width': 3, 'stroke-dasharray': '6 4', class: 'ring' }, layer);
+    }
+    for (const i of marks.cross || []) {
+      const [x, y] = P(i);
+      el('path', { d: `M${x - 9} ${y - 9} L${x + 9} ${y + 9} M${x + 9} ${y - 9} L${x - 9} ${y + 9}`, stroke: '#d0203f', 'stroke-width': 4, 'stroke-linecap': 'round' }, layer);
+    }
+    for (const i of marks.hint || []) {
+      const [x, y] = P(i);
+      el('circle', { cx: x, cy: y, r: S * .46, fill: 'rgba(255,204,77,.5)', stroke: '#b07a00', 'stroke-width': 2.5, class: 'ring' }, layer);
+    }
+  }
+  const api = { render, ghostColor: 0, canGhost: () => true };
+  return api;
+}
+const goName = (i, size) => COLS[i % size] + (size - Math.floor(i / size));
+
+/* =====================================================================
+   LESSONS
+   ===================================================================== */
+function BP(you, cpu, extra = {}) {
+  const p = new Array(28).fill(0);
+  let a = 0, b = 0;
+  for (const k in you) { p[k] = you[k]; a += you[k]; }
+  for (const k in cpu) { p[k] = -cpu[k]; b += cpu[k]; }
+  p[25] = extra.bar || 0; p[26] = extra.cpuBar || 0;
+  p[0] = 15 - a - p[25]; p[27] = 15 - b - p[26];
+  return p;
+}
+const START = () => BG.start();
+
+const BG_LESSONS = [
+  { id: 'board', title: 'The board', blurb: 'Where everything goes and which way you move', steps: [
+    { info: true, pos: START, marks: { arrows: true },
+      text: `Backgammon is a <b>race</b>. You have 15 <b>light</b> checkers, the computer has 15 <b>dark</b> ones.<br>You move your checkers along the yellow arrow, from point <b>24</b> (top right) all the way round to point <b>1</b> (bottom right). The computer races the opposite way.` },
+    { tap: p => p >= 1 && p <= 6, pos: START, marks: { home: true },
+      text: `Points 1 to 6, at the bottom right, are your <b>home board</b>. Once all 15 of your checkers are in there, you can start taking them off the board. First to take all 15 off wins!<br><b>Tap any point in your home board.</b>`,
+      hint: 'It\'s the glowing area at the bottom right: points 1 to 6.',
+      done: 'That\'s your home board. Every checker you have is trying to get there.' }
+  ]},
+  { id: 'move', title: 'Moving with dice', blurb: 'Each die is its own move', steps: [
+    { pos: START, dice: [3, 1],
+      text: `You roll two dice and get <b>3</b> and <b>1</b>. Each die is a separate move: move one checker <b>3</b> points and one checker <b>1</b> point (or one checker 3 and then 1 more).<br><b>Tap a glowing checker, then tap a green spot.</b>`,
+      hint: 'Tap one of the glowing checkers. The green triangles show where it can go.',
+      goal: () => true, done: 'Nice! You used both dice. That\'s a whole turn.' },
+    { pos: START, dice: [3, 1], marks: { spot: [5] },
+      text: `Same roll, but now the <b>best</b> move. A checker on its own can be attacked, but <b>two or more</b> checkers on one point are safe and block the computer.<br><b>Put two checkers on point 5:</b> move one from 8 (with the 3) and one from 6 (with the 1).`,
+      hint: 'Tap the checkers on point 8, then tap point 5. Then tap the checkers on point 6 and tap point 5 again.',
+      goal: a => a[5] >= 2, fail: 'You didn\'t end with two checkers on point 5. Try again: 8 to 5, then 6 to 5.',
+      done: 'You <b>made the 5 point</b>! It\'s one of the most valuable points in the whole game.' }
+  ]},
+  { id: 'block', title: 'Blocked points', blurb: 'Two or more checkers make a wall', steps: [
+    { pos: () => BP({ 24: 2, 13: 4, 8: 3, 6: 4, 5: 2 }, { 1: 2, 12: 4, 17: 2, 18: 2, 19: 3, 20: 2 }), dice: [6, 5], marks: { blocked: [18, 19] },
+      text: `A point with <b>two or more</b> of the computer's checkers is <b>blocked</b>: you can't land there.<br>You rolled <b>6</b> and <b>5</b>. Your back checkers on 24 would land on 18 or 19, but both are blocked (✕). Find a move that works!`,
+      hint: 'Your checkers on 13 can move: 13 to 7 with the 6, and 13 to 8 with the 5.',
+      goal: () => true, done: 'Right. When a move is blocked, you have to use the dice somewhere else.' }
+  ]},
+  { id: 'hit', title: 'Hitting', blurb: 'Knock a lonely checker back to the start', steps: [
+    { pos: () => BP({ 24: 2, 13: 5, 8: 3, 6: 5 }, { 1: 2, 12: 4, 17: 3, 19: 5, 9: 1 }), dice: [4, 1], marks: { spot: [9] },
+      text: `A checker standing on its own is called a <b>blot</b>. If you land on a blot, you <b>hit</b> it: it goes onto the <b>bar</b> in the middle and has to start all over again.<br>The computer left a blot on point <b>9</b>. <b>Hit it!</b>`,
+      hint: 'A checker on 13 can reach 9 with the 4.',
+      goal: a => a[26] >= 1, fail: 'The dark checker on 9 is still there. Use the 4 to move from 13 to 9.',
+      done: 'Hit! That dark checker is on the bar and has to go all the way round again.' }
+  ]},
+  { id: 'bar', title: 'The bar', blurb: 'Getting a hit checker back in', steps: [
+    { pos: () => BP({ 24: 1, 13: 5, 8: 3, 6: 5 }, { 1: 1, 12: 4, 17: 3, 19: 3, 20: 2, 22: 2 }, { bar: 1 }), dice: [5, 4], marks: { cpuHome: true, blocked: [20, 22] },
+      text: `Ouch, you were hit! Your checker is on the <b>bar</b>. You must bring it back in <b>before you move anything else</b>. It comes in on the computer's home board (top right): a <b>1</b> enters on point 24, a <b>6</b> on point 19.<br>You rolled <b>5</b> and <b>4</b>. The 5 would land on 20, which is blocked. <b>Enter with the 4</b>, then play the 5.`,
+      hint: 'Tap the checker on the bar, then tap point 21. Then move any checker 5.',
+      goal: a => a[25] === 0, done: 'You\'re back in the game!' },
+    { info: true, pos: () => BP({ 24: 1, 13: 5, 8: 3, 6: 5 }, { 1: 1, 12: 4, 17: 3, 19: 3, 20: 2, 22: 2 }, { bar: 1 }), dice: [5, 3], marks: { blocked: [20, 22] },
+      text: `This time you rolled <b>5</b> and <b>3</b>. The 5 lands on 20 and the 3 lands on 22, and both are blocked. You can't enter, so <b>you can't move at all</b> and lose your turn. That's called <b>dancing</b>.<br>That's why making points in <i>your</i> home board is so strong: it traps the computer's checkers on the bar.` }
+  ]},
+  { id: 'doubles', title: 'Doubles', blurb: 'Same number twice? Move four times', steps: [
+    { pos: START, dice: [4, 4],
+      text: `You rolled a <b>double</b>: 4 and 4. With a double you get to move that number <b>four times</b>! The little yellow dots show how many moves are left.<br><b>Use all four 4s.</b>`,
+      hint: 'A great play: two checkers from 24 to 20, and two from 13 to 9.',
+      goal: (a, t) => t.made.length === 4, done: 'Four moves! Doubles are the big swings in backgammon.' }
+  ]},
+  { id: 'bearoff', title: 'Bearing off', blurb: 'Taking your checkers off to win', steps: [
+    { pos: () => BP({ 6: 3, 5: 3, 4: 3, 3: 2, 2: 2, 1: 2 }, { 19: 3, 20: 3, 21: 3, 22: 2, 23: 2, 24: 2 }), dice: [6, 4],
+      text: `All 15 checkers are home, so you can <b>bear off</b>: take checkers off the board. A <b>6</b> takes a checker off point 6, a <b>4</b> off point 4, and so on.<br><b>Bear off two checkers.</b> Tap a checker, then tap the tray on the right.`,
+      hint: 'Tap the checkers on point 6, then tap the tray on the right. Then do the same from point 4.',
+      goal: a => a[0] >= 2, fail: 'You need to take two checkers off. Use the 6 from point 6 and the 4 from point 4.',
+      done: 'Two off, 13 to go!' },
+    { pos: () => BP({ 3: 4, 2: 4, 1: 3 }, { 19: 3, 20: 3, 21: 3, 22: 2, 23: 2, 24: 2 }), dice: [6, 5],
+      text: `Here's a handy rule. You rolled <b>6</b> and <b>5</b>, but your highest checker is on point 3. If a die is <b>bigger</b> than your highest point, you bear off from the <b>highest</b> point instead.<br><b>Bear off two more checkers.</b>`,
+      hint: 'Both dice can take a checker off point 3.',
+      goal: a => a[0] >= 6, done: 'Exactly. Big rolls are never wasted at the end.' }
+  ]},
+  { id: 'win', title: 'Winning & tips', blurb: 'Gammons, pip counts and strategy', steps: [
+    { info: true, pos: () => BP({ 2: 1 }, { 19: 4, 20: 4, 21: 3, 22: 2, 23: 2 }),
+      text: `The first player to bear off all 15 checkers <b>wins</b>.<ul><li>If the loser hasn't borne off <i>any</i> checkers, it's a <b>gammon</b>: worth 2 games.</li><li>If the loser still has a checker on the bar or in the winner's home board, it's a <b>backgammon</b>: worth 3!</li></ul>` },
+    { info: true, pos: START,
+      text: `<b>Tips from the owl:</b><ul><li><b>Make points</b>, especially your 5, 4 and 7 points. A row of points (a <b>prime</b>) traps the computer.</li><li><b>Avoid blots</b> where the computer can hit them, unless you're making a point next turn.</li><li><b>Hit</b> when it's safe. It costs the computer lots of moves.</li><li>Get your two back checkers on 24 moving before they're trapped.</li><li>The <b>pip count</b> is how far you still have to go. Lower is better: it tells you who's winning the race.</li></ul>Ready? Try a full game!` }
+  ]}
+];
+
+/* Go lesson positions are drawn as text. X = black (you), O = white,
+   a = empty point to aim for, * = empty point with a blue dot. */
+function GP(rows, opts = {}) {
+  const size = rows.length;
+  const g = GO.make(size);
+  const targets = [], dots = [];
+  rows.forEach((row, r) => row.replace(/\s+/g, '').split('').forEach((ch, c) => {
+    const i = r * size + c;
+    if (ch === 'X') g.b[i] = GO.BLACK;
+    else if (ch === 'O') g.b[i] = GO.WHITE;
+    else if (ch === 'a') targets.push(i);
+    else if (ch === '*') dots.push(i);
+  }));
+  if (opts.ko != null) g.ko = opts.ko;
+  return { g, targets, dots };
+}
+const whiteGroups = (b, size) => {
+  const out = [], seen = new Set();
+  for (let i = 0; i < b.length; i++) if (b[i] === GO.WHITE && !seen.has(i)) { const gr = GO.group(b, size, i); gr.stones.forEach(s => seen.add(s)); out.push(gr); }
+  return out;
+};
+const blackGroups = (b, size) => {
+  const out = [], seen = new Set();
+  for (let i = 0; i < b.length; i++) if (b[i] === GO.BLACK && !seen.has(i)) { const gr = GO.group(b, size, i); gr.stones.forEach(s => seen.add(s)); out.push(gr); }
+  return out;
+};
+// How white answers during a lesson: capture if it can, otherwise run away from atari.
+function lessonReply(g) {
+  for (const gr of blackGroups(g.b, g.size)) if (gr.libs.size === 1) { const l = [...gr.libs][0]; if (!GO.tryPlay(g, l).error) { GO.play(g, l); return l; } }
+  for (const gr of whiteGroups(g.b, g.size)) if (gr.libs.size === 1) { const l = [...gr.libs][0]; if (!GO.tryPlay(g, l).error) { GO.play(g, l); return l; } }
+  GO.pass(g);
+  return -1;
+}
+const escapedFail = g => whiteGroups(g.b, g.size).every(gr => gr.libs.size >= 2) ? 'White ran away and now has more liberties. Try again!' : null;
+const capturedFail = g => g.caps[GO.WHITE] > 0 ? 'White captured your stone! Try again.' : null;
+
+const GO_LESSONS = [
+  { id: 'stones', title: 'Stones & the board', blurb: 'Where to put your stones', steps: [
+    { info: true, setup: () => GP(['.......', '.......', '..X....', '...O...', '....X..', '...O...', '.......']),
+      text: `Go is played on the <b>crossing points</b> of the lines, not in the squares. You play <b>black</b>, the computer plays <b>white</b>. Black goes first, then you take turns placing <b>one stone</b> at a time.<br>Stones <b>never move</b> once they're placed, but they can be <b>captured</b>.` },
+    { setup: () => GP(['.......', '.......', '.......', '...a...', '.......', '.......', '.......']),
+      text: `The aim is to <b>surround more of the board</b> than your opponent.<br><b>Place a stone on the glowing point</b> in the middle.`,
+      hint: 'Tap right where the dashed green circle is.',
+      goal: (g, s) => g.b[s.targets[0]] === GO.BLACK, done: 'Perfect. Stones go on the crossings.' }
+  ]},
+  { id: 'libs', title: 'Liberties', blurb: 'A stone\'s breathing room', steps: [
+    { tapSet: (g) => [...GO.group(g.b, g.size, 24).libs], setup: () => GP(['.......', '.......', '.......', '...O...', '.......', '.......', '.......']),
+      text: `The empty points <b>right next to</b> a stone, along the lines, are its <b>liberties</b>. Think of them as breathing room.<br><b>Tap all of the white stone's liberties.</b>`,
+      hint: 'Look directly above, below, left and right of the white stone. Diagonals don\'t count!',
+      done: 'Four liberties! A stone in the middle has four.' },
+    { info: true, setup: () => GP(['..*O*..', '...*...', '.......', '.......', '.......', '......*', '.....*O']),
+      text: `Stones on the <b>edge</b> have only <b>3</b> liberties, and stones in the <b>corner</b> only <b>2</b>. That makes them easier to capture.<br>When stones of the same colour touch along a line, they join into a <b>group</b> and share their liberties.` }
+  ]},
+  { id: 'capture', title: 'Capturing', blurb: 'Take away every liberty', steps: [
+    { setup: () => GP(['.......', '.......', '...X...', '..XOa..', '...X...', '.......', '.......']), reply: true, fail: escapedFail,
+      text: `When a stone has <b>only one liberty</b> left, it's in <b>atari</b> (danger!). Fill that last liberty and you <b>capture</b> it: it's taken off the board.<br><b>Capture the white stone.</b>`,
+      hint: 'The white stone\'s only liberty is on its right.',
+      goal: g => g.caps[GO.BLACK] >= 1, done: 'Captured! Each captured stone is one less for white.' },
+    { setup: () => GP(['.......', '.......', '...XX..', '..XOOa.', '...XX..', '.......', '.......']), reply: true, fail: escapedFail,
+      text: `Groups are captured the same way: take away <b>all</b> their shared liberties.<br><b>Capture both white stones.</b>`,
+      hint: 'The two white stones share just one liberty, at the right end.',
+      goal: g => g.caps[GO.BLACK] >= 2, done: 'Two at once!' },
+    { setup: () => GP(['OX.....', 'a......', '.......', '.......', '.......', '.......', '.......']), reply: true, fail: escapedFail,
+      text: `In the <b>corner</b>, a stone has only 2 liberties, so one black stone has already put it in atari.<br><b>Capture the corner stone.</b>`,
+      hint: 'Play directly below the white stone.',
+      goal: g => g.caps[GO.BLACK] >= 1, done: 'Corners and edges are dangerous places for stones.' }
+  ]},
+  { id: 'atari', title: 'Escaping atari', blurb: 'Save your stones in danger', steps: [
+    { setup: () => GP(['.......', '.......', '...O...', '..OXO..', '...a...', '.......', '.......']), reply: true, fail: capturedFail, watch: 24,
+      text: `Uh oh! Your black stone has only <b>one liberty</b> left: it's in <b>atari</b>. If white plays there, it's captured.<br><b>Run away:</b> play on that last liberty to join up and get more liberties.`,
+      hint: 'Your stone\'s only liberty is directly below it.',
+      goal: (g, s) => g.b[24] === GO.BLACK && GO.group(g.b, g.size, 24).libs.size >= 3, done: 'Safe! Now your group has 3 liberties.' },
+    { setup: () => GP(['.......', '...X...', '..XOa..', '..OX...', '...O...', '.......', '.......']), reply: true, fail: g => capturedFail(g) || escapedFail(g),
+      text: `Your stone is in atari again. But look: one of the white stones next to it is <b>also</b> in atari.<br>Often the best escape is to <b>capture</b> the attacker. <b>Capture the white stone that's in atari.</b>`,
+      hint: 'The white stone just above your stone has only one liberty, on its right.',
+      goal: g => g.caps[GO.BLACK] >= 1, done: 'Captured, and your stone is safe now too. Two birds, one stone!' }
+  ]},
+  { id: 'ladder', title: 'The ladder', blurb: 'Chase a stone to the edge', steps: [
+    { setup: () => GP(['.........', '.........', '.........', '....X....', '...XO....', '.....X...', '.........', '.........', '.........']), reply: true, max: 14,
+      fail: g => whiteGroups(g.b, g.size).some(gr => gr.libs.size >= 3) ? 'White escaped with 3 liberties. In a ladder, always atari from the side that keeps it to 2. Try again!' : null,
+      text: `The white stone has 2 liberties. Put it in <b>atari</b>. White will run, and you atari it again, and again… zig-zagging across the board until it hits the edge and is captured. This is a <b>ladder</b>.<br><b>Capture the white stones.</b> Careful: if white ever gets 3 liberties, it escapes!`,
+      hint: 'Play directly below the white stone. After white runs, keep playing on the side that leaves it just one liberty.',
+      goal: g => whiteGroups(g.b, g.size).length === 0, done: 'You caught the whole ladder! Ladders are one of the first tricks every Go player learns.' }
+  ]},
+  { id: 'suicide', title: 'No suicide', blurb: 'And the one exception', steps: [
+    { tryFor: 'suicide', setup: () => GP(['.......', '.......', '...O...', '..OaO..', '...O...', '.......', '.......']),
+      text: `You <b>can't</b> place a stone where it would have <b>no liberties</b>: that's suicide, and it's against the rules.<br><b>Try playing in the middle of the white stones</b> and see what happens.`,
+      hint: 'Tap the glowing point surrounded by white stones.',
+      done: 'Not allowed! A stone there would have no liberties.' },
+    { setup: () => GP(['.......', '...X...', '..XOX..', '.XOaOX.', '..XOX..', '...X...', '.......']),
+      text: `Here's the exception: you <b>can</b> play there if it <b>captures</b>. Each white stone now has just one liberty: the middle point. Playing there takes away their last liberty, so they're captured first, and your stone survives.<br><b>Play in the middle!</b>`,
+      hint: 'Tap the glowing point in the middle.',
+      goal: g => g.caps[GO.BLACK] >= 4, done: 'Four stones in one go!' }
+  ]},
+  { id: 'ko', title: 'Ko', blurb: 'No instant take-backs', steps: [
+    { tryFor: 'ko', setup: () => GP(['.......', '.......', '..XO...', '.XOaO..', '..XO...', '.......', '.......'], { ko: 24 }), last: 23,
+      text: `White just played the marked stone and <b>captured</b> one of yours on the glowing point. You could capture straight back… but then white could capture again, forever!<br>So there's a rule called <b>ko</b>: you can't retake <b>immediately</b>. <b>Try it</b> and see.`,
+      hint: 'Tap the glowing point.',
+      done: 'Blocked by the ko rule! You have to play somewhere else first.' },
+    { setup: () => GP(['......O', '.......', '..XO...', '.XOaO..', '..XO...', '.......', 'X......']),
+      text: `You played elsewhere (bottom left), and white answered (top right). <b>Now</b> the ko is open again, so you're allowed to retake.<br><b>Capture the white stone!</b>`,
+      hint: 'Tap the glowing point.',
+      goal: g => g.caps[GO.BLACK] >= 1, done: 'Ko fights are all about having good moves to play elsewhere, called <b>ko threats</b>.' }
+  ]},
+  { id: 'eyes', title: 'Eyes: life & death', blurb: 'Why two eyes keep a group alive', steps: [
+    { tryFor: 'suicide', setup: () => GP(['aOaOX..', 'OOOOX..', 'XXXXX..', '.......', '.......', '.......', '.......']),
+      text: `An <b>eye</b> is an empty point completely surrounded by one player's stones. This white group has <b>two eyes</b>. To capture it you'd have to fill both, but each one is suicide while the other is still open.<br><b>Try to play in one of the eyes.</b>`,
+      hint: 'Tap one of the glowing points.',
+      done: 'Can\'t do it! A group with <b>two eyes</b> can never be captured. It\'s <b>alive</b>.' },
+    { setup: () => GP(['aOX....', 'OOX....', 'XXX....', '.......', '.......', '.......', '.......']),
+      text: `This white group has only <b>one eye</b>. Its only liberty is inside the eye, so playing there <b>captures</b> the whole group (that's allowed, remember?).<br><b>Capture it!</b>`,
+      hint: 'Tap the glowing point in the corner.',
+      goal: g => g.caps[GO.BLACK] >= 3, done: 'One eye isn\'t enough. That group was <b>dead</b>. Always try to make two eyes for your groups!' }
+  ]},
+  { id: 'score', title: 'Territory & scoring', blurb: 'How to tell who won', steps: [
+    { info: true, overlay: true, setup: () => GP(['......XO.', '.....XXO.', '.....XO..', '.....XO..', '....XXO..', '...XOO...', '..XXO....', 'XXXOO....', 'OOO......']),
+      text: '' },
+    { info: true, setup: () => GP(['.........', '.........', '.........', '.........', '.........', '.........', '.........', '.........', '.........']),
+      text: `<b>How a game goes:</b><ul><li>Start in the <b>corners</b>, then the sides. The middle is hardest to claim.</li><li>Build walls to surround empty space.</li><li>Keep your groups <b>connected</b> and make <b>two eyes</b>.</li><li>When there's nothing useful left, <b>pass</b>. When both players pass in a row, the game ends.</li><li>Then remove <b>dead</b> stones (ones that can't escape) and count.</li></ul>Ready to play a real game on a 9×9 board?` }
+  ]}
+];
+// The scoring lesson's text depends on the count, so it's worked out from the position.
+(() => {
+  const s = GO_LESSONS[8].steps[0], { g } = s.setup(), sc = GO.score(g.b, g.size);
+  const bn = sc.black, wn = sc.white - sc.komi;
+  s.text = `At the end, each player gets a point for every <b>stone</b> on the board and every <b>empty point they surround</b> (their <b>territory</b>, shown by the small squares).<br>Here black has <b>${bn}</b> and white has <b>${wn}</b>. White also gets <b>${sc.komi}</b> extra points (<b>komi</b>) for going second, making <b>${sc.white}</b>. So <b>${sc.margin > 0 ? 'black' : 'white'}</b> wins by ${Math.abs(sc.margin)}!${bn > wn && sc.margin < 0 ? ' Black had more on the board, but komi decided it.' : ''}`;
+})();
+
+const LESSONS = { bg: BG_LESSONS, go: GO_LESSONS };
+const GAME_NAME = { bg: 'Backgammon', go: 'Go' };
+
+/* =====================================================================
+   SCREENS
+   ===================================================================== */
+const app = { screen: 'home', game: null, lesson: 0, step: 0, run: 0 };
+function show(screen, title = '') {
+  app.run++; // stops any computer turn that is still playing out
+  closeModal();
+  for (const s of ['home', 'lessons', 'lesson', 'play']) $('#' + s).hidden = s !== screen;
+  app.screen = screen;
+  $('#topTitle').textContent = title;
+  $('#back').href = screen === 'home' ? '../games/' : '#';
+  $('#rulesBtn').hidden = screen !== 'play';
+  $('#topSpacer').hidden = screen === 'play';
+  window.scrollTo(0, 0);
+}
+$('#back').addEventListener('click', e => {
+  if (app.screen === 'home') return;
+  e.preventDefault();
+  if (app.screen === 'lesson' || app.screen === 'play') openList(app.game);
+  else openHome();
+});
+$('#rulesBtn').onclick = () => openList(app.game);
+
+function openHome() {
+  show('home');
+  $('#bgProg').style.width = (progress.bg.length / BG_LESSONS.length * 100) + '%';
+  $('#goProg').style.width = (progress.go.length / GO_LESSONS.length * 100) + '%';
+}
+document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => {
+  if (b.dataset.go === 'lessons') openList(b.dataset.game);
+  else openPlaySetup(b.dataset.game);
+}));
+
+function openList(game) {
+  app.game = game;
+  show('lessons', GAME_NAME[game] + ' lessons');
+  const list = LESSONS[game], done = progress[game].length;
+  $('#listIntro').innerHTML = done === 0
+    ? `Hoo! I'm the owl, and I'll teach you <b>${GAME_NAME[game]}</b>. Each lesson is short. Start with lesson 1.`
+    : done >= list.length
+      ? `You've finished every ${GAME_NAME[game]} lesson. Brilliant! Replay any of them, or play a full game.`
+      : `You've done <b>${done}</b> of ${list.length} lessons. Keep going!`;
+  const box = $('#llist');
+  box.innerHTML = '';
+  list.forEach((l, i) => {
+    const b = document.createElement('button');
+    const isDone = progress[game].includes(l.id);
+    b.className = 'litem' + (isDone ? ' done' : '');
+    b.innerHTML = `<span class="n">${isDone ? '✓' : i + 1}</span><span class="t"><b>${l.title}</b><span>${l.blurb}</span></span><span>›</span>`;
+    b.onclick = () => openLesson(game, i);
+    box.appendChild(b);
+  });
+  const p = document.createElement('button');
+  p.className = 'litem playit';
+  p.innerHTML = `<span class="n">${game === 'bg' ? '🎲' : '⚫'}</span><span class="t"><b>Play a full game</b><span>Against the computer or a friend, with the owl helping</span></span><span>›</span>`;
+  p.onclick = () => openPlaySetup(game);
+  box.appendChild(p);
+}
+
+/* ---------- running a lesson ---------- */
+function openLesson(game, idx, step = 0) {
+  app.game = game; app.lesson = idx; app.step = step;
+  const L = LESSONS[game][idx];
+  show('lesson', `${idx + 1}. ${L.title}`);
+  const dots = $('#steps');
+  dots.innerHTML = L.steps.map((_, i) => `<i class="${i < step ? 'ok' : i === step ? 'on' : ''}"></i>`).join('');
+  dots.hidden = L.steps.length < 2;
+  (game === 'bg' ? startBgStep : startGoStep)(L.steps[step]);
+}
+function lessonSay(html) { $('#lessonText').innerHTML = html; }
+function stepSolved(msg) {
+  const L = LESSONS[app.game][app.lesson];
+  const last = app.step === L.steps.length - 1;
+  lessonSay(`<span class="ok">✔</span> ${msg || 'Well done!'}`);
+  const next = $('#lNext');
+  next.disabled = false;
+  next.classList.add('pulse');
+  next.textContent = last ? (app.lesson === LESSONS[app.game].length - 1 ? 'Finish ✓' : 'Next lesson →') : 'Next →';
+  $('#steps').children[app.step] && ($('#steps').children[app.step].className = 'ok');
+  if (last) { markDone(app.game, L.id); confetti(); }
+}
+function setNext(enabled, label = 'Next →') {
+  const next = $('#lNext');
+  next.disabled = !enabled; next.textContent = label; next.classList.remove('pulse');
+}
+$('#lNext').onclick = () => {
+  const list = LESSONS[app.game], L = list[app.lesson];
+  if (app.step < L.steps.length - 1) return openLesson(app.game, app.lesson, app.step + 1);
+  markDone(app.game, L.id);
+  if (app.lesson < list.length - 1) return openLesson(app.game, app.lesson + 1, 0);
+  modal(`<h2>Lessons complete! 🎓</h2><p>You know all the rules of ${GAME_NAME[app.game]}. Time for a real game!</p>`, [
+    { label: 'Play a game', fn: () => openPlaySetup(app.game) },
+    { label: 'Back to lessons', cls: 'ghost', fn: () => openList(app.game) }
+  ]);
+};
+$('#lReset').onclick = () => openLesson(app.game, app.lesson, app.step);
+$('#lHint').onclick = () => {
+  const s = LESSONS[app.game][app.lesson].steps[app.step];
+  if (s.hint) lessonSay(`${s.text}<br><br>💡 <b>Hint:</b> ${s.hint}`);
+  else lessonSay(s.text + '<br><br>💡 Just read this one and tap <b>Next</b>.');
+};
+
+/* backgammon lesson step */
+function startBgStep(s) {
+  const st = { abs: s.pos(), sel: null, turn: null };
+  const lastStep = app.step === LESSONS.bg[app.lesson].steps.length - 1;
+  lessonSay(s.text);
+  $('#lHint').hidden = !s.hint;
+  setNext(!!s.info, lastStep ? (app.lesson === BG_LESSONS.length - 1 ? 'Finish ✓' : 'Next lesson →') : 'Next →');
+  if (s.info && lastStep) markDone('bg', BG_LESSONS[app.lesson].id);
+  if (s.dice && !s.info) st.turn = Turn(st.abs, 0, s.dice);
+  let finished = false;
+  const board = BGBoard($('#lessonBoard'), tap);
+  function draw() {
+    const t = st.turn;
+    const legal = t && !finished ? t.legal() : [];
+    const sources = [...new Set(legal.map(m => m.from))];
+    const dests = st.sel != null ? legal.filter(m => m.from === st.sel).map(m => m.to) : [];
+    board.render({
+      pos: t ? t.abs : st.abs, dice: t ? t.dice : (s.dice || []), used: t ? (t.dice.length === 4 ? t.made : t.used) : [],
+      sources, dests, sel: st.sel, marks: s.marks || {}, recent: t ? t.made.map(m => m.to) : [], turn: 0
+    });
+    const [me, them] = BG.pips(t ? t.abs : st.abs);
+    $('#lessonInfo').innerHTML = `<span>Your pips: <b>${me}</b></span><span>Computer: <b>${them}</b></span>`;
+  }
+  function tap(p) {
+    if (s.tap) {
+      if (finished) return;
+      if (typeof p === 'number' && s.tap(p)) { finished = true; stepSolved(s.done); }
+      else lessonSay(`${s.text}<br><br><span class="no">Not quite.</span> Your home board is points 1 to 6, at the bottom right.`);
+      return;
+    }
+    const t = st.turn;
+    if (!t || finished) return;
+    const legal = t.legal();
+    if (st.sel != null) {
+      const opts = legal.filter(m => m.from === st.sel && m.to === p);
+      if (opts.length) {
+        // If two dice reach the same spot (bearing off), use the smaller one.
+        opts.sort((a, b) => a.die - b.die);
+        t.play(opts[0]);
+        st.sel = null;
+        afterMove();
+        return;
+      }
+    }
+    if (legal.some(m => m.from === p)) st.sel = st.sel === p ? null : p;
+    else st.sel = null;
+    draw();
+  }
+  function afterMove() {
+    const t = st.turn;
+    if (t.over()) {
+      finished = true;
+      draw();
+      if (!s.goal || s.goal(t.abs, t)) stepSolved(s.done);
+      else lessonSay(`<span class="no">Hmm.</span> ${s.fail || 'That didn\'t do it.'} Tap <b>Start again</b>.`);
+      return;
+    }
+    draw();
+  }
+  draw();
+}
+
+/* go lesson step */
+function startGoStep(s) {
+  const setup = s.setup();
+  const g = setup.g;
+  const lastStep = app.step === LESSONS.go[app.lesson].steps.length - 1;
+  lessonSay(s.text);
+  $('#lHint').hidden = !s.hint;
+  setNext(!!s.info, lastStep ? (app.lesson === GO_LESSONS.length - 1 ? 'Finish ✓' : 'Next lesson →') : 'Next →');
+  if (s.info && lastStep) markDone('go', GO_LESSONS[app.lesson].id);
+  let finished = !!s.info, last = s.last != null ? s.last : -1, moves = 0;
+  const tapped = new Set(), cross = [];
+  const board = GoBoard($('#lessonBoard'), g.size, tap);
+  board.ghostColor = s.info || s.tapSet ? 0 : GO.BLACK;
+  board.canGhost = i => !finished && g.b[i] === 0;
+  function draw() {
+    const marks = { targets: finished ? [] : setup.targets, dots: [...setup.dots, ...tapped], cross };
+    if (s.overlay) marks.owner = GO.score(g.b, g.size).owner;
+    board.render({ b: g.b, last, marks });
+    $('#lessonInfo').innerHTML = `<span>Black captured: <b>${g.caps[1]}</b></span><span>White captured: <b>${g.caps[2]}</b></span>`;
+  }
+  function tap(i) {
+    if (finished) return;
+    if (s.tapSet) {
+      const want = s.tapSet(g);
+      if (want.includes(i)) {
+        tapped.add(i);
+        if (tapped.size === want.length) { finished = true; stepSolved(s.done); }
+        else lessonSay(`${s.text}<br><br><span class="ok">Yes!</span> ${tapped.size} of ${want.length}.`);
+      } else lessonSay(`${s.text}<br><br><span class="no">Not that one.</span> Liberties are the empty points directly next to the stone, along the lines.`);
+      draw();
+      return;
+    }
+    const r = GO.tryPlay(g, i);
+    if (r.error) {
+      if (s.tryFor === r.error) { cross.push(i); finished = true; draw(); stepSolved(s.done); return; }
+      const why = { occupied: 'There\'s already a stone there.', suicide: 'That would be suicide: your stone would have no liberties.', ko: 'Ko! You can\'t retake straight away.' }[r.error];
+      lessonSay(`${s.text}<br><br><span class="no">${why}</span>`);
+      return;
+    }
+    if (s.tryFor) { lessonSay(`${s.text}<br><br><span class="no">Try the glowing point.</span>`); return; }
+    GO.play(g, i);
+    last = i; moves++;
+    if (s.goal && s.goal(g, setup)) { finished = true; draw(); stepSolved(s.done); return; }
+    if (s.reply) {
+      const w = lessonReply(g);
+      if (w >= 0) last = w;
+    } else g.toPlay = GO.BLACK;
+    const f = s.fail && s.fail(g);
+    if (f || (s.max && moves >= s.max)) {
+      finished = true; draw();
+      lessonSay(`<span class="no">Oops.</span> ${f || 'That took too many moves.'} Tap <b>Start again</b>.`);
+      return;
+    }
+    draw();
+  }
+  draw();
+}
+
+/* =====================================================================
+   PLAY: setup
+   ===================================================================== */
+const prefs = store.get('board-school-prefs', { bgOpp: 'cpu1', goOpp: 'cpu0', goSize: 9 });
+function openPlaySetup(game) {
+  app.game = game;
+  const key = game + 'Opp';
+  const opts = [['cpu0', 'Computer (easy)'], ['cpu1', 'Computer (normal)'], ['friend', 'A friend, same phone']];
+  const html = `<h2>${GAME_NAME[game]}</h2><div class="label">Play against</div>
+    <div class="chips" id="oppChips">${opts.map(([v, l]) => `<button class="chip ${prefs[key] === v ? 'on' : ''}" data-v="${v}">${l}</button>`).join('')}</div>
+    ${game === 'go' ? `<div class="label">Board size</div><div class="chips" id="sizeChips">${[9, 13].map(n => `<button class="chip ${prefs.goSize === n ? 'on' : ''}" data-v="${n}">${n}×${n}</button>`).join('')}</div><p>9×9 is best for learning. Games take about 10 minutes.</p>` : `<p>You play the light checkers. The owl will point out your legal moves.</p>`}`;
+  modal(html, [
+    { label: 'Start game', fn: () => { store.set('board-school-prefs', prefs); game === 'bg' ? startBgGame() : startGoGame(); } },
+    { label: 'Cancel', cls: 'ghost' }
+  ]);
+  document.querySelectorAll('#oppChips .chip').forEach(c => c.onclick = () => { prefs[key] = c.dataset.v; document.querySelectorAll('#oppChips .chip').forEach(x => x.classList.toggle('on', x === c)); });
+  document.querySelectorAll('#sizeChips .chip').forEach(c => c.onclick = () => { prefs.goSize = +c.dataset.v; document.querySelectorAll('#sizeChips .chip').forEach(x => x.classList.toggle('on', x === c)); });
+}
+function playSay(html) { $('#playText').innerHTML = html; }
+function setControls(btns) {
+  const box = $('#playControls');
+  box.innerHTML = '';
+  for (const b of btns) {
+    const x = document.createElement('button');
+    x.className = 'btn ' + (b.cls || '');
+    x.textContent = b.label;
+    x.disabled = !!b.disabled;
+    x.onclick = b.fn;
+    box.appendChild(x);
+  }
+}
+
+/* =====================================================================
+   PLAY: backgammon
+   ===================================================================== */
+function startBgGame() {
+  show('play', 'Backgammon');
+  const run = app.run;
+  const opp = prefs.bgOpp, vsCpu = opp !== 'friend', level = opp === 'cpu0' ? 0 : 1;
+  const names = vsCpu ? ['You', 'Computer'] : ['Light', 'Dark'];
+  const G = { abs: BG.start(), turn: 0, phase: 'opening', t: null, sel: null, recent: [], dice: [], log: '' };
+  const board = BGBoard($('#playBoard'), tap);
+  const isHuman = () => !vsCpu || G.turn === 0;
+
+  function draw() {
+    const t = G.t;
+    const human = isHuman() && G.phase === 'move';
+    const legal = human && t ? t.legal() : [];
+    const sources = [...new Set(legal.map(m => m.from))];
+    const dests = G.sel != null ? legal.filter(m => m.from === G.sel).map(m => m.to) : [];
+    let prompt = null;
+    if (G.phase === 'roll' && isHuman()) prompt = { text: '🎲 Tap to roll', dark: G.turn === 1 };
+    if (G.phase === 'opening') prompt = { text: '🎲 Tap to start' };
+    board.render({
+      pos: t ? t.abs : G.abs, dice: t ? t.dice : G.dice, used: t ? (t.dice.length === 4 ? t.made : t.used) : [],
+      sources, dests, sel: G.sel, recent: G.recent, darkDice: G.turn === 1, prompt, turn: G.turn
+    });
+    const [a, b] = BG.pips(t ? t.abs : G.abs);
+    $('#playInfo').innerHTML = `<span>${names[0]}: <b>${a}</b> pips</span><span>${G.log}</span><span>${names[1]}: <b>${b}</b> pips</span>`;
+    const ctr = [];
+    if (G.phase === 'move' && isHuman()) {
+      ctr.push({ label: '↶ Undo', cls: 'ghost sm', disabled: !t.made.length, fn: () => { t.undo(); G.sel = null; G.recent = t.made.map(m => m.to); afterMove(); } });
+      ctr.push({ label: '💡 Hint', cls: 'ghost sm', fn: hint });
+      ctr.push({ label: t.over() ? 'End turn ✓' : 'End turn', cls: t.over() ? 'green pulse' : 'ghost', disabled: !t.over(), fn: endTurn });
+    } else if (G.phase === 'roll' && isHuman()) {
+      ctr.push({ label: '🎲 Roll', fn: roll, cls: 'pulse' });
+    } else if (G.phase === 'over') {
+      ctr.push({ label: 'Play again', fn: () => openPlaySetup('bg') });
+    }
+    setControls(ctr);
+  }
+
+  function tap(p) {
+    if (run !== app.run) return;
+    if (G.phase === 'opening' && p === 'dice') return opening();
+    if (G.phase === 'roll' && isHuman() && p === 'dice') return roll();
+    if (G.phase !== 'move' || !isHuman()) return;
+    const t = G.t, legal = t.legal();
+    if (G.sel != null) {
+      const opts = legal.filter(m => m.from === G.sel && m.to === p).sort((a, b) => a.die - b.die);
+      if (opts.length) {
+        t.play(opts[0]);
+        G.sel = null;
+        G.recent = t.made.map(m => m.to);
+        return afterMove();
+      }
+    }
+    G.sel = legal.some(m => m.from === p) && G.sel !== p ? p : null;
+    // A single-option checker: show where it goes.
+    draw();
+  }
+
+  function afterMove() {
+    const t = G.t;
+    const w = BG.winner(toMover(t.abs, G.turn));
+    if (w === 1) return gameOver();
+    if (t.over()) {
+      playSay(t.left.length && t.made.length ? `No more legal moves with the dice left over. Tap <b>End turn</b>, or <b>Undo</b> to try something else.` : `All dice used. Tap <b>End turn</b> when you're happy, or <b>Undo</b> to change your mind.`);
+    } else coach();
+    draw();
+  }
+
+  function coach() {
+    const t = G.t, legal = t.legal(), who = vsCpu ? 'You' : names[G.turn];
+    const mover = toMover(t.abs, G.turn);
+    const diceTxt = t.dice.length === 4 ? `double ${t.dice[0]}s (four moves!)` : `${t.dice[0]} and ${t.dice[1]}`;
+    let tip = '';
+    if (mover[BG.BAR] > 0) tip = 'You have a checker on the <b>bar</b>, so it must come in first.';
+    else if (legal.some(m => m.hit)) tip = 'You can <b>hit</b> a blot! Look for a green spot on a lone dark checker.';
+    else if (BG.allHome(mover)) tip = 'Everything is home: bear off by moving to the tray on the right.';
+    else tip = 'Tap a glowing checker, then a green spot. Try to make points and avoid leaving blots.';
+    playSay(`${t.made.length ? '' : `${who} rolled <b>${diceTxt}</b>. `}${tip}`);
+  }
+
+  function hint() {
+    const t = G.t;
+    const best = BG.bestPlay(toMover(t.abs, G.turn), t.left, 1);
+    if (!best || !best.moves.length) return playSay('No moves left. Tap <b>End turn</b>.');
+    const moves = best.moves.map(m => absMove(m, G.turn));
+    G.sel = null;
+    playSay(`💡 The owl would play: <b>${notation(moves, G.turn)}</b>`);
+    board.render({ pos: t.abs, dice: t.dice, used: t.dice.length === 4 ? t.made : t.used, sources: [...new Set(moves.map(m => m.from))], dests: moves.map(m => m.to), recent: G.recent, darkDice: G.turn === 1, turn: G.turn });
+  }
+
+  async function opening() {
+    // Each side rolls one die; the higher one goes first and uses both numbers.
+    const a = rollDie(), b = rollDie();
+    G.dice = [a, b];
+    G.phase = 'opening-roll';
+    if (a === b) {
+      playSay(`Both rolled <b>${a}</b>. A tie, roll again!`);
+      G.phase = 'opening';
+      draw();
+      return;
+    }
+    G.turn = a > b ? 0 : 1;
+    playSay(`${names[0]} rolled <b>${a}</b>, ${names[1]} rolled <b>${b}</b>. ${vsCpu ? (G.turn === 0 ? '<b>You go first</b>, using both numbers.' : '<b>The computer goes first.</b>') : `<b>${names[G.turn]}</b> goes first.`}`);
+    board.render({ pos: G.abs, dice: [a, b], darkDice: false });
+    await sleep(900);
+    if (run !== app.run) return;
+    G.t = Turn(G.abs, G.turn, G.turn === 0 ? [a, b] : [b, a]);
+    beginMoves();
+  }
+
+  function roll() {
+    G.dice = [rollDie(), rollDie()];
+    G.t = Turn(G.abs, G.turn, G.dice);
+    G.recent = [];
+    beginMoves();
+  }
+
+  async function beginMoves() {
+    const t = G.t;
+    G.phase = 'move';
+    if (!t.legal().length) {
+      const mover = toMover(t.abs, G.turn);
+      playSay(`${isHuman() ? (vsCpu ? 'You' : names[G.turn]) : 'The computer'} rolled <b>${t.dice[0]}-${t.dice[1]}</b>, but ${mover[BG.BAR] ? 'can\'t enter from the bar (all blocked)' : 'there are no legal moves'}. The turn passes.`);
+      draw();
+      await sleep(1600);
+      if (run !== app.run) return;
+      return endTurn();
+    }
+    if (isHuman()) { coach(); draw(); return; }
+    // computer moves, one checker at a time so you can follow along
+    draw();
+    playSay(`The computer rolled <b>${t.dice[0]}-${t.dice[1]}</b>…`);
+    await sleep(700);
+    const best = BG.bestPlay(toMover(t.abs, 1), t.left, level);
+    for (const m of best.moves) {
+      if (run !== app.run) return;
+      const am = absMove(m, 1);
+      t.play(t.legal().find(x => x.from === am.from && x.to === am.to && x.die === am.die) || am);
+      G.recent = t.made.map(x => x.to);
+      draw();
+      await sleep(550);
+    }
+    if (run !== app.run) return;
+    const hits = t.made.filter(m => m.hit).length;
+    G.log = `CPU: ${notation(t.made, 1)}`;
+    if (BG.winner(toMover(t.abs, 1)) === 1) return gameOver();
+    playSay(`The computer played <b>${notation(t.made, 1)}</b>.${hits ? ' <span class="no">It hit you!</span> Your checker goes to the bar and must come back in first.' : ''} Your turn: roll the dice.`);
+    G.abs = t.abs; G.t = null; G.turn = 0; G.phase = 'roll';
+    draw();
+  }
+
+  function endTurn() {
+    if (run !== app.run) return;
+    const t = G.t;
+    G.abs = t.abs;
+    if (t.made.length && G.turn === 0) G.log = `${vsCpu ? 'You' : 'Light'}: ${notation(t.made, 0)}`;
+    if (t.made.length && G.turn === 1 && !vsCpu) G.log = `Dark: ${notation(t.made, 1)}`;
+    G.t = null; G.sel = null; G.turn = 1 - G.turn; G.phase = 'roll'; G.dice = [];
+    if (!isHuman()) { roll(); return; }
+    playSay(vsCpu ? 'Your turn. <b>Roll the dice!</b>' : `<b>${names[G.turn]}</b>'s turn. Pass the phone and roll!`);
+    draw();
+  }
+
+  function gameOver() {
+    const t = G.t, mover = toMover(t.abs, G.turn);
+    G.abs = t.abs; G.phase = 'over'; G.t = null; G.dice = [];
+    const kind = BG.winKind(mover), word = ['', 'a single game', 'a <b>gammon</b> (worth 2)', 'a <b>backgammon</b> (worth 3)'][kind];
+    const youWon = vsCpu && G.turn === 0;
+    playSay(vsCpu ? (youWon ? `🎉 <b>You won</b> ${word}! Great racing.` : `The computer won ${word}. Have another go, you'll get it!`) : `🎉 <b>${names[G.turn]} wins</b> ${word}!`);
+    if (youWon || !vsCpu) confetti();
+    draw();
+  }
+
+  G.phase = 'opening';
+  playSay(`Each player rolls one die to decide who goes first. ${vsCpu ? 'You are <b>light</b> and move towards the bottom right.' : 'Light moves towards the bottom right, dark towards the top right.'} <b>Tap the dice spot to start.</b>`);
+  draw();
+}
+
+/* =====================================================================
+   PLAY: Go
+   ===================================================================== */
+function startGoGame() {
+  const size = prefs.goSize || 9;
+  show('play', `Go ${size}×${size}`);
+  const run = app.run;
+  const opp = prefs.goOpp, vsCpu = opp !== 'friend', level = opp === 'cpu0' ? 0 : 1;
+  const g = GO.make(size);
+  const komi = 6.5;
+  let last = -1, phase = 'play', dead = new Set(), hintAt = [], thinking = false;
+  const board = GoBoard($('#playBoard'), size, tap);
+  board.canGhost = i => phase === 'play' && !thinking && g.b[i] === 0;
+  const humanTurn = () => !vsCpu || g.toPlay === GO.BLACK;
+  const colorName = c => c === GO.BLACK ? 'Black' : 'White';
+
+  function atariStones() {
+    const out = [], seen = new Set();
+    for (let i = 0; i < g.b.length; i++) {
+      if (!g.b[i] || seen.has(i)) continue;
+      const gr = GO.group(g.b, size, i);
+      gr.stones.forEach(s => seen.add(s));
+      if (gr.libs.size === 1) out.push(...gr.stones);
+    }
+    return out;
+  }
+  function draw() {
+    board.ghostColor = phase === 'play' && humanTurn() ? g.toPlay : 0;
+    const marks = { hint: hintAt };
+    if (phase === 'play') marks.atari = atariStones();
+    if (phase !== 'play') { marks.dead = dead; marks.owner = GO.score(g.b, size, dead, komi).owner; }
+    board.render({ b: g.b, last, marks });
+    $('#playInfo').innerHTML = `<span>⚫ ${vsCpu ? 'You' : 'Black'}: <b>${g.caps[1]}</b> captured</span><span>${colorName(g.toPlay)} to play</span><span>⚪ ${vsCpu ? 'Computer' : 'White'}: <b>${g.caps[2]}</b> captured</span>`;
+    if (phase === 'play') {
+      setControls([
+        { label: '↶ Undo', cls: 'ghost sm', disabled: !g.history.length || thinking, fn: undo },
+        { label: '💡 Hint', cls: 'ghost sm', disabled: thinking || !humanTurn(), fn: hint },
+        { label: 'Pass', cls: 'ghost', disabled: thinking || !humanTurn(), fn: humanPass }
+      ]);
+    } else if (phase === 'score') {
+      setControls([{ label: '↶ Keep playing', cls: 'ghost sm', fn: resume }, { label: 'Count ✓', cls: 'green', fn: finish }]);
+    } else setControls([{ label: 'Play again', fn: () => openPlaySetup('go') }]);
+  }
+  function coachAfter(captured, who) {
+    const mine = [], theirs = [], seen = new Set();
+    for (let i = 0; i < g.b.length; i++) {
+      if (!g.b[i] || seen.has(i)) continue;
+      const gr = GO.group(g.b, size, i);
+      gr.stones.forEach(s => seen.add(s));
+      if (gr.libs.size === 1) (gr.color === g.toPlay ? mine : theirs).push(gr);
+    }
+    const you = vsCpu ? 'Your' : colorName(g.toPlay) + '\'s';
+    let msg = '';
+    if (captured) msg += `${who} captured <b>${captured}</b> stone${captured > 1 ? 's' : ''}. `;
+    if (mine.length) msg += `<span class="no">${you} stones circled in red are in atari!</span> Run away by adding to them, or capture an attacker. `;
+    else if (theirs.length) msg += `The circled ${vsCpu ? 'white' : colorName(GO.other(g.toPlay)).toLowerCase()} stones are in <b>atari</b>. You could capture them! `;
+    if (!msg) {
+      const n = g.history.length;
+      msg = n < 6 ? 'Good start! Corners and the 3rd line are great early spots.' : n < 30 ? 'Build walls to claim space, and keep your groups connected.' : 'The game is getting close to the end. Seal off your borders, and <b>pass</b> when there\'s nothing useful left.';
+    }
+    if (!vsCpu) msg = `<b>${colorName(g.toPlay)}</b> to play. ` + msg;
+    playSay(msg);
+  }
+  async function tap(i) {
+    if (run !== app.run) return;
+    if (phase === 'score') {
+      if (!g.b[i]) return;
+      const gr = GO.group(g.b, size, i);
+      const isDead = dead.has(i);
+      gr.stones.forEach(s => isDead ? dead.delete(s) : dead.add(s));
+      showScore();
+      return;
+    }
+    if (phase !== 'play' || thinking || !humanTurn()) return;
+    const r = GO.tryPlay(g, i);
+    if (r.error) {
+      playSay({ occupied: 'There\'s already a stone there.', suicide: '<span class="no">You can\'t play there:</span> your stone would have no liberties (suicide).', ko: '<span class="no">Ko!</span> You can\'t retake straight away. Play somewhere else first.' }[r.error]);
+      return;
+    }
+    hintAt = [];
+    GO.play(g, i); last = i;
+    coachAfter(r.captured.length, vsCpu ? 'You' : colorName(GO.other(g.toPlay)));
+    draw();
+    if (vsCpu) await cpuMove();
+  }
+  async function cpuMove() {
+    thinking = true; draw();
+    await sleep(350);
+    if (run !== app.run) return;
+    const m = GO.bestMove(g, level);
+    thinking = false;
+    if (m < 0) {
+      GO.pass(g);
+      if (g.passes >= 2) return toScoring();
+      playSay('The computer <b>passed</b>. If you think the game is over, pass too and we\'ll count. Otherwise, keep playing!');
+      draw();
+      return;
+    }
+    const r = GO.play(g, m); last = m;
+    coachAfter(0);
+    if (r.captured.length) playSay(`<span class="no">The computer captured ${r.captured.length} stone${r.captured.length > 1 ? 's' : ''}.</span> ` + $('#playText').innerHTML);
+    draw();
+  }
+  function hint() {
+    const m = GO.bestMove(g, 1);
+    if (m < 0) { playSay('💡 The owl thinks there\'s nothing useful left. You could <b>pass</b>.'); hintAt = []; }
+    else { hintAt = [m]; playSay(`💡 The owl likes <b>${goName(m, size)}</b> (the yellow spot).`); }
+    draw();
+  }
+  function undo() {
+    hintAt = [];
+    if (vsCpu) { GO.undo(g); while (g.toPlay !== GO.BLACK && GO.undo(g)); }
+    else GO.undo(g);
+    const h = g.history[g.history.length - 1];
+    last = h ? h.move : -1;
+    playSay('Move taken back.');
+    draw();
+  }
+  async function humanPass() {
+    hintAt = [];
+    GO.pass(g); last = -1;
+    if (g.passes >= 2) return toScoring();
+    if (vsCpu) {
+      playSay('You passed.');
+      draw();
+      await cpuMove();
+    } else { playSay(`${colorName(GO.other(g.toPlay))} passed. <b>${colorName(g.toPlay)}</b> to play; pass as well to end the game.`); draw(); }
+  }
+  function toScoring() {
+    phase = 'score';
+    dead = GO.guessDead(g.b, size);
+    showScore();
+  }
+  function showScore() {
+    const sc = GO.score(g.b, size, dead, komi);
+    playSay(`Both players passed, so the game is over! Stones with a red ✕ look <b>dead</b> (they can't escape). <b>Tap a group</b> to change whether it's dead, then tap <b>Count</b>.<br>Right now: Black <b>${sc.black}</b>, White <b>${sc.white}</b> (with ${komi} komi).`);
+    draw();
+  }
+  function resume() {
+    phase = 'play'; dead = new Set();
+    // Take back the second pass so play continues.
+    GO.undo(g);
+    if (vsCpu && g.toPlay !== GO.BLACK) GO.undo(g);
+    playSay('Back to the game!');
+    draw();
+  }
+  function finish() {
+    phase = 'over';
+    const sc = GO.score(g.b, size, dead, komi);
+    const bw = sc.margin > 0;
+    const res = `Black <b>${sc.black}</b> · White <b>${sc.white}</b> (${sc.white - komi} + ${komi} komi).`;
+    if (vsCpu) playSay(bw ? `🎉 <b>You win by ${sc.margin}!</b> ${res}` : `White wins by ${-sc.margin}. ${res} Try the hints next time, or the easy computer!`);
+    else playSay(`🎉 <b>${bw ? 'Black' : 'White'} wins by ${Math.abs(sc.margin)}!</b> ${res}`);
+    if (bw || !vsCpu) confetti();
+    draw();
+  }
+  playSay(vsCpu ? `You play <b>black</b> and go first. Tap a point to place a stone. Try starting in a corner, about three lines in. White gets <b>${komi}</b> points (komi) for going second.` : `<b>Black</b> goes first. Take turns tapping to place stones. White gets ${komi} points (komi) for going second.`);
+  draw();
+}
+
+/* ---------- home page pictures ---------- */
+(() => {
+  const g = $('#homeBgPoints');
+  for (let k = 0; k < 12; k++) {
+    const x = 8 + k * 24.3 + (k >= 6 ? 12 : 0) + 12;
+    el('path', { d: `M${x - 11} 8 L${x} 52 L${x + 11} 8Z`, fill: k % 2 ? '#b0412e' : '#e8d6b4' }, g);
+    el('path', { d: `M${x - 11} 112 L${x} 68 L${x + 11} 112Z`, fill: k % 2 ? '#e8d6b4' : '#b0412e' }, g);
+  }
+  const ck = [[0, 'b', 2], [9, 't', 3], [6, 'b', 5], [11, 't', 2], [7, 't', 1], [11, 'b', 4]];
+  for (const [k, side, n] of ck) {
+    const x = 8 + k * 24.3 + (k >= 6 ? 12 : 0) + 12;
+    for (let j = 0; j < n; j++) {
+      const y = side === 't' ? 19 + j * 20 : 101 - j * 20;
+      const light = (k + (side === 't' ? 1 : 0)) % 2 === 0;
+      el('circle', { cx: x, cy: y, r: 10, fill: light ? '#efe3c8' : '#5a1e14', stroke: light ? '#9c8a6a' : '#000' }, g);
+    }
+  }
+  const lines = $('#homeGoLines');
+  for (let k = 0; k < 13; k++) el('line', { x1: 10 + k * 25, y1: 0, x2: 10 + k * 25, y2: 120 }, lines);
+  for (let k = 0; k < 5; k++) el('line', { x1: 0, y1: 10 + k * 25, x2: 320, y2: 10 + k * 25 }, lines);
+  const stones = $('#homeGoStones');
+  const pts = [[3, 1, 1], [4, 1, 2], [4, 2, 1], [5, 2, 2], [5, 1, 2], [3, 2, 2], [6, 2, 1], [5, 3, 1], [8, 2, 2], [9, 1, 1], [8, 3, 1], [9, 2, 2], [10, 3, 2], [2, 3, 1], [7, 1, 2]];
+  for (const [x, y, c] of pts) el('circle', { cx: 10 + x * 25, cy: 10 + y * 25, r: 11.5, fill: c === 1 ? 'url(#hb)' : 'url(#hw)', stroke: c === 1 ? '#000' : '#9a9384' }, stones);
+})();
+
+openHome();
+if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>

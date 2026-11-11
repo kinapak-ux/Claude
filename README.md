@@ -74,7 +74,7 @@ A fantasy Top Trumps game that 2 to 6 players play on their own phones. It lives
 
 ## Family games (install them like apps)
 
-All twelve games, plus Moth Synth, are published with the tracker and can be installed on a phone's home screen, where they open full screen with their own icon:
+All thirteen games, plus Moth Synth, are published with the tracker and can be installed on a phone's home screen, where they open full screen with their own icon:
 
 **Family Arcade**, the front page for all the games, is at **https://kinapak-ux.github.io/Claude/games/**. Each game has its own little looping animation; tap one and it opens with a colour-wipe. It can be installed on a phone too, and it respects the phone's *Reduce motion* setting.
 
@@ -85,6 +85,7 @@ All twelve games, plus Moth Synth, are published with the tracker and can be ins
 | Skirmish Chess | https://kinapak-ux.github.io/Claude/chess/ |
 | Hoop Shot | https://kinapak-ux.github.io/Claude/hoop-shot/ |
 | Archery | https://kinapak-ux.github.io/Claude/archery/ |
+| Board School (backgammon & Go) | https://kinapak-ux.github.io/Claude/board-school/ |
 | Echo Wheel | https://kinapak-ux.github.io/Claude/echo-wheel/ |
 | Family Quiz Night | https://kinapak-ux.github.io/Claude/family-quiz/ |
 | Battleships | https://kinapak-ux.github.io/Claude/battleships/ |
@@ -102,6 +103,12 @@ Once a game has been opened, it also works with no signal. The exception is anyt
 Family Quiz Night, Battleships and Snap Race also work like Card Battler: one phone hosts and shows a 4-letter code, and the others join with it. Each also has a no-internet mode (pass-the-phone quiz, Battleships against the computer, Snap practice against computer racers). Their shared code is in `party.js` (connecting phones) and `kit.css` (the look).
 
 Blow Out the Pumpkin: tap **Light the candle**, allow the microphone, then blow on the phone and the candle flickers and goes out. Tap to light it again. Without a microphone, hold a finger on the pumpkin to blow instead. It doesn't send scores to the leaderboard.
+
+**Board School** teaches backgammon and Go, one short lesson at a time, with an owl explaining each step.
+
+- **Backgammon:** 8 lessons (the board, moving, blocked points, hitting, the bar, doubles, bearing off, winning and strategy), each with a real position to play. Then a full game against the computer (easy or normal) or a friend on the same phone. While you play, legal moves glow, **Hint** shows what the owl would play, and **Undo** takes back moves until you tap **End turn**. There's no doubling cube.
+- **Go:** 9 lessons (stones, liberties, capturing, escaping atari, ladders, suicide, ko, eyes, scoring). Then a full game on 9×9 or 13×13 against the computer or a friend. Stones in atari get a red ring, **Hint** shows a suggested move, and when both players pass, the owl marks stones it thinks are dead (tap a group to change it) and counts the score (area scoring, 6.5 komi).
+- Finished lessons get a tick, saved on that phone. It doesn't send scores to the leaderboard.
 
 Moth Synth is a synthesizer with a loop recorder and a drum machine.
 
