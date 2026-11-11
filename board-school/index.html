@@ -263,9 +263,10 @@ function stackY(p, k, n) {
   const gap = n > 5 ? 144 / (n - 1) : 36;
   return isTop(p) ? TOP + 19 + k * gap : BOT - 19 - k * gap;
 }
+let boardCount = 0; // each board gets its own colour definitions, so a hidden board can't break a visible one
 function drawChecker(g, x, y, light, extra = {}) {
   const c = el('g', { class: extra.cls || '' }, g);
-  el('circle', { cx: x, cy: y, r: 18, fill: light ? 'url(#ckL)' : 'url(#ckD)', stroke: light ? '#9c8a6a' : '#000', 'stroke-width': 1.5 }, c);
+  el('circle', { cx: x, cy: y, r: 18, fill: `url(#ck${light ? 'L' : 'D'}${extra.uid})`, stroke: light ? '#9c8a6a' : '#000', 'stroke-width': 1.5 }, c);
   el('circle', { cx: x, cy: y, r: 11, fill: 'none', stroke: light ? 'rgba(120,100,70,.45)' : 'rgba(255,255,255,.15)', 'stroke-width': 1.5 }, c);
   return c;
 }
@@ -275,9 +276,10 @@ function BGBoard(container, onTap) {
   container.innerHTML = '';
   container.appendChild(svg);
   const defs = el('defs', {}, svg);
-  const gL = el('radialGradient', { id: 'ckL', cx: '.38', cy: '.32' }, defs);
+  const uid = ++boardCount;
+  const gL = el('radialGradient', { id: 'ckL' + uid, cx: '.38', cy: '.32' }, defs);
   el('stop', { offset: 0, 'stop-color': '#fffaf0' }, gL); el('stop', { offset: 1, 'stop-color': '#e0d2b4' }, gL);
-  const gD = el('radialGradient', { id: 'ckD', cx: '.38', cy: '.32' }, defs);
+  const gD = el('radialGradient', { id: 'ckD' + uid, cx: '.38', cy: '.32' }, defs);
   el('stop', { offset: 0, 'stop-color': '#7a3328' }, gD); el('stop', { offset: 1, 'stop-color': '#3a120c' }, gD);
   const layer = el('g', {}, svg);
 
@@ -335,7 +337,7 @@ function BGBoard(container, onTap) {
       const light = pos[p] > 0, x = pointX(p);
       for (let k = 0; k < n; k++) {
         const top = k === n - 1;
-        drawChecker(layer, x, stackY(p, k, n), light, { cls: top && recent.includes(p) ? 'drop' : '' });
+        drawChecker(layer, x, stackY(p, k, n), light, { uid, cls: top && recent.includes(p) ? 'drop' : '' });
       }
       const ty = stackY(p, n - 1, n);
       if (n > 5) {
@@ -346,8 +348,8 @@ function BGBoard(container, onTap) {
       if (sources.includes(p)) el('circle', { cx: x, cy: ty, r: 20, fill: 'none', stroke: sel === p ? '#5cffb0' : '#ffcc4d', 'stroke-width': sel === p ? 4 : 3, class: sel === p ? '' : 'ring' }, layer);
     }
     // bar: light on top half, dark on bottom half
-    for (let k = 0; k < pos[25]; k++) drawChecker(layer, 275, 165 - k * 30, true);
-    for (let k = 0; k < pos[26]; k++) drawChecker(layer, 275, 285 + k * 30, false);
+    for (let k = 0; k < pos[25]; k++) drawChecker(layer, 275, 165 - k * 30, true, { uid });
+    for (let k = 0; k < pos[26]; k++) drawChecker(layer, 275, 285 + k * 30, false, { uid });
     if (sources.includes('bar')) {
       const y = st.turn === 1 ? 285 + (pos[26] - 1) * 30 : 165 - (pos[25] - 1) * 30;
       el('circle', { cx: 275, cy: y, r: 20, fill: 'none', stroke: sel === 'bar' ? '#5cffb0' : '#ffcc4d', 'stroke-width': sel === 'bar' ? 4 : 3, class: sel === 'bar' ? '' : 'ring' }, layer);
@@ -458,9 +460,10 @@ function GoBoard(container, size, onTap) {
   container.innerHTML = '';
   container.appendChild(svg);
   const defs = el('defs', {}, svg);
-  const gb = el('radialGradient', { id: 'stB', cx: '.35', cy: '.3' }, defs);
+  const uid = ++boardCount;
+  const gb = el('radialGradient', { id: 'stB' + uid, cx: '.35', cy: '.3' }, defs);
   el('stop', { offset: 0, 'stop-color': '#6a6a6a' }, gb); el('stop', { offset: 1, 'stop-color': '#0b0b0b' }, gb);
-  const gw = el('radialGradient', { id: 'stW', cx: '.35', cy: '.3' }, defs);
+  const gw = el('radialGradient', { id: 'stW' + uid, cx: '.35', cy: '.3' }, defs);
   el('stop', { offset: 0, 'stop-color': '#ffffff' }, gw); el('stop', { offset: 1, 'stop-color': '#cbc5b8' }, gw);
   const P = i => [S + (i % size) * S, S + Math.floor(i / size) * S];
   // static wood and grid
@@ -506,7 +509,7 @@ function GoBoard(container, size, onTap) {
       const dead = marks.dead && marks.dead.has(i);
       const g = el('g', { opacity: dead ? .4 : 1, class: i === last ? 'drop' : '' }, layer);
       el('circle', { cx: x + 1.5, cy: y + 2.5, r: S * .46, fill: 'rgba(0,0,0,.25)' }, g);
-      el('circle', { cx: x, cy: y, r: S * .46, fill: b[i] === 1 ? 'url(#stB)' : 'url(#stW)', stroke: b[i] === 1 ? '#000' : '#9a9384', 'stroke-width': 1 }, g);
+      el('circle', { cx: x, cy: y, r: S * .46, fill: `url(#st${b[i] === 1 ? 'B' : 'W'}${uid})`, stroke: b[i] === 1 ? '#000' : '#9a9384', 'stroke-width': 1 }, g);
       if (dead) {
         el('path', { d: `M${x - 8} ${y - 8} L${x + 8} ${y + 8} M${x + 8} ${y - 8} L${x - 8} ${y + 8}`, stroke: '#ff3b5c', 'stroke-width': 3.5, 'stroke-linecap': 'round' }, layer);
       }
@@ -563,6 +566,18 @@ const BG_LESSONS = [
       text: `Points 1 to 6, at the bottom right, are your <b>home board</b>. Once all 15 of your checkers are in there, you can start taking them off the board. First to take all 15 off wins!<br><b>Tap any point in your home board.</b>`,
       hint: 'It\'s the glowing area at the bottom right: points 1 to 6.',
       done: 'That\'s your home board. Every checker you have is trying to get there.' }
+  ]},
+  { id: 'setup', title: 'Setting up', blurb: 'Where the 30 checkers start', steps: [
+    { info: true, pos: START, marks: { spot: [24, 13, 8, 6] },
+      text: `Every game starts the same way. Your 15 light checkers go on <b>four points</b>, marked with yellow dots:<ul><li><b>2</b> on point <b>24</b> (your two "back" checkers, furthest from home)</li><li><b>5</b> on point <b>13</b></li><li><b>3</b> on point <b>8</b></li><li><b>5</b> on point <b>6</b></li></ul>The computer's dark checkers are a <b>mirror image</b>, directly opposite yours. A way to remember it: <b>2, 5, 3, 5</b>.` },
+    { place: { 24: 2, 13: 5, 8: 3, 6: 5 }, pos: () => BP({}, { 1: 2, 12: 5, 17: 3, 19: 5 }), marks: { spot: [24, 13, 8, 6] },
+      text: `Your turn to set up! The computer's checkers are already out, and your 15 are waiting in the tray on the right.<br><b>Tap a point to put a checker on it.</b> You need <b>2</b> on 24, <b>5</b> on 13, <b>3</b> on 8 and <b>5</b> on 6.`,
+      hint: 'Tap the points with yellow dots. Each of your stacks sits directly opposite a dark stack of the same size.',
+      done: 'That\'s the starting position. 2, 5, 3, 5!' },
+    { place: { 24: 2, 13: 5, 8: 3, 6: 5 }, pos: () => BP({}, { 1: 2, 12: 5, 17: 3, 19: 5 }),
+      text: `Now <b>from memory</b>, with no dots to help. Remember: 2, 5, 3, 5, and your checkers mirror the computer's.<br><b>Set up your 15 checkers.</b>`,
+      hint: '2 on point 24, 5 on point 13, 3 on point 8 and 5 on point 6. Each stack faces a dark stack of the same size.',
+      done: 'Perfect. You can set up a real board now, for both players.' }
   ]},
   { id: 'move', title: 'Moving with dice', blurb: 'Each die is its own move', steps: [
     { pos: START, dice: [3, 1],
@@ -660,7 +675,7 @@ const capturedFail = g => g.caps[GO.WHITE] > 0 ? 'White captured your stone! Try
 const GO_LESSONS = [
   { id: 'stones', title: 'Stones & the board', blurb: 'Where to put your stones', steps: [
     { info: true, setup: () => GP(['.......', '.......', '..X....', '...O...', '....X..', '...O...', '.......']),
-      text: `Go is played on the <b>crossing points</b> of the lines, not in the squares. You play <b>black</b>, the computer plays <b>white</b>. Black goes first, then you take turns placing <b>one stone</b> at a time.<br>Stones <b>never move</b> once they're placed, but they can be <b>captured</b>.` },
+      text: `Go is played on the <b>crossing points</b> of the lines, not in the squares. You play <b>black</b>, the computer plays <b>white</b>. The board <b>starts empty</b>, so there's nothing to set up. Black goes first, then you take turns placing <b>one stone</b> at a time.<br>Stones <b>never move</b> once they're placed, but they can be <b>captured</b>.` },
     { setup: () => GP(['.......', '.......', '.......', '...a...', '.......', '.......', '.......']),
       text: `The aim is to <b>surround more of the board</b> than your opponent.<br><b>Place a stone on the glowing point</b> in the middle.`,
       hint: 'Tap right where the dashed green circle is.',
@@ -875,9 +890,23 @@ function startBgStep(s) {
       sources, dests, sel: st.sel, marks: s.marks || {}, recent: t ? t.made.map(m => m.to) : [], turn: 0
     });
     const [me, them] = BG.pips(t ? t.abs : st.abs);
-    $('#lessonInfo').innerHTML = `<span>Your pips: <b>${me}</b></span><span>Computer: <b>${them}</b></span>`;
+    $('#lessonInfo').innerHTML = s.place ? `<span>Checkers left to place: <b>${st.abs[0]}</b></span>` : `<span>Your pips: <b>${me}</b></span><span>Computer: <b>${them}</b></span>`;
   }
   function tap(p) {
+    if (s.place) {
+      if (finished || typeof p !== 'number') return;
+      const want = s.place[p] || 0;
+      if (st.abs[p] < 0) lessonSay(`${s.text}<br><br><span class="no">Those are the computer's checkers.</span> Yours go directly opposite.`);
+      else if (!want) lessonSay(`${s.text}<br><br><span class="no">None of your checkers start on point ${p}.</span>`);
+      else if (st.abs[p] >= want) lessonSay(`${s.text}<br><br><span class="no">Point ${p} is full:</span> it only gets ${want}.`);
+      else {
+        st.abs[p]++; st.abs[0]--;
+        if (st.abs[0] === 0) { finished = true; draw(); stepSolved(s.done); return; }
+        lessonSay(`${s.text}<br><br><span class="ok">Yes!</span> ${st.abs[p]} of ${want} on point ${p}. <b>${st.abs[0]}</b> left to place.`);
+      }
+      draw();
+      return;
+    }
     if (s.tap) {
       if (finished) return;
       if (typeof p === 'number' && s.tap(p)) { finished = true; stepSolved(s.done); }
