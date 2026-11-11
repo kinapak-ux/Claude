@@ -1374,7 +1374,19 @@ function startGoGame() {
 })();
 
 openHome();
-if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
+// Offline: the helper (sw.js) keeps a copy of everything the game needs. On the very first visit the page
+// loads before the helper is running, so once it's ready we ask for each file again and it saves them.
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  navigator.serviceWorker.register('sw.js').then(() => navigator.serviceWorker.ready).then(() => {
+    const save = () => {
+      if (!navigator.serviceWorker.controller) return;
+      const urls = performance.getEntriesByType('resource').map(r => r.name).filter(u => /^https?:/.test(u) && !u.includes('script.google.com'));
+      [...new Set(urls)].forEach(u => fetch(u).catch(() => {}));
+    };
+    if (navigator.serviceWorker.controller) save();
+    else navigator.serviceWorker.addEventListener('controllerchange', save, { once: true });
+  }).catch(() => {});
+}
 })();
 </script>
 </body>

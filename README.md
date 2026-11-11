@@ -108,6 +108,7 @@ Blow Out the Pumpkin: tap **Light the candle**, allow the microphone, then blow 
 
 - **Backgammon:** 8 lessons (the board, moving, blocked points, hitting, the bar, doubles, bearing off, winning and strategy), each with a real position to play. Then a full game against the computer (easy or normal) or a friend on the same phone. While you play, legal moves glow, **Hint** shows what the owl would play, and **Undo** takes back moves until you tap **End turn**. There's no doubling cube.
 - **Go:** 9 lessons (stones, liberties, capturing, escaping atari, ladders, suicide, ko, eyes, scoring). Then a full game on 9×9 or 13×13 against the computer or a friend. Stones in atari get a red ring, **Hint** shows a suggested move, and when both players pass, the owl marks stones it thinks are dead (tap a group to change it) and counts the score (area scoring, 6.5 komi).
+- It works with no signal after being opened just once, including the lessons and games against the computer. Scores earned offline are sent the next time the phone is online.
 - Finished lessons get a tick, saved on that phone. Games against the computer (won or lost) and the number of lessons finished go to the family leaderboard; games against a friend don't.
 
 Moth Synth is a synthesizer with a loop recorder and a drum machine.
