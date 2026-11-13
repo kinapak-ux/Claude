@@ -95,6 +95,7 @@ All thirteen games, plus Moth Synth, are published with the tracker and can be i
 | Pixel Gaffer '96 | https://kinapak-ux.github.io/Claude/pixel-gaffer/ |
 | Moth Synth | https://kinapak-ux.github.io/Claude/synth/ |
 | Overhead (satellite tracker) | https://kinapak-ux.github.io/Claude/satellites/ |
+| Photo to 3D | https://kinapak-ux.github.io/Claude/photo-3d/ |
 
 **To install:** on Android, open the game in Chrome, tap **⋮** and then **Install app** (or **Add to Home screen**). On iPhone, open it in Safari, tap **Share** and then **Add to Home Screen**.
 
@@ -162,3 +163,14 @@ Every game except Blow Out the Pumpkin sends its results to one shared leaderboa
 - The newer games (Family Quiz, Battleships, Snap Race, Times Table Blaster, Pixel Gaffer, Archery, Board School) need version 2 of the script. To update it, paste the new `leaderboard/apps-script.txt` into the Apps Script editor, then **Deploy → Manage deployments → ✏️ → Version: New version → Deploy**. The address stays the same. Until then, those games' scores wait on the phones.
 - To fix or remove a score, edit or delete its row in the sheet's **Scores** tab.
 - The web app address is in this public repository, so anyone who found it could read or add scores. First names or nicknames are best.
+
+## Photo to 3D
+
+Turns a photo into a 3D model: **https://kinapak-ux.github.io/Claude/photo-3d/**
+
+- **Choose a photo** (or take one, drag one in, or paste one). An AI model, Depth Anything V2, works out how far away each part of the photo is, and the page builds a 3D model from that. It runs on your own phone or computer; the photo is never uploaded. The first time, it downloads the model once (about 25 MB). After that it's saved in the browser.
+- **Shapes:** *Relief* (the photo pushed out into 3D), *Solid block* (a closed block with a flat back and sides, ready to 3D print) and *Points* (a cloud of coloured dots).
+- **Sliders:** how deep, remove the background (the far-away parts), cut the stretched “curtains” between a subject and what's behind it, smoothing, and detail. **Flip depth** fixes a model that comes out inside-out.
+- **Save:** GLB (with colours: opens in Blender, Windows 3D Viewer and most AR viewers), STL (for 3D printing, with the size in mm you choose), OBJ (shape plus a material and a JPG of the photo; keep the three files together), PLY (coloured), a picture of the view, or the depth map as a PNG.
+- One photo only shows one side of things, so you get a raised relief of what the camera saw, not the back of the object.
+- If the AI can't run (an old browser, or no internet the first time), the page uses a **Quick guess** instead: a rough shape from brightness and position. You can also pick Quick guess yourself.
