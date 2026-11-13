@@ -175,30 +175,33 @@ function homeHTML() {
   let next;
   if (fx) {
     const opp = C(fx.h === c.id ? fx.a : fx.h), home = fx.h === c.id;
-    next = `<div class="nextfx">${badgeImg(c, 40)}<div class="vs"><small>${fx.cup ? esc(fx.label) : `${DIVS[c.div]} · Round ${e.r + 1}`}</small><b>${fx.neutral ? 'FINAL v' : home ? 'HOME v' : 'AWAY v'}</b><span>${esc(opp.name)}</span><small>${[opp.foreign || opp.div !== c.div ? divName(opp) : '', opp.foreign ? '' : ordinal(posIn(opp.id)), 'form ' + formHTML(opp.formStr)].filter(Boolean).join(' · ')}</small></div>${badgeImg(opp, 40)}</div>
+    next = `<div class="nextfx">${badgeImg(c, 40)}<div class="vs" data-a="viewOpp" data-id="${opp.id}"><small>${fx.cup ? esc(fx.label) : `${DIVS[c.div]} · Rd ${e.r + 1}`} · <b>${fx.neutral ? 'FINAL' : home ? 'HOME' : 'AWAY'}</b></small><span>${esc(opp.name)}</span><small>${[opp.foreign || opp.div !== c.div ? divName(opp) : '', opp.foreign ? '' : ordinal(posIn(opp.id)), 'form ' + formHTML(opp.formStr)].filter(Boolean).join(' · ')} · <span class="lnk">scout</span></small></div>${badgeImg(opp, 40)}</div>
       ${derbyFx(fx) ? derbyBanner(opp) : ''}${tacBox(c, opp)}
-      <p class="note center">Tap <b class="c-g">PLAY</b> at the top when you're ready. <span class="lnk" data-a="viewOpp" data-id="${opp.id}">Scout ${esc(opp.short)}</span></p>`;
+`;
   } else next = e.t === 'K' ? `<p>Midweek cup night${userComp() ? ` in the ${esc(userComp().name)}` : ''}, but you're not playing this round.</p><p class="note center">Tap <b class="c-g">NEXT</b> at the top to move on.</p>` : `<p>${e.t === 'C' ? `${CUP_NAME} ${cupRoundName()} day. ${W.cup.alive.includes(c.id) || W.cup.byes.includes(c.id) ? '' : "You're out, so the lads get a week off."}` : 'A week without a game.'}</p><p class="note center">Tap <b class="c-g">NEXT</b> at the top to move on.</p>`;
-  const conf = W.board.conf;
+  const conf = W.board.conf, fans = W.fans ?? 60;
   const injured = c.squad.map(P).filter(p => p.inj || p.sus);
-  const act = W.inbox.filter(m => m.act && !m.act.done);
-  return `<div class="panel"><h2>Next up · ${dateOf(W.season, W.week)}</h2>${next}</div>
-  ${act.length ? `<div class="panel alert" data-a="tab" data-t="news"><h2>✉ ${act.length} message${act.length > 1 ? 's' : ''} need${act.length > 1 ? '' : 's'} an answer</h2>${act.slice(0, 2).map(m => `<div>${esc(m.subj)}</div>`).join('')}</div>` : ''}
-  <div class="grid2">
-    <div class="panel stat"><h2>League</h2><div class="big ${pos <= 2 && c.div > 0 || pos === 1 ? 'c-g' : pos >= 11 && c.div < 3 ? 'c-r' : 'c-y'}">${row.p ? ordinal(pos) : '-'}</div><small>${row.pts} pts · P${row.p} · ${formHTML(row.form.slice(-5))}</small>
-      ${(() => { const ts = c.squad.map(P).filter(p => p.s.gl).sort((a, b) => b.s.gl - a.s.gl)[0], ds = Object.values(W.players).filter(p => p.club >= 0 && C(p.club).div === c.div && p.s.gl).sort((a, b) => b.s.gl - a.s.gl)[0]; return ts || ds ? `<h2 style="margin-top:10px">Top scorers</h2><small>${ts ? `Ours: <b>${esc(pname(ts))}</b> ${ts.s.gl}<br>` : ''}${ds ? `League: <b>${esc(pname(ds))}</b> ${ds.s.gl} <span data-a="statsGo" class="lnk">all stats</span>` : ''}</small>` : ''; })()}</div>
-    <div class="panel stat"><h2>Board</h2>${bar(conf, 100, conf > 60 ? 'g' : conf > 30 ? 'y' : 'r')}<small>${confWord(conf)}<br>Target: <b>${esc(W.board.txt)}</b></small>
-      <h2 style="margin-top:10px">Fans</h2>${bar(W.fans ?? 60, 100, (W.fans ?? 60) > 60 ? 'g' : (W.fans ?? 60) > 30 ? 'y' : 'r')}<small>${fansWord(W.fans ?? 60)}</small></div>
+  const act = W.inbox.filter(m => m.act && !m.act.done), unread = W.inbox.filter(m => !m.read).length;
+  const col = v => v > 60 ? 'g' : v > 30 ? 'y' : 'r';
+  const posCls = pos <= 2 && c.div > 0 || pos === 1 ? 'c-g' : pos >= 11 && c.div < 3 ? 'c-r' : 'c-y';
+  const lw = W.lastWeek, myRes = lw && lw.results.find(r => r.h === c.id || r.a === c.id);
+  const ticker = [myRes ? `FT ${C(myRes.h).short} ${myRes.hg}-${myRes.ag} ${C(myRes.a).short}` : '', ...W.news.slice(0, 4).map(n => n.txt)].filter(Boolean).join('   ◆   ') || 'NO NEWS IS GOOD NEWS';
+  const alerts = [
+    act.length ? `<button class="hal r" data-a="tab" data-t="news">✉ ${act.length} to answer</button>` : '',
+    injured.length ? `<button class="hal o" data-a="tab" data-t="squad">✚ ${injured.length} out</button>` : '',
+  ].join('');
+  // One screen, no scrolling: the next game, four tiles you can tap for detail, and a news ticker.
+  return `<div class="home">
+  <div class="panel hnext"><h2>Next up · ${dateOf(W.season, W.week)}</h2>${next}</div>
+  ${alerts ? `<div class="halerts">${alerts}</div>` : ''}
+  <div class="tiles">
+    <button class="tile" data-a="tab" data-t="league"><span>League</span><b class="${posCls}">${row.p ? ordinal(pos) : '-'}</b><small>${row.pts} pts · P${row.p} ${formHTML(row.form.slice(-5))}</small></button>
+    <button class="tile" data-a="tab" data-t="club"><span>Board</span>${bar(conf, 100, col(conf))}<small>${confWord(conf)}</small><small class="c-d">${esc(W.board.txt)}</small></button>
+    <button class="tile" data-a="tab" data-t="club"><span>Fans</span>${bar(fans, 100, col(fans))}<small>${fansWord(fans)}</small></button>
+    <button class="tile" data-a="tab" data-t="news"><span>Inbox</span><b class="${unread ? 'c-r' : 'c-d'}">${unread ? unread + ' new' : '0'}</b><small>${unread ? esc(W.inbox.find(m => !m.read).subj) : 'All read'}</small></button>
   </div>
-  ${injured.length ? `<div class="panel"><h2>Treatment room</h2>${injured.map(p => `<div class="row" data-a="player" data-id="${p.id}">${posTag(p.pos)} ${esc(pname(p))} ${status(p)}</div>`).join('')}</div>` : ''}
-  <div class="panel"><h2>✉ Inbox${W.inbox.filter(m => !m.read).length ? ` · ${W.inbox.filter(m => !m.read).length} new` : ''}</h2>
-    ${W.inbox.slice(0, 3).map(m => `<div class="row" data-a="openMsgHome" data-id="${m.id}">${m.read ? '' : '<span class="c-r">► </span>'}<span class="c-c">${esc(m.from)}:</span> ${esc(m.subj)}</div>`).join('') || '<p class="note">No messages.</p>'}
-    <button class="btn small" data-a="tab" data-t="news">Open inbox</button></div>
-  <div class="ttx"><div class="ttxh"><span>P302</span><span>PIXTEXT</span><span>FOOTBALL</span></div>
-  ${W.news.slice(0, 6).map(n => `<div class="c-c">${esc(n.txt)}</div>`).join('') || '<div class="c-y">NO NEWS IS GOOD NEWS</div>'}
-  ${lastResultsTTX()}
-  </div>
-  <button class="btn savequit wide" data-a="saveQuit">💾 Save &amp; quit to menu</button>`;
+  <div class="ddticker hticker" data-a="tab" data-t="news"><span class="ddbrk">PIXTEXT</span><div class="ddmarq"><span>${esc(ticker).toUpperCase()}</span></div></div>
+  </div>`;
 }
 function lastResultsTTX() {
   const mine = W.lastWeek;
@@ -655,7 +658,10 @@ function clubHTML() {
 
 // ---------- NEWS (inbox)
 function newsHTML() {
-  return `<div class="subtabs"><button data-a="tab" data-t="home">◀ Home</button><button class="on">Inbox</button></div><div class="ttx inbox"><div class="ttxh"><span>P101</span><span>PIXTEXT</span><span>MAIL</span></div>
+  return `<div class="subtabs"><button data-a="tab" data-t="home">◀ Home</button><button class="on">News &amp; inbox</button></div>
+  <div class="ttx"><div class="ttxh"><span>P302</span><span>PIXTEXT</span><span>FOOTBALL</span></div>
+  ${W.news.slice(0, 6).map(n => `<div class="c-c">${esc(n.txt)}</div>`).join('') || '<div class="c-y">NO NEWS IS GOOD NEWS</div>'}
+  ${lastResultsTTX()}</div><div class="ttx inbox"><div class="ttxh"><span>P101</span><span>PIXTEXT</span><span>MAIL</span></div>
   ${W.inbox.length ? W.inbox.map(m => `<div class="msg ${m.read ? '' : 'unread'} ${UI.open === m.id ? 'open' : ''}" data-a="openMsg" data-id="${m.id}">
     <div class="mh"><span class="c-c">${esc(m.from)}</span><span class="c-d">${dateOf(m.s, m.w).replace(/ \d{4}$/, '')}</span></div><div class="c-y">${esc(m.subj)}</div>
     ${UI.open === m.id ? `<div class="mb">${esc(m.body)}</div>${msgActs(m)}` : ''}</div>`).join('') : '<div class="c-y">NO MESSAGES</div>'}</div>`;
