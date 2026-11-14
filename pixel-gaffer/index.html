@@ -476,6 +476,51 @@ body[data-screen=ft] #app{padding-bottom:0}
 .mhint{font-size:22px;text-align:center;min-height:52px;padding:8px;color:#fff}
 .mhint b{color:var(--yel)}
 @media (min-width:700px){#app{padding-top:16px}}
+/* ---------- laptop / desktop layout ---------- */
+@media (min-width:1000px) and (min-height:560px){
+  #app{max-width:980px}
+  body[data-screen=game] #app{max-width:1320px;padding-left:150px;padding-right:16px;padding-bottom:12px}
+  .nav{top:0;bottom:0;right:auto;left:max(0px,calc(50% - 660px));width:132px;max-width:none;margin:0;grid-template-columns:1fr;grid-auto-rows:min-content;gap:6px;align-content:center;border-top:0;border-right:2px solid var(--edge);padding:12px 8px}
+  .nav button{font-size:9px;padding:14px 0 12px;gap:8px}
+  .nav button img{width:34px;height:31px}
+  .nav::after{content:'Keys: 1-5 tabs · Enter play · Esc back';font-family:var(--vt);font-size:15px;color:var(--dim);text-align:center;margin-top:14px;line-height:1.1}
+  .hdr{top:8px}
+  .hdr b{font-size:14px}.hdr small{font-size:20px}
+  /* home: two columns */
+  .home{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);grid-template-rows:auto auto auto 1fr auto;column-gap:14px;align-content:stretch}
+  .home>.hnext{grid-column:1;grid-row:1}.home>.halerts{grid-column:1;grid-row:2}
+  .home>.tiles{grid-column:1;grid-row:3;align-self:start}.home>.hticker{grid-column:1;grid-row:4;align-self:start}
+  .home>.hsave{grid-column:1;grid-row:5}
+  .home>.hmore{grid-column:2;grid-row:1/6;min-height:0}
+  .home:not(:has(.halerts))>.tiles{grid-row:2}.home:not(:has(.halerts))>.hticker{grid-row:3}
+  .tile{min-height:110px;font-size:20px}.tile b{font-size:22px}
+  .hmini{font-size:20px}
+  /* tactics: pitch left, controls right */
+  .tacpanel{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);grid-template-rows:repeat(6,auto) 1fr;column-gap:18px;row-gap:10px;align-content:start}
+  .tacpanel>.pitchbox{grid-column:1;grid-row:1/8;min-height:0;height:100%}
+  .tacpanel>*:not(.pitchbox){grid-column:2}
+  .tacrow,.tacauto{flex-wrap:wrap!important;overflow:visible}
+  .tacpanel .tacdesc,.tacpanel .tacnote{font-size:20px;text-align:left}
+  body[data-tab=tactics] .tpitch2 .slot{width:96px;font-size:19px}body[data-tab=tactics] .tpitch2 .slot span{max-width:96px}
+  /* lists get room to breathe */
+  .sqscroll .tbl,.fill .tbl{font-size:19px}
+  .hfx{grid-template-columns:96px 16px 1fr auto}
+  .subtabs button{font-size:9px}
+  /* club, history etc: panels side by side */
+  body[data-tab=club] #main>.panel{margin-top:10px}
+  /* results pages */
+  .wkres{columns:2;column-gap:22px}.wkres>.c-y{break-after:avoid}
+  .ftgrid{grid-template-columns:1fr 1fr 1fr}
+  .mbox{max-width:680px}
+  .ftpage,.wkpage{height:calc(100vh - 16px);height:calc(100dvh - 16px)}
+  /* live match: pitch left, commentary right */
+  body[data-screen=match] #app{max-width:1400px;padding-bottom:0}
+  .match{display:grid;grid-template-columns:minmax(0,1fr) 340px;grid-template-rows:auto auto minmax(0,1fr) auto;column-gap:14px;height:calc(100vh - 16px);height:calc(100dvh - 16px)}
+  .match>.scorebar{grid-column:1/3}
+  .match>.pwrap{grid-column:1;grid-row:2/5;min-height:0;position:relative;background:#000}
+  .match>.pwrap canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+  .match>.mstats{grid-column:2;grid-row:2}.match>.comm{grid-column:2;grid-row:3;min-height:0;overflow:hidden;font-size:22px}.match>.mctl{grid-column:2;grid-row:4}
+}
 </style>
 </head>
 <body>

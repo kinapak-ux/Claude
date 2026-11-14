@@ -228,12 +228,14 @@ function shellify() {
   const mid = kids.slice(top, end); if (!mid.length) return;
   const box = document.createElement('div'); box.className = 'pbody'; root.insertBefore(box, mid[0]); mid.forEach(k => box.appendChild(k));
 }
+// Laptop / desktop: wide screens get a sidebar and two-column layouts (see the @media block in index.html).
+const isDesk = () => matchMedia('(min-width: 1000px) and (min-height: 560px)').matches;
 // Extra panels for taller phones. fitHome() drops any that don't fit, so Home never scrolls.
 function homeExtras(c, tb) {
-  const i = tb.findIndex(r => r.id === c.id), from = clamp(i - 2, 0, Math.max(0, tb.length - 5));
-  const mini = `<div class="panel hx" data-a="tab" data-t="league"><h2>${DIVS[c.div]}</h2><table class="tbl league hmini"><tbody>${tb.slice(from, from + 5).map((r, k) => `<tr class="${r.id === c.id ? 'me' : ''}"><td>${from + k + 1}</td><td>${badgeImg(C(r.id), 14)}</td><td class="nm">${esc(C(r.id).name)}</td><td>${r.p}</td><td>${r.f - r.a > 0 ? '+' : ''}${r.f - r.a}</td><td><b>${r.pts}</b></td></tr>`).join('')}</tbody></table></div>`;
+  const desk = isDesk(), rows = desk ? tb.length : 5, i = tb.findIndex(r => r.id === c.id), from = clamp(i - 2, 0, Math.max(0, tb.length - rows));
+  const mini = `<div class="panel hx" data-a="tab" data-t="league"><h2>${DIVS[c.div]}</h2><table class="tbl league hmini"><tbody>${tb.slice(from, from + rows).map((r, k) => `<tr class="${r.id === c.id ? 'me' : ''}"><td>${from + k + 1}</td><td>${badgeImg(C(r.id), 14)}</td><td class="nm">${esc(C(r.id).name)}</td><td>${r.p}</td><td>${r.f - r.a > 0 ? '+' : ''}${r.f - r.a}</td><td><b>${r.pts}</b></td></tr>`).join('')}</tbody></table></div>`;
   const next = [];
-  for (let w = W.week + 1; w < W.cal.length && next.length < 3; w++) {
+  for (let w = W.week + 1; w < W.cal.length && next.length < (desk ? 5 : 3); w++) {
     const e = W.cal[w]; if (e.t !== 'L' || !W.fix[c.div][e.r]) continue;
     const f = W.fix[c.div][e.r].find(([h, a]) => h === c.id || a === c.id); if (!f) continue;
     const opp = C(f[0] === c.id ? f[1] : f[0]);
@@ -250,6 +252,19 @@ function fitHome() {
   for (let n = kids.length - 1; n >= 0 && box.scrollHeight > box.clientHeight + 1; n--) kids[n].style.display = 'none';
 }
 addEventListener('resize', fitHome);
+// keyboard for laptops: Enter/Space = the main button, 1-5 = tabs, Esc = close or go back
+addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || /INPUT|SELECT|TEXTAREA/.test((e.target.tagName || ''))) return;
+  if (document.querySelector('.mini')) { if (e.key === 'Escape') { const b = document.querySelector('.mini .mback'); if (b) b.click(); } return; }
+  const vis = sel => [...document.querySelectorAll(sel)].find(b => b.offsetParent);
+  if (e.key === 'Escape') { if (UI.modal) { const x = vis('.mbox [data-a=close]'); x ? x.click() : closeModal(); } else { const b = vis('.btn.back,.subtabs [data-t=home]'); if (b) b.click(); } e.preventDefault(); return; }
+  if (UI.modal) return;
+  if (e.key === 'Enter' || e.key === ' ') {
+    const b = vis('.sticky .btn.go, .ftgo, .wkgo, .tacbar .btn.go, .hdr [data-a=go]');
+    if (b) { e.preventDefault(); b.click(); } return;
+  }
+  if (UI.screen === 'game' && /^[1-5]$/.test(e.key)) { ACT.tab({t: ['home', 'squad', 'tactics', 'league', 'club'][+e.key - 1]}); e.preventDefault(); }
+});
 function lastResultsTTX() {
   const mine = W.lastWeek;
   if (!mine) return '';
