@@ -476,6 +476,16 @@ body[data-screen=ft] #app{padding-bottom:0}
 .mhint{font-size:22px;text-align:center;min-height:52px;padding:8px;color:#fff}
 .mhint b{color:var(--yel)}
 @media (min-width:700px){#app{padding-top:16px}}
+/* match analysis */
+.anal{display:flex;flex-direction:column;gap:6px}
+.anatabs{margin:0;align-items:center;gap:6px}.anatabs span{font-size:16px;margin-left:auto}
+.anacv{width:100%;height:auto;image-rendering:pixelated;border:2px solid #000;box-shadow:0 0 0 2px var(--edge);background:#2f8f3a}
+.anatip{margin:0;font-size:19px;line-height:1.1}
+.anaedge{font-size:16px;color:var(--dim)}
+.anafocus{margin:0;align-items:center;flex-wrap:wrap}
+.mana{display:none}
+.mctl{grid-template-columns:repeat(4,1fr)!important}
+.ftbtns{display:flex;gap:6px;margin:6px 4px 2px}.ftbtns .btn{flex:1;padding:9px}
 /* ---------- laptop / desktop layout ---------- */
 @media (min-width:1000px) and (min-height:560px){
   #app{max-width:980px}
@@ -519,7 +529,11 @@ body[data-screen=ft] #app{padding-bottom:0}
   .match>.scorebar{grid-column:1/3}
   .match>.pwrap{grid-column:1;grid-row:2/5;min-height:0;position:relative;background:#000}
   .match>.pwrap canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
-  .match>.mstats{grid-column:2;grid-row:2}.match>.comm{grid-column:2;grid-row:3;min-height:0;overflow:hidden;font-size:22px}.match>.mctl{grid-column:2;grid-row:4}
+  .match{grid-template-rows:auto auto auto minmax(0,1fr) auto}
+  .match>.pwrap{grid-row:2/6!important}
+  .match>.mstats{grid-column:2;grid-row:2}.match>.mana{display:block;grid-column:2;grid-row:3;background:var(--panel);border:2px solid var(--edge);padding:6px}.match>.comm{grid-column:2;grid-row:4;min-height:0;overflow:hidden;font-size:20px}.match>.mctl{grid-column:2;grid-row:5}
+  .match .mctl [data-a=mAnal]{display:none}.match .mctl{grid-template-columns:repeat(3,1fr)!important}
+  .mana .anatip{font-size:17px}.mana .anaedge{display:none}
 }
 </style>
 </head>

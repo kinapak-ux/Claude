@@ -428,6 +428,18 @@ function pitchHTML(c, edit) {
     return `<${edit ? 'button' : 'div'} class="slot ${edit && UI.sel === k ? 'sel' : ''} ${off ? 'off' : ''}" style="left:${y * 100}%;top:${92 - x * 112}%" ${edit ? `data-a="slot" data-k="${k}"` : `data-a="player" data-id="${id}"`}><i style="background:${k ? c.c1 : '#33d17a'};border-color:${c.c2}"></i><span>${p ? esc(p.ln) : '???'}</span><b>${p ? (edit ? `<span class="${ovrCol(ovr(p, slots[k]))}">${ovr(p, slots[k])}</span>` : ovrHTML(p, slots[k])) : ''}</b></${edit ? 'button' : 'div'}>`;
   }).join('')}</div>`;
 }
+// attack focus (left / centre / right) and a read on where the next opponent is weakest
+function focusRow(c) {
+  const fx = userFixture(), f = c.focus || 'mix';
+  let tip = '';
+  if (fx) {
+    const mm = new Match(fx.h, fx.a, {}), us = fx.h === c.id ? 0 : 1, r = mm.chanRatios(us), avg = (r.L + r.C + r.R) / 3;
+    const best = ['L', 'C', 'R'].sort((x, y) => r[y] - r[x])[0], v = Math.round((Math.sqrt(r[best] / avg) - 1) * 100);
+    tip = `${esc(C(fx.h === c.id ? fx.a : fx.h).short)} look weakest against your <b class="c-g">${CH_NAME[best]}</b> (+${clamp(v, 0, 12)}% chances).`;
+  }
+  return `<div class="chips tacrow"><span class="tlab">Attack</span>${[['mix', 'Mixed'], ['L', 'Left'], ['C', 'Centre'], ['R', 'Right']].map(([k, n]) => `<button class="chip ${f === k ? 'on' : ''}" data-a="focus" data-k="${k}">${n}</button>`).join('')}</div>
+    ${tip ? `<p class="note tacdesc">${tip}</p>` : ''}`;
+}
 function tacticsTop() {
   const fx = userFixture();
   const fromPre = UI.fromPre === W.season * 100 + W.week && fx;
@@ -447,6 +459,7 @@ function tacticsHTML() {
     <label class="tog"><input type="checkbox" data-a="toggleAuto" ${W.settings.autoPick ? 'checked' : ''}> Auto-pick weekly</label></div>
     <div class="chips tacrow"><span class="tlab">Style</span>${Object.keys(STYLES).map(k => `<button class="chip ${c.style === k ? 'on' : ''}" data-a="style" data-s="${k}">${STYLES[k].n}</button>`).join('')}</div>
     <p class="note tacdesc"><b class="c-y">${st.n}:</b> ${st.d} <span class="c-g">Beats ${BEATS[c.style].map(s => STYLES[s].n).join(', ')}.</span></p>
+    ${focusRow(c)}
   </div>`;
 }
 // a look at any other club: their likely team, style and best players
@@ -844,8 +857,9 @@ function startMatch(live) {
     <div class="scorebar"><div class="tm">${badgeImg(S[0].c, 22)}<div class="tn"><b>${esc(S[0].c.short)}</b>${teamTag(S[0].c)}</div></div><div class="sc"><b id="sc0">0</b>-<b id="sc1">0</b><small id="min">0'</small></div><div class="tm r"><div class="tn"><b>${esc(S[1].c.short)}</b>${teamTag(S[1].c)}</div>${badgeImg(S[1].c, 22)}</div></div>
     <div class="pwrap"><canvas id="pitch"></canvas></div>
     <div class="mstats" id="mstats"></div>
+    <div class="mana" id="mana"></div>
     <div class="comm" id="comm"></div>
-    <div class="mctl"><button class="btn small" data-a="mTactics">⏸ Tactics</button><button class="btn small" data-a="mSpeed" id="spd">${['', 'Slow', 'Normal', 'Fast'][W.settings.speed]}</button><button class="btn small" data-a="mSkip">Skip ⏭</button></div>
+    <div class="mctl"><button class="btn small" data-a="mTactics">⏸ Tactics</button><button class="btn small" data-a="mAnal">📊 Analysis</button><button class="btn small" data-a="mSpeed" id="spd">${['', 'Slow', 'Normal', 'Fast'][W.settings.speed]}</button><button class="btn small" data-a="mSkip">Skip ⏭</button></div>
   </div>`;
   const pitch = new Pitch($('#pitch'), S[0].c, S[1].c, [S[0].form, S[1].form], W.settings.zoom !== false);
   pitch.setForms([S[0].form, S[1].form], [S[0].on, S[1].on]);
@@ -904,6 +918,8 @@ function updateScore() {
   $('#sc0').textContent = S[0].g; $('#sc1').textContent = S[1].g; $('#min').textContent = m.minute + "'";
   const pos = Math.round(S[0].poss / Math.max(1, S[0].poss + S[1].poss) * 100);
   $('#mstats').innerHTML = `<span>${pos}%</span><span>Possession</span><span>${100 - pos}%</span><span>${S[0].sh} (${S[0].sot})</span><span>Shots (on target)</span><span>${S[1].sh} (${S[1].sot})</span>`;
+  // laptop: live analysis beside the pitch, refreshed every few minutes of play
+  const box = $('#mana'); if (box && box.offsetParent && (m.minute % 3 === 0 || !box.firstChild)) { box.innerHTML = analysisHTML(m, false); drawAnalysis(m); }
 }
 async function runPending() {
   const m = LM.m, pd = m.pending, us = m.sides[m.userSide], them = m.sides[1 - m.userSide];
@@ -970,7 +986,68 @@ function matchTactics() {
     <table class="tbl"><tbody>${s.on.map((id, k) => id == null ? `<tr class="dim"><td>${posTag(slots[k])}</td><td colspan="3">(sent off / empty)</td></tr>` : `<tr data-a="mSel" data-id="${id}" class="${sel === id ? 'me' : ''}"><td>${posTag(slots[k])}</td><td class="nm">${esc(pname(P(id)))}${s.yc[id] ? ' <span class="tag y">YC</span>' : ''}${s.injured && s.injured[id] ? ' <span class="tag r">INJ</span>' : ''}</td><td class="${ovrCol(ovr(P(id), slots[k]))}">${ovr(P(id), slots[k])}</td><td>${bar(s.fit[id], 100, fitCls(s.fit[id]))}</td></tr>`).join('')}</tbody></table>
     <h3 class="divh">Bench</h3>
     <table class="tbl"><tbody>${s.bench.map(id => `<tr data-a="mSubIn" data-id="${id}" class="${sel == null || s.subsLeft <= 0 ? 'dim' : ''}"><td>${posTag(P(id).pos)}</td><td class="nm">${esc(pname(P(id)))}</td><td class="${ovrCol(ovr(P(id)))}">${ovr(P(id))}</td><td>${bar(P(id).fit, 100, fitCls(P(id).fit))}</td></tr>`).join('') || '<tr><td>No subs left on the bench.</td></tr>'}</tbody></table>
-    <div class="acts"><button class="btn go" data-a="mResume">Back to the game ▶</button></div>`, true);
+    <div class="acts"><button class="btn small" data-a="mAnal">📊 Analysis</button><button class="btn go" data-a="mResume" style="margin-left:auto">Back to the game ▶</button></div>`, true);
+}
+// ---------- MATCH ANALYSIS: heatmap of where the ball was, attack channels, and where the other side is weak
+UI.anaSide = 0; // 0 = us, 1 = them
+function analysisHTML(m, full) {
+  const us = m.userSide >= 0 ? m.userSide : 0, side = UI.anaSide ? 1 - us : us, a = m.analysis(side), mine = side === us;
+  const name = esc(m.sides[side].c.short), mir = {L: 'R', C: 'C', R: 'L'};
+  const top = ['L', 'C', 'R'].sort((x, y) => a.pct[y] - a.pct[x])[0];
+  const tip = mine
+    ? (a.n ? `Most of your attacks go down the <b class="c-y">${CH_NAME[top]}</b> (${a.pct[top]}%). ` : '') + `Their weakest side faces your <b class="c-g">${CH_NAME[a.best]}</b>${a.focus === a.best ? ' and that is where you are aiming.' : '.'}`
+    : (a.n ? `They attack mostly down their <b class="c-y">${CH_NAME[top]}</b> (${a.pct[top]}%), which is your <b class="c-y">${CH_NAME[mir[top]]}</b> side.` : 'They have not got going yet.');
+  const edge = ch => { const r = a.ratio, avg = (r.L + r.C + r.R) / 3, v = Math.round((Math.sqrt(r[ch] / avg) - 1) * 100); return `<span class="${v > 2 ? 'c-g' : v < -2 ? 'c-r' : 'c-d'}">${CH_NAME[ch]} ${v > 0 ? '+' : ''}${clamp(v, -12, 12)}%</span>`; };
+  return `<div class="anal ${full ? 'full' : ''}">
+    <div class="chips small anatabs"><button class="chip ${!UI.anaSide ? 'on' : ''}" data-a="anaSide" data-i="0">${esc(m.sides[us].c.short)}</button><button class="chip ${UI.anaSide ? 'on' : ''}" data-a="anaSide" data-i="1">${esc(m.sides[1 - us].c.short)}</button><span class="c-d">${name} attacking ${mine ? '▶' : '◀'}</span></div>
+    <canvas class="anacv" width="220" height="140" data-side="${side}" data-mine="${mine ? 1 : 0}"></canvas>
+    <p class="anatip">${tip}</p>
+    ${mine ? `<div class="anaedge">Chance boost by channel: ${['L', 'C', 'R'].map(edge).join(' · ')}</div>
+    <div class="chips small anafocus"><span class="tlab">Attack</span>${[['mix', 'Mixed'], ['L', 'Left'], ['C', 'Centre'], ['R', 'Right']].map(([k, n]) => `<button class="chip ${a.focus === k ? 'on' : ''}" data-a="mFocus" data-k="${k}">${n}</button>`).join('')}</div>` : ''}
+  </div>`;
+}
+// draws every .anacv canvas on the page for match m
+function drawAnalysis(m) {
+  document.querySelectorAll('.anacv').forEach(cv => {
+    const g = cv.getContext('2d'), W2 = cv.width, H2 = cv.height, side = +cv.dataset.side, a = m.analysis(side), toRight = cv.dataset.mine === '1';
+    g.fillStyle = '#2f8f3a'; g.fillRect(0, 0, W2, H2);
+    for (let i = 0; i < 10; i += 2) { g.fillStyle = '#2a8234'; g.fillRect(i * W2 / 10, 0, W2 / 10, H2); }
+    // heat
+    const max = Math.max(1, ...a.heat), col = toRight ? [255, 210, 63] : [255, 75, 85];
+    for (let y = 0; y < HEAT_H; y++) for (let x = 0; x < HEAT_W; x++) {
+      const v = a.heat[y * HEAT_W + x] / max; if (v < .04) continue;
+      const px = toRight ? x : HEAT_W - 1 - x, py = toRight ? y : HEAT_H - 1 - y;
+      g.fillStyle = `rgba(${col[0]},${Math.round(col[1] * (1 - v * .6))},${col[2]},${(.15 + v * .6).toFixed(2)})`;
+      g.fillRect(px * W2 / HEAT_W, py * H2 / HEAT_H, W2 / HEAT_W + .5, H2 / HEAT_H + .5);
+    }
+    // lines
+    g.strokeStyle = 'rgba(255,255,255,.7)'; g.lineWidth = 1;
+    g.strokeRect(2.5, 2.5, W2 - 5, H2 - 5); g.beginPath(); g.moveTo(W2 / 2, 2); g.lineTo(W2 / 2, H2 - 2); g.stroke();
+    g.beginPath(); g.arc(W2 / 2, H2 / 2, 16, 0, Math.PI * 2); g.stroke();
+    g.strokeRect(2.5, H2 / 2 - 30, 26, 60); g.strokeRect(W2 - 28.5, H2 / 2 - 30, 26, 60);
+    // arrows: one per channel, thickness = share of attacks. A team's left is the top when it attacks to the right.
+    ['L', 'C', 'R'].forEach(ch => {
+      const share = a.pct[ch] / 100, y0 = (toRight ? CH_Y[ch] : 1 - CH_Y[ch]) * H2, t = 3 + share * 14;
+      const x0 = toRight ? W2 * .42 : W2 * .58, x1 = toRight ? W2 * .86 : W2 * .14, dir = toRight ? 1 : -1;
+      g.fillStyle = share >= .4 ? 'rgba(255,255,255,.95)' : 'rgba(255,255,255,.55)';
+      g.fillRect(Math.min(x0, x1 - dir * 10), y0 - t / 2, Math.abs(x1 - x0) - 10, t);
+      g.beginPath(); g.moveTo(x1, y0); g.lineTo(x1 - dir * 12, y0 - t / 2 - 5); g.lineTo(x1 - dir * 12, y0 + t / 2 + 5); g.closePath(); g.fill();
+      g.font = 'bold 12px monospace'; g.textAlign = 'center'; g.fillStyle = '#000';
+      const tx = (x0 + x1) / 2, txt = a.n ? a.pct[ch] + '%' : '-';
+      g.fillStyle = 'rgba(0,0,0,.65)'; g.fillRect(tx - 17, y0 - 8, 34, 15); g.fillStyle = '#ffd23f'; g.fillText(txt, tx, y0 + 4);
+    });
+  });
+}
+function analysisModal() {
+  if (!LM) return; LM.paused = true;
+  modal(`<h3>📊 Match analysis · ${LM.m.minute}'</h3>${analysisHTML(LM.m, true)}
+    <div class="acts"><button class="btn small" data-a="mTactics">⏸ Tactics &amp; subs</button><button class="btn go" data-a="mResume" style="margin-left:auto">Back to the game ▶</button></div>`, true);
+  drawAnalysis(LM.m);
+}
+function ftAnalysis() {
+  const m = UI.match; if (!m) return;
+  modal(`<h3>📊 Match analysis · full time</h3>${analysisHTML(m, true).replace(/<div class="chips small anafocus">[\s\S]*?<\/div>/, '')}<div class="acts"><button class="btn go" data-a="close" style="margin-left:auto">Close</button></div>`);
+  drawAnalysis(m);
 }
 function fullTime(m) {
   if (LM) { cancelAnimationFrame(LM.raf); LM = null; }
@@ -991,7 +1068,7 @@ function fullTime(m) {
     ${m.pens ? `<p class="c-y center">${m.pens[0]}-${m.pens[1]} on penalties</p>` : ''}
     <div class="scorers"><div>${goals(0)}</div><div>${goals(1)}</div></div>
     <div class="ftstats"><span>${pos}%<small>poss</small>${100 - pos}%</span><span>${S[0].sh}<small>shots</small>${S[1].sh}</span><span>${S[0].sot}<small>on tgt</small>${S[1].sot}</span></div>
-    ${m.log.some(e => e.t === 'goal') ? '<button class="btn wide" data-a="highlights">▶ Watch the goals</button>' : ''}</div>
+    <div class="ftbtns">${m.log.some(e => e.t === 'goal') ? '<button class="btn" data-a="highlights">▶ Watch the goals</button>' : ''}<button class="btn" data-a="ftAnal">📊 Analysis</button></div></div>
   ${won && m.cup && UI.fx && UI.fx.final ? `<canvas id="cupcv" class="trophycv" data-title="${UI.fx.euro ? 'KINGS OF EUROPE!' : 'CUP WINNERS!'}"></canvas>` : ''}
   <div class="panel ftrat"><h2>Your player ratings</h2><div class="ftgrid">${rated.map((x, i) => `<div>${posTag(x.p.pos)}<span class="nm">${esc(x.p.ln)}${i === 0 ? ' <span class="tag y">★</span>' : ''}${mine.gl[x.p.id] ? ' ' + '⚽'.repeat(mine.gl[x.p.id]) : ''}</span><b class="${x.r >= 7.5 ? 'c-g' : x.r < 6 ? 'c-r' : 'c-y'}">${x.r.toFixed(1)}</b></div>`).join('')}</div></div>
   <button class="btn go big wide ftgo" data-a="ftContinue">Continue ▶</button></div>`;
@@ -1246,6 +1323,11 @@ const ACT = {
     c.cash -= cost; g.build = {n: s.n, add: s.add, wk: s.wk, closed: Math.round(s.add / 4)}; save(); toast('The builders are in!'); rerender(); },
   upgrade(d) { const c = me(), g = ground(), cost = upgradeCost(d.k, c); if (g[d.k] >= 3 || c.cash < cost) return; c.cash -= cost; g[d.k]++; save(); toast(d.k === 'boxes' ? 'Executive boxes ready.' : 'Club shop open for business.'); rerender(); },
   mTactics() { closeModal(); UI.msel = null; matchTactics(); },
+  mAnal() { closeModal(); analysisModal(); },
+  anaSide(d) { UI.anaSide = +d.i; const m = LM ? LM.m : UI.match; if (!m) return; if (UI.modal && $('.mbox .anal')) { if (LM) analysisModal(); else ftAnalysis(); } else { const b = $('#mana'); if (b) { b.innerHTML = analysisHTML(m, false); drawAnalysis(m); } } },
+  mFocus(d) { if (!LM) return; const s = LM.m.sides[LM.m.userSide]; s.focus = d.k; if (UI.modal && $('.mbox .anal')) analysisModal(); else { const b = $('#mana'); if (b) { b.innerHTML = analysisHTML(LM.m, false); drawAnalysis(LM.m); } } },
+  ftAnal() { ftAnalysis(); },
+  focus(d) { me().focus = d.k; save(); rerender(); },
   mResume() { closeModal(); if (LM) { LM.paused = false; LM.busy = LM.m.done; LM.next = performance.now() + 400; } },
   mSpeed() { W.settings.speed = W.settings.speed % 3 + 1; const b = $('#spd'); if (b) b.textContent = ['', 'Slow', 'Normal', 'Fast'][W.settings.speed]; if (LM) LM.next = Math.min(LM.next, performance.now() + SPEED_MS[W.settings.speed]); },
   mSkip() { if (!LM) return; LM.skip = true; LM.paused = false; closeModal(); if (!LM.busy) LM.next = 0; else if (!LM.m.pending && !LM.m.done) LM.busy = false; },
