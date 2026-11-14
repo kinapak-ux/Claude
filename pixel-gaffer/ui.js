@@ -54,6 +54,7 @@ function render() {
     case 'sacked': app.innerHTML = sackedHTML(); break;
     case 'deadline': app.innerHTML = deadlineHTML(); break;
   }
+  if (UI.screen === 'game' && UI.tab === 'home') { fitHome(); if (document.fonts) document.fonts.ready.then(fitHome); }
   if (UI.screen !== 'match') window.scrollTo(0, UI.keepScroll || 0);
   UI.keepScroll = 0;
   MUSIC.want(['title', 'arcade', 'new'].includes(UI.screen) ? 'title' : UI.screen === 'season' ? 'anthem' : null);
@@ -201,8 +202,32 @@ function homeHTML() {
     <button class="tile" data-a="tab" data-t="news"><span>Inbox</span><b class="${unread ? 'c-r' : 'c-d'}">${unread ? unread + ' new' : '0'}</b><small>${unread ? esc(W.inbox.find(m => !m.read).subj) : 'All read'}</small></button>
   </div>
   <div class="ddticker hticker" data-a="tab" data-t="news"><span class="ddbrk">PIXTEXT</span><div class="ddmarq"><span>${esc(ticker).toUpperCase()}</span></div></div>
+  <div class="hmore">${homeExtras(c, tb)}</div>
+  <button class="btn savequit wide hsave" data-a="saveQuit">💾 Save &amp; quit to menu</button>
   </div>`;
 }
+// Extra panels for taller phones. fitHome() drops any that don't fit, so Home never scrolls.
+function homeExtras(c, tb) {
+  const i = tb.findIndex(r => r.id === c.id), from = clamp(i - 2, 0, Math.max(0, tb.length - 5));
+  const mini = `<div class="panel hx" data-a="tab" data-t="league"><h2>${DIVS[c.div]}</h2><table class="tbl league hmini"><tbody>${tb.slice(from, from + 5).map((r, k) => `<tr class="${r.id === c.id ? 'me' : ''}"><td>${from + k + 1}</td><td>${badgeImg(C(r.id), 14)}</td><td class="nm">${esc(C(r.id).name)}</td><td>${r.p}</td><td>${r.f - r.a > 0 ? '+' : ''}${r.f - r.a}</td><td><b>${r.pts}</b></td></tr>`).join('')}</tbody></table></div>`;
+  const next = [];
+  for (let w = W.week + 1; w < W.cal.length && next.length < 3; w++) {
+    const e = W.cal[w]; if (e.t !== 'L' || !W.fix[c.div][e.r]) continue;
+    const f = W.fix[c.div][e.r].find(([h, a]) => h === c.id || a === c.id); if (!f) continue;
+    const opp = C(f[0] === c.id ? f[1] : f[0]);
+    next.push(`<div class="hfx" data-a="viewOpp" data-id="${opp.id}"><span class="c-d">${dateOf(W.season, w).replace(/ \d{4}$/, '')}</span>${badgeImg(opp, 14)}<span>${esc(opp.name)}</span><b>${f[0] === c.id ? 'H' : 'A'}</b></div>`);
+  }
+  const fix = next.length ? `<div class="panel hx"><h2>Coming up</h2>${next.join('')}</div>` : '';
+  const lw = W.lastWeek, res = lw ? lw.results.filter(r => lw.cup || r.d === c.div).slice(0, 6) : [];
+  const last = res.length ? `<div class="ttx hx" data-a="tab" data-t="news"><div class="c-y">LATEST RESULTS</div>${res.map(r => resLine(r)).join('')}</div>` : '';
+  return mini + fix + last;
+}
+function fitHome() {
+  const box = $('.hmore'); if (!box) return;
+  const kids = [...box.children]; kids.forEach(k => k.style.display = '');
+  for (let n = kids.length - 1; n >= 0 && box.scrollHeight > box.clientHeight + 1; n--) kids[n].style.display = 'none';
+}
+addEventListener('resize', fitHome);
 function lastResultsTTX() {
   const mine = W.lastWeek;
   if (!mine) return '';

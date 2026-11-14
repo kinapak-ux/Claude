@@ -315,14 +315,24 @@ div.slot{cursor:pointer}
 .tile small{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tile:active{transform:translateY(1px)}
 .hticker{margin:0;cursor:pointer;flex:none}
+.home{flex:1;min-height:0}
+.home>*{flex:none}
+.home .hmore{flex:1 1 0;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:8px}
+.hmore>.hx{flex:none;margin:0;cursor:pointer}
+.hmini{font-size:18px}.hmini td{padding:2px 3px}.hmini td:nth-child(n+4){text-align:right}
+.hfx{display:grid;grid-template-columns:62px 16px 1fr auto;gap:6px;align-items:center;padding:3px 0;border-bottom:1px dashed rgba(255,255,255,.12);font-size:19px;cursor:pointer}
+.hfx span:nth-child(3){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hfx b{font-family:var(--px);font-size:8px;color:var(--yel)}
+.hmore .ttx{margin:0;padding:6px 8px;font-size:19px}
+.home .hsave{margin:0 4px 2px;padding:11px}
 .hnext .vs > span{font-size:22px;line-height:1}.hnext .vs{cursor:pointer}.hnext .vs small b{font-family:var(--px);font-size:9px;color:var(--yel);line-height:1}
 .hnext .taccheck{padding:6px 8px;gap:4px}.hnext .taccheck b{font-size:18px}
 .hnext .taccheck .btn{margin:2px}
 .hnext .derbyb{padding:5px 8px}.hnext .derbyb span{font-size:17px}
 @media (max-height:700px){.home{gap:6px;padding-top:6px}.hnext{padding:8px 10px}.hnext h2{margin-bottom:4px}.hnext .nextfx img.badge{width:30px;height:30px}.tile{padding:5px 8px}.tile b{font-size:15px;margin:1px 0}.tile .bar{height:10px;margin:3px 0 1px}}
 /* squad and tactics: one fixed screen each; only the squad list scrolls inside its box */
-body[data-tab=squad] #app,body[data-tab=tactics] #app{height:100vh;height:100dvh;display:flex;flex-direction:column;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
-body[data-tab=squad] #main,body[data-tab=tactics] #main{flex:1;min-height:0;display:flex;flex-direction:column}
+body[data-tab=home] #app,body[data-tab=squad] #app,body[data-tab=tactics] #app{height:100vh;height:100dvh;display:flex;flex-direction:column;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+body[data-tab=home] #main,body[data-tab=squad] #main,body[data-tab=tactics] #main{flex:1;min-height:0;display:flex;flex-direction:column}
 .sqpanel{flex:1;min-height:0;display:flex;flex-direction:column;margin:8px 0 4px;padding:8px 10px}
 .sqpanel h2{margin-bottom:4px}
 .sqpanel .sqsum{grid-template-columns:repeat(4,1fr);gap:4px;margin:2px 0 4px}
