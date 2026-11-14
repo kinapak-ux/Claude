@@ -84,7 +84,14 @@ addEventListener('popstate', () => { if (handleBack()) pushNav(); });
 const NAV_ORDER = ['home', 'squad', 'tactics', 'league', 'club'];
 const navParent = t => t === 'market' ? 'squad' : t === 'news' ? 'home' : t;
 let swipe = null;
-document.addEventListener('touchstart', e => { if (UI.screen !== 'game' || UI.modal || UI.tour != null || e.touches.length > 1 || (e.target.closest && e.target.closest('input,select,.mini'))) { swipe = null; return; } swipe = {x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now()}; }, {passive: true});
+// a swipe that starts on a row you can scroll sideways (subs, styles, formations) scrolls that row instead of changing screen
+function inSideScroller(el) {
+  for (; el && el !== document.body; el = el.parentElement) {
+    if (el.scrollWidth > el.clientWidth + 2 && /auto|scroll/.test(getComputedStyle(el).overflowX)) return true;
+  }
+  return false;
+}
+document.addEventListener('touchstart', e => { if (UI.screen !== 'game' || UI.modal || UI.tour != null || e.touches.length > 1 || (e.target.closest && e.target.closest('input,select,.mini')) || inSideScroller(e.target)) { swipe = null; return; } swipe = {x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now()}; }, {passive: true});
 document.addEventListener('touchend', e => {
   if (!swipe) return; const t = e.changedTouches[0], dx = t.clientX - swipe.x, dy = t.clientY - swipe.y, dt = Date.now() - swipe.t; swipe = null;
   if (Math.abs(dx) < 70 || Math.abs(dy) > 45 || dt > 700) return;
