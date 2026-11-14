@@ -54,6 +54,8 @@ function render() {
     case 'sacked': app.innerHTML = sackedHTML(); break;
     case 'deadline': app.innerHTML = deadlineHTML(); break;
   }
+  // weekly results: show every division if they fit, otherwise one division at a time with tabs
+  if (UI.screen === 'week' && !UI.wkTabs) { const r = $('.wkres'); if (r && r.scrollHeight > r.clientHeight + 1) { UI.wkTabs = true; return render(); } }
   if (UI.screen === 'game' && UI.tab === 'home') { fitHome(); if (document.fonts) document.fonts.ready.then(fitHome); }
   if (UI.screen !== 'match') window.scrollTo(0, UI.keepScroll || 0);
   UI.keepScroll = 0;
@@ -980,10 +982,14 @@ function weekHTML() {
   grew.forEach(p => p.grewShown = p.grew);
   const groups = rep.cup ? [...new Set(rep.results.map(r => r.label))].map(l => [(l || CUP_NAME).toUpperCase(), rep.results.filter(r => r.label === l)]) : [0, 1, 2, 3].map(d => [DIVS[d].toUpperCase(), rep.results.filter(r => r.d === d)]);
   groups.sort((a, b) => (b[1].some(r => r.h === c.id || r.a === c.id) ? 1 : 0) - (a[1].some(r => r.h === c.id || r.a === c.id) ? 1 : 0));
-  return `<div class="top-simple"><h2 class="px">RESULTS</h2></div>
-  <div class="ttx vidi"><div class="ttxh"><span>P303</span><span>VIDIPRINTER</span><span>${dateOf(W.season, W.week - 1).toUpperCase()}</span></div>
-    ${groups.map(([n, rs]) => `<div class="c-y">${n}</div>${rs.map(resLine).join('')}`).join('')}</div>
-  <div class="panel"><h2>Your week</h2>
+  if (UI.wkRep !== rep) { UI.wkRep = rep; UI.wkg = 0; UI.wkTabs = false; }
+  const g = groups[clamp(UI.wkg || 0, 0, groups.length - 1)] || ['', []];
+  const chipName = n => rep.cup ? (n.split('·').pop() || n).trim() : n.replace('PREMIER DIVISION', 'PREMIER').replace('DIVISION ', 'DIV ');
+  const vidi = `<div class="ttx vidi wkvidi"><div class="ttxh"><span>P303</span><span>VIDIPRINTER</span><span>${dateOf(W.season, W.week - 1).toUpperCase()}</span></div>
+    ${!UI.wkTabs ? `<div class="wkres">${groups.map(([n, rs]) => `<div class="c-y">${n}</div>${rs.map(resLine).join('')}`).join('')}</div>` : groups.length > 1 ? `<div class="chips small wkchips">${groups.map(([n], i) => `<button class="chip ${i === (UI.wkg || 0) ? 'on' : ''}" data-a="wkGroup" data-i="${i}">${esc(chipName(n))}</button>`).join('')}</div>` : `<div class="c-y">${g[0]}</div>`}
+    ${UI.wkTabs ? `<div class="wkres">${g[1].map(resLine).join('')}</div>` : ''}</div>`;
+  return `<div class="wkpage">
+  <div class="panel wkyou"><h2>Your week</h2>
     ${rep.user ? (() => { const r = rep.user, home = r.h === c.id, gf = home ? r.hg : r.ag, ga = home ? r.ag : r.hg, wl = r.win != null ? (r.win === c.id ? 'W' : 'L') : gf > ga ? 'W' : gf < ga ? 'L' : 'D'; return `<p><span class="fm ${wl}">${wl}</span> ${gf}-${ga}${r.pens ? ' (pens)' : ''} ${home ? 'v' : 'at'} ${esc(C(home ? r.a : r.h).name)}. ${r.cup ? '' : `You're ${ordinal(posIn(c.id))}.`}</p>`; })() : ''}
     ${rep.user && rep.user.derby ? `<div class="derbyb"><b>🔥 ${rep.user.derby === 'w' ? 'DERBY WIN!' : rep.user.derby === 'l' ? 'DERBY DEFEAT' : 'DERBY DRAW'}</b><span>${rep.user.derby === 'w' ? 'The town is yours. Fans, board and players all buzzing.' : rep.user.derby === 'l' ? "Fans furious, the chairman isn't happy and the lads are gutted." : 'Honours even. Nobody gets bragging rights this time.'}</span></div>` : ''}
     ${rep.user ? `<p>${rep.gate ? `Gate receipts <b class="c-g">${money(rep.gate)}</b> (${rep.user.att.toLocaleString()} fans). ` : ''}${rep.boxes ? `Boxes <b class="c-g">${money(rep.boxes)}</b>. ` : ''}Wages <b class="c-r">−${money(rep.wages)}</b>. TV <b class="c-g">${money(rep.tv)}</b>.${rep.shop ? ` Shop <b class="c-g">${money(rep.shop)}</b>.` : ''}</p>` : `<p>Wages <b class="c-r">−${money(rep.wages)}</b>. TV <b class="c-g">${money(rep.tv)}</b>.${rep.shop ? ` Shop <b class="c-g">${money(rep.shop)}</b>.` : ''}</p>`}
@@ -993,7 +999,8 @@ function weekHTML() {
     ${c.squad.map(P).filter(p => p.sus && UI.match && UI.match.sides[UI.match.userSide].reds && UI.match.sides[UI.match.userSide].reds[p.id]).map(p => `<div class="c-o">■ ${esc(pname(p))} is suspended for ${p.sus} game${p.sus > 1 ? 's' : ''}.</div>`).join('')}
     ${W.board.conf < 25 ? '<div class="c-r">The board are getting twitchy. Results, please!</div>' : ''}
   </div>
-  <div class="sticky"><button class="btn go big wide" data-a="weekDone">${rep.seasonOver ? 'End of season ▶' : 'Continue ▶'}</button></div>`;
+  ${vidi}
+  <button class="btn go big wide wkgo" data-a="weekDone">${rep.seasonOver ? 'End of season ▶' : 'Continue ▶'}</button></div>`;
 }
 
 // ---------- end of season
@@ -1189,6 +1196,7 @@ const ACT = {
   set(d, el) { W.settings[d.k] = el.checked; save(); },
   speed(d) { W.settings.speed = +d.s; save(); if (UI.modal && UI.modal.querySelector('[data-a=speed]')) settingsModal(); else rerender(); },
   ct(d) { UI.ct = d.k; render(); },
+  wkGroup(d) { UI.wkg = +d.i; render(); },
   settings() { settingsModal(); },
   resign() { if (!confirm('Resign and look for a new job?')) return; UI.season = null; const offers = jobOffers(true); modal(`<h3>Job centre</h3><p>Who's hiring?</p>${(offers.length ? offers : [pick(W.clubs.filter(x => x.div === 3 && x.id !== W.clubId)).id]).map(id => `<button class="clubpick wide" data-a="takeJob" data-id="${id}">${badgeImg(C(id), 22)}<span>${esc(C(id).name)} <small>(${DIVS[C(id).div]})</small></span></button>`).join('')}<button class="btn ghost small" data-a="close">Changed my mind</button>`); },
   openMsg(d) { const m = W.inbox.find(x => x.id === d.id); if (m) m.read = true; UI.open = UI.open === d.id ? null : d.id; save(); rerender(); },

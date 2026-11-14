@@ -1,6 +1,6 @@
 // Offline helper: always tries the network first so updates show straight away,
 // and falls back to the last saved copy when there's no signal.
-const CACHE = 'pixelgaffer-v7';
+const CACHE = 'pixelgaffer-v8';
 const SHELL = ['./', './data.js', './engine.js', './comps.js', './pixel.js', './minigames.js', './scenarios.js', './features.js', './deadline.js', './ui.js', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 const STATIC_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com', 'cdnjs.cloudflare.com', 'cdn.jsdelivr.net', 'unpkg.com'];
 
