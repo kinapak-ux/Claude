@@ -362,8 +362,34 @@ body[data-tab=tactics] .tpitch2 .slot span{max-width:60px}
 @media (max-height:700px){body[data-tab=tactics] .tacbar .btn{padding:7px 6px;font-size:9px}body[data-tab=tactics] .tpitch2 .slot{width:50px;font-size:13px}body[data-tab=tactics] .tpitch2 .slot span{max-width:50px;padding:0 2px}body[data-tab=tactics] .tpitch2 .slot i{width:14px;height:13px;border-width:2px}.tacpanel{gap:4px}.tacnote{display:none}.sqpanel .sqsum i{display:none}.tacdesc{font-size:15px}}
 .subtabs.three{grid-template-columns:1fr 1fr 1fr auto}
 .subtabs .gear{font-family:var(--vt);font-size:24px;padding:4px 12px;color:var(--yel)}
+/* bigger back buttons, and bottom buttons kept clear of the phone's own navigation bar */
+.btn.back{font-size:11px;padding:13px 16px;background:var(--yel);color:#000;box-shadow:inset -3px -3px 0 #b8901a,inset 3px 3px 0 #fff3b0,0 0 0 2px #000;margin:0 6px 0 0;flex:none}
+.top-simple{margin:6px 0 8px}
+.mback{font-size:10px!important;padding:11px 13px!important;background:var(--yel)!important;color:#000!important;border-color:#000!important}
+.subtabs button[data-t=home]{background:var(--yel);color:#000;border-color:#000}
+:root{--navgap:18px}
+/* no page scrolling: every screen fills the phone; long lists scroll inside their own box */
+body[data-screen=game] #app{height:100vh;height:100dvh;display:flex;flex-direction:column;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+body[data-screen=game] #main{flex:1;min-height:0;display:flex;flex-direction:column;overflow-y:auto}
+body[data-screen=game] #main>*{flex:none}
+body[data-screen=game] #main>.fillpanel,body[data-screen=game] #main>.fill{flex:0 1 auto;min-height:0}
+.fillpanel{display:flex;flex-direction:column;margin:8px 0 4px}
+.fillpanel>*{flex:none}
+.fill{min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.fillpanel>.fill{flex:0 1 auto}
+.fill thead th{position:sticky;top:0;background:var(--panel);z-index:1}
+.newsfill{margin-top:6px}.newsfill .ttx{margin:6px 0}
+.subtabs.four{grid-template-columns:1fr 1fr 1fr 1fr auto;gap:4px}.subtabs.four button{padding:10px 2px;font-size:7px}
+body.shell #app{height:100vh;height:100dvh;display:flex;flex-direction:column;padding-bottom:calc(var(--navgap) + env(safe-area-inset-bottom))}
+body.shell #app>*,body.shell .dd>*{flex:none}
+body.shell #app>.dd{flex:1;min-height:0;display:flex;flex-direction:column}
+body.shell #app>.pbody,body.shell .dd>.pbody{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+body.shell .sticky{position:static;padding-top:6px}
+.tpitch{max-height:32vh;object-fit:contain}
+@media (max-height:760px){.tpitch{max-height:22vh}.title{padding-top:2px}.logo span{font-size:clamp(22px,7vw,34px)}.tag-line{margin:4px 0}}
+@media (max-height:700px){.comm{min-height:110px}.logo{margin:8px 0 4px}.menu{margin:8px auto}.title .btn{padding:9px 10px}.arc p{margin:2px 0}.arc .note{display:inline;margin-right:8px}}
 /* weekly results: one screen */
-.wkpage{height:calc(100vh - 6px - env(safe-area-inset-top));height:calc(100dvh - 6px - env(safe-area-inset-top));display:flex;flex-direction:column;gap:8px;padding:2px 0 calc(6px + env(safe-area-inset-bottom))}
+.wkpage{height:calc(100vh - 6px - env(safe-area-inset-top));height:calc(100dvh - 6px - env(safe-area-inset-top));display:flex;flex-direction:column;gap:8px;padding:2px 0 calc(var(--navgap) + env(safe-area-inset-bottom))}
 body[data-screen=week] #app{padding-bottom:0}
 .wkpage>*{flex:none;margin:0}
 .wkyou{max-height:40%;overflow-y:auto;font-size:19px}.wkyou p{margin:4px 0}
@@ -374,7 +400,7 @@ body[data-screen=week] #app{padding-bottom:0}
 .wkres .res span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .wkgo{margin:auto 4px 0!important}
 /* full time: one screen */
-.ftpage{height:100vh;height:100dvh;display:flex;flex-direction:column;gap:8px;padding:8px 0 calc(6px + env(safe-area-inset-bottom))}
+.ftpage{height:calc(100vh - 6px - env(safe-area-inset-top));height:calc(100dvh - 6px - env(safe-area-inset-top));display:flex;flex-direction:column;gap:8px;padding:2px 0 calc(var(--navgap) + env(safe-area-inset-bottom))}
 body[data-screen=ft] #app{padding-bottom:0}
 .ftpage>*{flex:none;margin:0}
 .ftbox h2{margin-bottom:4px}

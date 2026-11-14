@@ -341,11 +341,11 @@ function penShoot(opts, ov) {
 // ---------- PENALTY: you're in goal. Tap where to dive. Early guess or quick reactions!
 function penSave(opts, ov) {
   const own = !ov; ov = ov || miniOverlay('SAVE IT!', '');
-  ov.hint(`${opts.taker ? pname(opts.taker) : 'They'} step${opts.taker ? 's' : ''} up... <b>tap where to dive!</b>`);
+  ov.hint(`${opts.taker ? pname(opts.taker) : 'They'} step${opts.taker ? 's' : ''} up... <b>3, 2, 1, then he shoots.</b> Watch the ball and tap where to dive!`);
   const sho = opts.taker ? opts.taker.a.sho + (opts.taker.tr === 'deadball' ? 4 : 0) : 12, gkv = opts.gk ? opts.gk.a.gk : 10;
   const gkKit = Object.assign({shirt: '#33d17a', shorts: '#1a1a1a'}, opts.gkKit || {});
   const kitT = opts.kit || {shirt: '#1d3fbf', shorts: '#fff'};
-  const sc = {phase: 'run', kx: 100, ky: 70, lean: 0, dive: null, res: null, t: 0, runT: 900 + R() * 500, trail: [],
+  const sc = {phase: 'run', kx: 100, ky: 70, lean: 0, dive: null, res: null, t: 0, runT: 1800, trail: [],
     lookT: lookOf(opts.taker ? opts.taker.id : 4), lookK: lookOf(opts.gk ? opts.gk.id + 5 : 9)};
   // where the taker goes
   const corner = R() < .5 ? -1 : 1, centre = R() < .15;
@@ -353,12 +353,13 @@ function penSave(opts, ov) {
   sc.ty = R() < .5 ? ri(46, 60) : ri(62, 78);
   const missP = clamp(.1 - (sho - 10) * .01, .02, .15);
   if (R() < missP) { if (R() < .5) sc.ty = GOAL.top - ri(3, 12); else sc.tx = 100 + corner * ri(56, 66); }
-  sc.dur = clamp(520 - sho * 9, 320, 520);
+  // slower shots and a quicker dive than before, so you can react to the ball once it's struck
+  sc.dur = clamp(660 - sho * 9, 450, 660);
   sc.reach = 11 + gkv * .35 + (opts.gk && opts.gk.tr === 'cat' ? 3 : 0);
   sc.update = dt => {
     if (sc.phase === 'run' && sc.t >= sc.runT) { sc.phase = 'fly'; sc.k0 = sc.t; SND.kick(); burst(sc, 100, 152, 6, ['#6fbf5a', '#3a7a2a'], {sp: .06, up: .04}); }
     if (sc.dive) {
-      const k = ease((sc.t - sc.dive.t0) / 300);
+      const k = ease((sc.t - sc.dive.t0) / 220);
       sc.kx = lerp(sc.dive.fx, sc.dive.x, k); sc.ky = lerp(sc.dive.fy, sc.dive.y, k); sc.lean = (sc.kx - 100) / 60;
     }
     if (sc.phase === 'fly') {
@@ -393,6 +394,8 @@ function penSave(opts, ov) {
     const legs = running ? (Math.floor(sc.t / 120) % 2 ? 'legsRunA' : 'legsRunB') : sc.t - sc.k0 < 300 ? 'legsKick' : 'legsStand';
     drawTaker(g, running ? lerp(132, 110, runK) : 110, running ? lerp(186, 172, runK) : 172, kitT, sc.lookT, legs, 2);
     drawParts(g, sc);
+    // countdown over the run-up: 3, 2, 1, then the kick
+    if (running) { const n = 3 - Math.floor(sc.t / 600); bannerText(g, String(n), '#ffd23f', sc.t, (3 - n) * 600); }
     if (sc.res) bannerText(g, {goal: 'GOAL...', saved: 'SAVED!', miss: 'MISSED!'}[sc.res], sc.res === 'goal' ? '#ff4b55' : '#3ddc5a', sc.t, sc.resT);
   };
   return runScene(ov, sc).then(r => { if (own) ov.close(); return r == null ? sc.auto() : r; });

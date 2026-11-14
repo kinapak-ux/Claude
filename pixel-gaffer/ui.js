@@ -56,6 +56,8 @@ function render() {
   }
   // weekly results: show every division if they fit, otherwise one division at a time with tabs
   if (UI.screen === 'week' && !UI.wkTabs) { const r = $('.wkres'); if (r && r.scrollHeight > r.clientHeight + 1) { UI.wkTabs = true; return render(); } }
+  shellify();
+  if (UI.screen === 'game' && UI.tab === 'league' && UI.lt === 'fix') { const f = $('.fill'), n = $('.calr.now'); if (f && n) f.scrollTop = n.offsetTop - f.offsetTop - 60; }
   if (UI.screen === 'game' && UI.tab === 'home') { fitHome(); if (document.fonts) document.fonts.ready.then(fitHome); }
   if (UI.screen !== 'match') window.scrollTo(0, UI.keepScroll || 0);
   UI.keepScroll = 0;
@@ -154,7 +156,7 @@ function newHTML() {
   const sel = UI.newClub;
   const byDiv = [0, 1, 2, 3].map(d => CLUBS.map((c, i) => ({i, c, d: Math.floor(i / 12)})).filter(x => x.d === d));
   const diff = ['Hard: big crowds, big egos, big expectations', 'Tricky: push for the top flight', 'Medium: a proper lower-league challenge', 'Classic: start at the bottom and climb!'];
-  return `<div class="top-simple"><button class="btn ghost small" data-a="toTitle">← Back</button><h2 class="px">NEW CAREER</h2></div>
+  return `<div class="top-simple"><button class="btn back" data-a="toTitle">◀ BACK</button><h2 class="px">NEW CAREER</h2></div>
   <div class="panel"><h2>Your name, gaffer</h2><input id="mname" class="txt" maxlength="16" placeholder="e.g. Big Ron" value="${esc(UI.newName || (window.FamilyScores && FamilyScores.name()) || '')}"></div>
   <div class="panel"><h2>Pick your club</h2><p class="note">New to this? Start in <b>Division Three</b> and climb the leagues.</p>
   ${byDiv.map((list, d) => `<h3 class="divh">${DIVS[d]} <small>${diff[d]}</small></h3><div class="clubgrid">${list.map(({i, c}) => `<button class="clubpick ${sel === i ? 'on' : ''}" data-a="pickClub" data-id="${i}">${badgeImg({id: i, c1: c[2], c2: c[3], pat: c[4]}, 22)}<span>${esc(c[0])}</span></button>`).join('')}</div>`).join('')}
@@ -214,6 +216,17 @@ function homeHTML() {
   <div class="hmore">${homeExtras(c, tb)}</div>
   <button class="btn savequit wide hsave" data-a="saveQuit">💾 Save &amp; quit to menu</button>
   </div>`;
+}
+// No page scrolling: on these screens the title and the bottom button stay put and only the middle scrolls, if it has to.
+const SHELL_SCREENS = ['new', 'arcade', 'prematch', 'season', 'deadline'];
+function shellify() {
+  const on = SHELL_SCREENS.includes(UI.screen); document.body.classList.toggle('shell', on); if (!on) return;
+  const app = $('#app'), root = app.children.length === 1 && app.firstElementChild.classList.contains('dd') ? app.firstElementChild : app;
+  const kids = [...root.children]; if (!kids.length) return;
+  const top = kids[0].matches('.top-simple,.ddtop') ? (kids[1] && kids[1].matches('.ddticker') ? 2 : 1) : 0;
+  const end = kids[kids.length - 1].matches('.sticky') ? kids.length - 1 : kids.length;
+  const mid = kids.slice(top, end); if (!mid.length) return;
+  const box = document.createElement('div'); box.className = 'pbody'; root.insertBefore(box, mid[0]); mid.forEach(k => box.appendChild(k));
 }
 // Extra panels for taller phones. fitHome() drops any that don't fit, so Home never scrolls.
 function homeExtras(c, tb) {
@@ -518,7 +531,7 @@ function leagueHTML() {
   } else {
     body = statsHTML(d, divs);
   }
-  return `<div class="panel">${tabs}${body}</div>`;
+  return `<div class="panel fillpanel">${tabs}<div class="fill">${body}</div></div>`;
 }
 
 // one knockout competition: who's in it, the current draw and every result so far
@@ -597,13 +610,13 @@ function marketHTML() {
   if (m.young) list = list.filter(p => p.age <= 21);
   list.sort((a, b) => estOvr(b) - estOvr(a));
   const shown = list.slice(0, 60);
-  return `<div class="subtabs"><button class="${UI.tab === 'squad' ? 'on' : ''}" data-a="tab" data-t="squad">My squad</button><button class="${UI.tab === 'market' ? 'on' : ''}" data-a="tab" data-t="market">Transfer market</button></div><div class="panel"><h2>Transfer market</h2><p class="note">Budget: <b class="${c.cash < 0 ? 'c-r' : 'c-g'}">${money(c.cash)}</b> · squad ${c.squad.length}/26 · loans in ${loansIn()}/3. Ratings like <span class="rng c-y">55-65</span> are guesses until you scout a player.</p>
+  return `<div class="subtabs"><button class="${UI.tab === 'squad' ? 'on' : ''}" data-a="tab" data-t="squad">My squad</button><button class="${UI.tab === 'market' ? 'on' : ''}" data-a="tab" data-t="market">Transfer market</button></div><div class="panel fillpanel"><h2>Transfer market</h2><p class="note">Budget: <b class="${c.cash < 0 ? 'c-r' : 'c-g'}">${money(c.cash)}</b> · squad ${c.squad.length}/26 · loans in ${loansIn()}/3. Ratings like <span class="rng c-y">55-65</span> are guesses until you scout a player.</p>
   <div class="chips">${[['all', 'All players'], ['listed', 'Transfer list'], ['free', 'Free agents'], ['mine', 'My squad']].map(([k, n]) => `<button class="chip ${m.view === k ? 'on' : ''}" data-a="mview" data-k="${k}">${n}</button>`).join('')}</div>
   <div class="chips small">${['ALL'].concat(POS).map(p => `<button class="chip ${m.pos === p ? 'on' : ''}" data-a="mpos" data-p="${p}">${p}</button>`).join('')}
     <button class="chip ${m.afford ? 'on' : ''}" data-a="mafford">Can afford</button><button class="chip ${m.young ? 'on' : ''}" data-a="myoung">21 &amp; under</button></div>
-  <table class="tbl"><thead><tr><th></th><th>Name</th><th>Age</th><th>Club</th><th>Rat</th><th>${m.view === 'mine' ? 'Value' : 'Price'}</th></tr></thead><tbody>
+  <div class="fill"><table class="tbl"><thead><tr><th></th><th>Name</th><th>Age</th><th>Club</th><th>Rat</th><th>${m.view === 'mine' ? 'Value' : 'Price'}</th></tr></thead><tbody>
   ${shown.map(p => `<tr data-a="player" data-id="${p.id}"><td>${posTag(p.pos)}</td><td class="nm">${esc(pname(p))}${p.listed ? ' <span class="tag c">L</span>' : ''}${p.loanFrom != null ? ' <span class="tag m">LOAN</span>' : ''}${known(p) && p.tr === 'wonder' ? ' <span class="c-m">◆</span>' : ''}</td><td>${p.age}</td><td>${p.club < 0 ? '<small>FREE</small>' : badgeImg(C(p.club), 14) + ' <small>' + C(p.club).short + '</small>'}</td><td>${ovrHTML(p)}</td><td>${m.view === 'mine' ? money(valueOf(p)) : p.club < 0 ? '-' : money(askingPrice(p))}</td></tr>`).join('') || '<tr><td colspan="6">Nobody matches.</td></tr>'}
-  </tbody></table>${list.length > 60 ? `<p class="note">Showing the best 60 of ${list.length}.</p>` : ''}</div>`;
+  </tbody></table>${list.length > 60 ? `<p class="note">Showing the best 60 of ${list.length}.</p>` : ''}</div></div>`;
 }
 
 // haggling: you and their chairman go back and forth; he has 3 lots of patience
@@ -662,18 +675,18 @@ function signDeal() {
 function clubHTML() {
   const c = me(), wages = c.squad.reduce((s, id) => s + P(id).wage, 0), t = W.training;
   const drillDone = W.drillWeek === W.week + W.season * 100, ct = UI.ct || 'train';
-  const tabs = `<div class="subtabs three"><button class="${ct === 'train' ? 'on' : ''}" data-a="ct" data-k="train">Training</button><button class="${ct === 'money' ? 'on' : ''}" data-a="ct" data-k="money">Money</button><button class="${ct === 'hist' ? 'on' : ''}" data-a="ct" data-k="hist">History</button><button class="gear" data-a="settings" aria-label="Settings">⚙</button></div>`;
+  const tabs = `<div class="subtabs four"><button class="${ct === 'train' ? 'on' : ''}" data-a="ct" data-k="train">Training</button><button class="${ct === 'money' ? 'on' : ''}" data-a="ct" data-k="money">Money</button><button class="${ct === 'ground' ? 'on' : ''}" data-a="ct" data-k="ground">Ground</button><button class="${ct === 'hist' ? 'on' : ''}" data-a="ct" data-k="hist">History</button><button class="gear" data-a="settings" aria-label="Settings">⚙</button></div>`;
   let body;
   if (ct === 'money') body = `<div class="panel"><h2>Finances</h2><div class="kv"><span>Bank</span><b class="${c.cash < 0 ? 'c-r' : 'c-g'}">${money(c.cash)}</b><span>Wages</span><b>${money(wages)}/wk</b><span>TV money</span><b>${money(TV[c.div])}/wk</b><span>Last gate</span><b>${W.lastGate ? money(W.lastGate.gate) + ' (' + W.lastGate.att.toLocaleString() + ' fans)' : '-'}</b></div>
     <div class="offer small"><span>Ticket price</span><button class="btn small" data-a="ticket" data-d="-1">−</button><b>£${c.ticket}</b><button class="btn small" data-a="ticket" data-d="1">+</button></div>
-    <p class="note">Cheaper tickets fill the ground, dearer ones earn more per fan. League average is £${BASE_TICKET[c.div]}.</p></div>
-  ${stadiumHTML(c)}`;
-  else if (ct === 'hist') body = `<div class="panel"><h2>The board</h2><p>Target: <b class="c-y">${esc(W.board.txt)}</b> · ${confWord(W.board.conf)} · you're ${ordinal(posIn(c.id))}</p></div>
+    <p class="note">Cheaper tickets fill the ground, dearer ones earn more per fan. League average is £${BASE_TICKET[c.div]}.</p></div>`;
+  else if (ct === 'ground') body = `<div class="fill">${stadiumHTML(c)}</div>`;
+  else if (ct === 'hist') body = `<div class="fill"><div class="panel"><h2>The board</h2><p>Target: <b class="c-y">${esc(W.board.txt)}</b> · ${confWord(W.board.conf)} · you're ${ordinal(posIn(c.id))}</p></div>
   ${rivalHTML(c)}
   <div class="panel"><h2>Trophy cabinet</h2>${W.career.trophies.length ? W.career.trophies.map(t => `<div>🏆 ${esc(t)}</div>`).join('') : '<p class="note">Empty... for now.</p>'}
     <h3 class="divh">Career</h3><p>${esc(W.name)} · ${W.career.seasons} season${W.career.seasons === 1 ? '' : 's'} · <b class="c-y">${W.career.pts}</b> manager points</p>
     ${W.history.length ? `<table class="tbl"><tbody>${W.history.map(h => `<tr><td>${seasonLabel(h.s)}</td><td>${badgeImg(C(h.club), 14)} ${C(h.club).short}</td><td>${DIVS[h.div]}</td><td>${ordinal(h.pos)}</td><td>${h.pts} pts</td></tr>`).join('')}</tbody></table>` : ''}
-    <button class="btn small" data-a="achs">🏆 Achievements</button></div>`;
+    <button class="btn small" data-a="achs">🏆 Achievements</button></div></div>`;
   else body = `<div class="panel"><h2>Training focus</h2><div class="chips">${Object.keys(TRAINING).map(k => `<button class="chip ${t.focus === k ? 'on' : ''}" data-a="train" data-k="${k}">${TRAINING[k].n}</button>`).join('')}</div>
     <p class="note">${TRAINING[t.focus].d}</p>
     <h3 class="divh">Intensity</h3><div class="chips">${INTENSITY.map((n, i) => `<button class="chip ${t.int === i ? 'on' : ''}" data-a="intensity" data-i="${i}">${n}</button>`).join('')}</div>
@@ -699,13 +712,13 @@ function settingsModal() {
 
 // ---------- NEWS (inbox)
 function newsHTML() {
-  return `<div class="subtabs"><button data-a="tab" data-t="home">◀ Home</button><button class="on">News &amp; inbox</button></div>
+  return `<div class="subtabs"><button data-a="tab" data-t="home">◀ Home</button><button class="on">News &amp; inbox</button></div><div class="fill newsfill">
   <div class="ttx"><div class="ttxh"><span>P302</span><span>PIXTEXT</span><span>FOOTBALL</span></div>
   ${W.news.slice(0, 6).map(n => `<div class="c-c">${esc(n.txt)}</div>`).join('') || '<div class="c-y">NO NEWS IS GOOD NEWS</div>'}
   ${lastResultsTTX()}</div><div class="ttx inbox"><div class="ttxh"><span>P101</span><span>PIXTEXT</span><span>MAIL</span></div>
   ${W.inbox.length ? W.inbox.map(m => `<div class="msg ${m.read ? '' : 'unread'} ${UI.open === m.id ? 'open' : ''}" data-a="openMsg" data-id="${m.id}">
     <div class="mh"><span class="c-c">${esc(m.from)}</span><span class="c-d">${dateOf(m.s, m.w).replace(/ \d{4}$/, '')}</span></div><div class="c-y">${esc(m.subj)}</div>
-    ${UI.open === m.id ? `<div class="mb">${esc(m.body)}</div>${msgActs(m)}` : ''}</div>`).join('') : '<div class="c-y">NO MESSAGES</div>'}</div>`;
+    ${UI.open === m.id ? `<div class="mb">${esc(m.body)}</div>${msgActs(m)}` : ''}</div>`).join('') : '<div class="c-y">NO MESSAGES</div>'}</div></div>`;
 }
 function msgActs(m) {
   if (!m.act) return '';
@@ -766,7 +779,7 @@ function prematchHTML() {
   const key = opp.xi.map(P).filter(Boolean).sort((a, b) => ovrOf(b) - ovrOf(a))[0];
   const theyBeat = BEATS[opp.style].includes(c.style), weBeat = BEATS[c.style].includes(opp.style);
   const pr = UI.press;
-  return `<div class="top-simple"><button class="btn ghost small" data-a="backToGame">← Back</button><h2 class="px">MATCH DAY</h2></div>
+  return `<div class="top-simple"><button class="btn back" data-a="backToGame">◀ BACK</button><h2 class="px">MATCH DAY</h2></div>
   <div class="panel"><div class="nextfx">${badgeImg(home ? c : opp, 44)}<div class="vs"><small>${fx.cup ? `${esc(fx.label)}${fx.neutral ? ' · neutral ground' : ''}` : DIVS[c.div]}</small><b>${esc((home ? c : opp).short)} v ${esc((home ? opp : c).short)}</b><small>${esc(C(fx.h).name)} v ${esc(C(fx.a).name)}</small><div class="ttags">${teamTag(C(fx.h))}<span>v</span>${teamTag(C(fx.a))}</div></div>${badgeImg(home ? opp : c, 44)}</div></div>
   ${derbyFx(fx) ? `<div class="panel">${derbyBanner(opp, true)}</div>` : ''}<div class="panel">${tacBox(c, opp)}</div>
   <div class="panel"><h2>Scout report: ${esc(opp.name)}</h2>
@@ -1032,7 +1045,7 @@ function sackedHTML() { return ''; }
 // ---------- arcade
 function arcadeHTML() {
   const b = best();
-  return `<div class="top-simple"><button class="btn ghost small" data-a="toTitle">← Back</button><h2 class="px">ARCADE</h2></div>
+  return `<div class="top-simple"><button class="btn back" data-a="toTitle">◀ BACK</button><h2 class="px">ARCADE</h2></div>
   <div class="panel arc"><h2>⚽ Keepy-uppy</h2><p>Tap the ball to keep it in the air. Tap the side of the ball to steer it.</p><p class="note">Best: ${b.keepy}</p><button class="btn go" data-a="arc" data-k="keepy">Play</button></div>
   <div class="panel arc"><h2>🎯 Free-kick challenge</h2><p>Ten free kicks. Aim, curl, power. Bend it round the wall!</p><p class="note">Best: ${b.fk}/10</p><button class="btn go" data-a="arc" data-k="fk">Play</button></div>
   <div class="panel arc"><h2>🥅 Penalty shoot-out</h2><p>Five each, then sudden death. Take yours, then dive to save theirs.</p><p class="note">Shoot-outs won: ${b.pens}</p><button class="btn go" data-a="arc" data-k="pens">Play</button></div>`;
