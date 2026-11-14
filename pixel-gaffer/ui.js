@@ -40,7 +40,7 @@ function portrait(p, size) {
 // ---------- rendering
 function render() {
   const app = $('#app');
-  document.body.dataset.screen = UI.screen;
+  document.body.dataset.screen = UI.screen; document.body.dataset.tab = UI.screen === 'game' ? UI.tab : '';
   stopTitle();
   switch (UI.screen) {
     case 'title': app.innerHTML = titleHTML(); startTitle(); break;
@@ -314,7 +314,7 @@ function squadHTML() {
   const tvPct = Math.round(TV[c.div] / Math.max(1, wages) * 100), expiring = list.filter(p => p.loanFrom == null && p.con <= 1).length;
   const top = list.filter(p => p.s.gl).sort((a, b) => b.s.gl - a.s.gl)[0];
   const head = (k, label) => `<th data-a="sqSort" data-k="${k}" class="srt${srt && srt.k === k ? ' on' : ''}">${label}${srt && srt.k === k ? (srt.d > 0 ? '▼' : '▲') : ''}</th>`;
-  return `<div class="subtabs"><button class="${UI.tab === 'squad' ? 'on' : ''}" data-a="tab" data-t="squad">My squad</button><button class="${UI.tab === 'market' ? 'on' : ''}" data-a="tab" data-t="market">Transfer market</button></div><div class="panel"><h2>First-team squad (${list.length})</h2>
+  return `<div class="subtabs"><button class="${UI.tab === 'squad' ? 'on' : ''}" data-a="tab" data-t="squad">My squad</button><button class="${UI.tab === 'market' ? 'on' : ''}" data-a="tab" data-t="market">Transfer market</button></div><div class="panel sqpanel"><h2>First-team squad (${list.length})</h2>
   <div class="sqsum">
     <div><span>Wages/wk</span><b>${money(wages)}</b><i class="${tvPct >= 100 ? 'c-g' : tvPct >= 50 ? 'c-y' : 'c-r'}">TV covers ${tvPct}%</i></div>
     <div><span>Squad value</span><b>${money(value)}</b><i>${expiring ? `<span class="c-o">${expiring} expiring soon</span>` : 'Contracts OK'}</i></div>
@@ -322,10 +322,9 @@ function squadHTML() {
     <div><span>Avg rating</span><b class="${ovrCol(Math.round(avgRat))}">${Math.round(avgRat)}</b><i>${top ? `Top scorer ${esc(top.ln)} ${top.s.gl}` : 'No goals yet'}</i></div>
   </div>
   <div class="sqviews">${SQ_VIEWS.map(([k, l]) => `<button class="chip${view === k ? ' on' : ''}" data-a="sqView" data-v="${k}">${l}</button>`).join('')}</div>
-  <p class="note">Tap a player for details, to sell him or to give him a new contract. Tap a column to sort${srt ? ', or <span class="lnk" data-a="sqSort" data-k="">reset</span>' : ''}.</p>
-  <table class="tbl squad"><thead><tr><th></th><th data-a="sqSort" data-k="" class="srt">Name</th>${cols.map(x => head(x[0], x[1])).join('')}</tr></thead><tbody>
+  <div class="sqscroll"><table class="tbl squad"><thead><tr><th></th><th data-a="sqSort" data-k="" class="srt">Name</th>${cols.map(x => head(x[0], x[1])).join('')}</tr></thead><tbody>
   ${list.map(p => `<tr data-a="player" data-id="${p.id}" class="${c.xi && c.xi.includes(p.id) ? 'xi' : ''}"><td>${posTag(p.pos)}</td><td class="nm">${esc(pname(p))}${p.tr ? ' <span class="c-m">◆</span>' : ''} ${status(p)}${p.loanFrom != null ? '<span class="tag m">LOAN</span>' : ''}</td>${cols.map(x => `<td>${x[3](p)}</td>`).join('')}</tr>`).join('')}
-  </tbody></table>${(() => { const out = Object.values(W.players).filter(p => p.loanFrom === c.id); return out.length ? `<h3 class="divh">Out on loan</h3>${out.map(p => `<div class="row" data-a="player" data-id="${p.id}">${posTag(p.pos)} ${esc(pname(p))} at ${badgeImg(C(p.club), 14)} ${esc(C(p.club).name)} · ${p.s.ap} apps</div>`).join('')}` : ''; })()}<p class="note"><span class="xi-key"></span> = in your starting eleven · ◆ = special trait${view === 'sea' ? ' · Avg = average match rating' : ''}</p></div>`;
+  </tbody></table>${(() => { const out = Object.values(W.players).filter(p => p.loanFrom === c.id); return out.length ? `<h3 class="divh">Out on loan</h3>${out.map(p => `<div class="row" data-a="player" data-id="${p.id}">${posTag(p.pos)} ${esc(pname(p))} at ${badgeImg(C(p.club), 14)} ${esc(C(p.club).name)} · ${p.s.ap} apps</div>`).join('')}` : ''; })()}</div><p class="note sqkey"><span class="xi-key"></span> starting XI · ◆ trait · tap to sort${srt ? ' · <span class="lnk" data-a="sqSort" data-k="">reset sort</span>' : ''}</p></div>`;
 }
 function playerModal(id) {
   const p = P(id); if (!p) return;
@@ -377,15 +376,16 @@ function tacticsTop() {
 function tacticsHTML() {
   const c = me(); fixTeam(c);
   const st = STYLES[c.style];
-  return tacticsTop() + `<div class="panel"><h2>Formation</h2><div class="chips">${Object.keys(FORMS).map(f => `<button class="chip ${c.formation === f ? 'on' : ''}" data-a="form" data-f="${f}">${f}</button>`).join('')}</div>
-    ${pitchHTML(c, true)}
-    <p class="note">Tap a shirt to change who plays there. <span class="c-r">Red</span> = out of position.</p>
-    <div class="bench"><b>Subs:</b> ${c.bench.map((id, k) => `<button class="chip ${UI.sel === 'b' + k ? 'on' : ''}" data-a="slot" data-k="b${k}">${posTag(P(id).pos)} ${esc(P(id).ln)}</button>`).join('')} ${c.bench.length < 5 ? `<button class="chip" data-a="slot" data-k="b${c.bench.length}">+ add</button>` : ''}</div>
-    <div class="acts"><button class="btn small" data-a="autoPick">Assistant: pick my best team</button>
-    <label class="tog"><input type="checkbox" data-a="toggleAuto" ${W.settings.autoPick ? 'checked' : ''}> Assistant picks the team every week</label></div>
-  </div>
-  <div class="panel"><h2>Playing style</h2><div class="chips">${Object.keys(STYLES).map(k => `<button class="chip ${c.style === k ? 'on' : ''}" data-a="style" data-s="${k}">${STYLES[k].n}</button>`).join('')}</div>
-    <p><b class="c-y">${st.n}:</b> ${st.d}</p><p class="note">Works well against: ${BEATS[c.style].map(s => STYLES[s].n).join(', ')}. Check the scout report before each game.</p></div>`;
+  return tacticsTop() + `<div class="panel tacpanel">
+    <div class="chips tacrow"><span class="tlab">Shape</span>${Object.keys(FORMS).map(f => `<button class="chip ${c.formation === f ? 'on' : ''}" data-a="form" data-f="${f}">${f}</button>`).join('')}</div>
+    <div class="pitchbox">${pitchHTML(c, true)}</div>
+    <p class="note tacnote">Tap a shirt to swap. <span class="c-r">Red</span> = out of position.</p>
+    <div class="bench tacrow"><span class="tlab">Subs</span>${c.bench.map((id, k) => `<button class="chip ${UI.sel === 'b' + k ? 'on' : ''}" data-a="slot" data-k="b${k}">${posTag(P(id).pos)} ${esc(P(id).ln)}</button>`).join('')} ${c.bench.length < 5 ? `<button class="chip" data-a="slot" data-k="b${c.bench.length}">+ add</button>` : ''}</div>
+    <div class="acts tacauto"><button class="btn small" data-a="autoPick">Pick best XI</button>
+    <label class="tog"><input type="checkbox" data-a="toggleAuto" ${W.settings.autoPick ? 'checked' : ''}> Auto-pick weekly</label></div>
+    <div class="chips tacrow"><span class="tlab">Style</span>${Object.keys(STYLES).map(k => `<button class="chip ${c.style === k ? 'on' : ''}" data-a="style" data-s="${k}">${STYLES[k].n}</button>`).join('')}</div>
+    <p class="note tacdesc"><b class="c-y">${st.n}:</b> ${st.d} <span class="c-g">Beats ${BEATS[c.style].map(s => STYLES[s].n).join(', ')}.</span></p>
+  </div>`;
 }
 // a look at any other club: their likely team, style and best players
 function oppModal(id) {
