@@ -945,23 +945,26 @@ function matchTactics() {
 function fullTime(m) {
   if (LM) { cancelAnimationFrame(LM.raf); LM = null; }
   closeModal();
-  UI.match = m; UI.screen = 'ft';
+  UI.match = m; UI.screen = 'ft'; document.body.dataset.screen = 'ft';
   const S = m.sides, us = m.userSide >= 0 ? m.userSide : (S[0].id === W.clubId ? 0 : 1), mine = S[us];
   m.userSide = us;
   const won = m.winner() === us, lost = m.winner() === 1 - us;
   if (won) SND.good(); else if (lost) SND.bad();
-  const goals = side => m.log.filter(e => e.t === 'goal' && e.s === side).map(e => `${esc(pname(P(e.pid)))} ${e.m}'${e.kind === 'pen' ? ' (pen)' : ''}`).join('<br>') || '&nbsp;';
+  // one line per scorer: "Booth 25', 82' (p)"
+  const goals = side => { const by = {}; m.log.filter(e => e.t === 'goal' && e.s === side).forEach(e => { (by[e.pid] = by[e.pid] || []).push(e.m + "'" + (e.kind === 'pen' ? ' (p)' : '')); });
+    return Object.entries(by).map(([pid, ms]) => `<div>${esc(P(pid) ? P(pid).ln : '?')} <span class="c-d">${ms.join(', ')}</span></div>`).join('') || '&nbsp;'; };
   const rated = [...mine.played].filter(id => P(id)).map(id => ({p: P(id), r: clamp(Math.round(mine.rt[id] * 10) / 10, 3, 10)})).sort((a, b) => b.r - a.r);
-  $('#app').innerHTML = `<div class="top-simple"><h2 class="px">FULL TIME</h2></div>
-  <div class="panel ftbox"><div class="ftscore"><div>${badgeImg(S[0].c, 40)}<b>${esc(S[0].c.short)}</b></div><div class="big">${S[0].g} - ${S[1].g}</div><div>${badgeImg(S[1].c, 40)}<b>${esc(S[1].c.short)}</b></div></div>
+  const pos = Math.round(S[0].poss / Math.max(1, S[0].poss + S[1].poss) * 100);
+  $('#app').innerHTML = `<div class="ftpage">
+  <div class="panel ftbox"><h2>Full time · <span class="${won ? 'c-g' : lost ? 'c-r' : 'c-y'}">${won ? 'Victory!' : lost ? 'Defeat' : 'A draw'}</span></h2>
+    <div class="ftscore"><div>${badgeImg(S[0].c, 32)}<b>${esc(S[0].c.short)}</b></div><div class="big">${S[0].g} - ${S[1].g}</div><div>${badgeImg(S[1].c, 32)}<b>${esc(S[1].c.short)}</b></div></div>
     ${m.pens ? `<p class="c-y center">${m.pens[0]}-${m.pens[1]} on penalties</p>` : ''}
     <div class="scorers"><div>${goals(0)}</div><div>${goals(1)}</div></div>
-    <p class="center ${won ? 'c-g' : lost ? 'c-r' : 'c-y'} px">${won ? 'VICTORY!' : lost ? 'DEFEAT' : 'A DRAW'}</p>
+    <div class="ftstats"><span>${pos}%<small>poss</small>${100 - pos}%</span><span>${S[0].sh}<small>shots</small>${S[1].sh}</span><span>${S[0].sot}<small>on tgt</small>${S[1].sot}</span></div>
     ${m.log.some(e => e.t === 'goal') ? '<button class="btn wide" data-a="highlights">▶ Watch the goals</button>' : ''}</div>
   ${won && m.cup && UI.fx && UI.fx.final ? `<canvas id="cupcv" class="trophycv" data-title="${UI.fx.euro ? 'KINGS OF EUROPE!' : 'CUP WINNERS!'}"></canvas>` : ''}
-  <div class="panel"><h2>Stats</h2><div class="mstats">${(() => { const pos = Math.round(S[0].poss / Math.max(1, S[0].poss + S[1].poss) * 100); return `<span>${pos}%</span><span>Possession</span><span>${100 - pos}%</span><span>${S[0].sh}</span><span>Shots</span><span>${S[1].sh}</span><span>${S[0].sot}</span><span>On target</span><span>${S[1].sot}</span>`; })()}</div></div>
-  <div class="panel"><h2>Your player ratings</h2><table class="tbl"><tbody>${rated.map((x, i) => `<tr><td>${posTag(x.p.pos)}</td><td class="nm">${esc(pname(x.p))}${i === 0 ? ' <span class="tag y">STAR</span>' : ''}${mine.gl[x.p.id] ? ' ' + '⚽'.repeat(mine.gl[x.p.id]) : ''}</td><td class="${x.r >= 7.5 ? 'c-g' : x.r < 6 ? 'c-r' : 'c-y'}">${x.r.toFixed(1)}</td></tr>`).join('')}</tbody></table></div>
-  <div class="sticky"><button class="btn go big wide" data-a="ftContinue">Continue ▶</button></div>`;
+  <div class="panel ftrat"><h2>Your player ratings</h2><div class="ftgrid">${rated.map((x, i) => `<div>${posTag(x.p.pos)}<span class="nm">${esc(x.p.ln)}${i === 0 ? ' <span class="tag y">★</span>' : ''}${mine.gl[x.p.id] ? ' ' + '⚽'.repeat(mine.gl[x.p.id]) : ''}</span><b class="${x.r >= 7.5 ? 'c-g' : x.r < 6 ? 'c-r' : 'c-y'}">${x.r.toFixed(1)}</b></div>`).join('')}</div></div>
+  <button class="btn go big wide ftgo" data-a="ftContinue">Continue ▶</button></div>`;
   window.scrollTo(0, 0);
   if ($('#cupcv')) { trophyScene($('#cupcv'), kitOf(mine.c), $('#cupcv').dataset.title); MUSIC.want('anthem'); }
 }
