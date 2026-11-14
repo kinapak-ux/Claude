@@ -115,6 +115,8 @@ const TALK = {
 };
 const say = (t, o) => pick(TALK[t]).replace('{p}', o.p || '').replace('{q}', o.q || '').replace('{k}', o.k || '');
 
+const HEAT_W = 10, HEAT_H = 6, CH_Y = {L: .15, C: .5, R: .85}, CH_NAME = {L: 'left', C: 'centre', R: 'right'};
+const chanOf = y => y < .36 ? 'L' : y > .64 ? 'R' : 'C';
 class Match {
   constructor(hId, aId, opts) {
     opts = opts || {};
@@ -123,7 +125,8 @@ class Match {
     this.sides = [hId, aId].map(id => {
       const c = C(id); fixTeam(c);
       return {id, c, on: c.xi.map(x => x != null && P(x) ? x : null), bench: c.bench.filter(x => P(x)), subsLeft: 3, style: c.style, form: c.formation, g: 0, sh: 0, sot: 0, poss: 0, rc: 0,
-        yc: {}, rt: {}, gl: {}, as: {}, fit: {}, played: new Set(c.xi.filter(x => x != null))};
+        yc: {}, rt: {}, gl: {}, as: {}, fit: {}, played: new Set(c.xi.filter(x => x != null)),
+        focus: c.focus || 'mix', heat: new Array(HEAT_W * HEAT_H).fill(0), chan: {L: 0, C: 0, R: 0}, chanSh: {L: 0, C: 0, R: 0}, chanG: {L: 0, C: 0, R: 0}};
     });
     this.sides.forEach(s => s.on.forEach(id => { if (id != null) { s.rt[id] = 6; s.fit[id] = P(id).fit; } }));
   }
@@ -165,6 +168,51 @@ class Match {
   keeper(s) { const slots = this.slots(s); return s.on.find((id, k) => id != null && slots[k] === 'GK') ?? s.on.find(id => id != null); }
   bestTaker(s) { const l = s.on.filter(id => id != null && P(id)); if (!l.length) return null; return l.map(P).sort((a, b) => (b.a.sho + (b.tr === 'deadball' ? 6 : 0)) - (a.a.sho + (a.tr === 'deadball' ? 6 : 0)))[0].id; }
   ev(e) { e.m = this.minute; this.log.push(e); return e; }
+  // ---- spatial picture (left / centre / right), from the formation spots of the players on the pitch.
+  // y in FORMS runs across the pitch: low = the team's left flank.
+  chanPower(i) {
+    const s = this.sides[i], spots = FORMS[s.form] || FORMS['4-4-2'], slots = this.slots(s), att = {L: 1, C: 1, R: 1}, def = {L: 1, C: 1, R: 1};
+    s.on.forEach((id, k) => {
+      if (id == null || !P(id) || !spots[k]) return; const a = P(id).a, m = this.eff(s, id, slots[k]), ch = chanOf(spots[k][1]);
+      if (slots[k] === 'FW') att[ch] += (a.sho * .5 + a.pac * .3 + a.pas * .2) * m;
+      if (slots[k] === 'MF') { att[ch] += (a.pas * .4 + a.sho * .2 + a.pac * .2) * m; def[ch] += a.tkl * .5 * m; }
+      if (slots[k] === 'DF') { att[ch] += a.pac * .12 * m; def[ch] += (a.tkl * .7 + a.pac * .3) * m; }
+    });
+    return {att, def};
+  }
+  // our attack in a channel against their defence on the matching side (our left faces their right)
+  chanRatios(at) {
+    const us = this.chanPower(at), them = this.chanPower(1 - at), mir = {L: 'R', C: 'C', R: 'L'}, r = {};
+    ['L', 'C', 'R'].forEach(ch => { r[ch] = us.att[ch] / them.def[mir[ch]]; });
+    return r;
+  }
+  pickChannel(at) {
+    const s = this.sides[at], us = this.chanPower(at).att, f = s.focus || 'mix';
+    return wpick(['L', 'C', 'R'], ch => us[ch] * (f === 'mix' ? 1 : f === ch ? 2.6 : .55));
+  }
+  chanMod(at, ch) {
+    const r = this.chanRatios(at), avg = (r.L + r.C + r.R) / 3;
+    return clamp(Math.sqrt(r[ch] / avg), .88, 1.12);
+  }
+  heatAdd(s, x, y, w) {
+    const cx = clamp(Math.floor(x * HEAT_W), 0, HEAT_W - 1), cy = clamp(Math.floor(y * HEAT_H), 0, HEAT_H - 1);
+    s.heat[cy * HEAT_W + cx] += w;
+  }
+  // where the ball was this minute: one of the side's players, weighted by role and style (cosmetic, own random)
+  heatPoss(at) {
+    const s = this.sides[at], spots = FORMS[s.form] || FORMS['4-4-2'], slots = this.slots(s), lb = s.style === 'long';
+    const c = s.on.map((id, k) => ({id, k})).filter(o => o.id != null && spots[o.k]);
+    if (!c.length) return;
+    let tot = 0; const ws = c.map(o => { const w = {GK: .3, DF: lb ? 2 : 1.4, MF: lb ? .8 : 3, FW: lb ? 2.4 : 1.2}[slots[o.k]]; tot += w; return w; });
+    let r = Math.random() * tot, o = c[0]; for (let n = 0; n < c.length; n++) { r -= ws[n]; if (r <= 0) { o = c[n]; break; } }
+    const [x, y] = spots[o.k];
+    this.heatAdd(s, clamp(x + .1 + Math.random() * .22, 0, .99), clamp(y + (Math.random() - .5) * .22, 0, .99), 1);
+  }
+  analysis(i) {
+    const s = this.sides[i], n = s.chan.L + s.chan.C + s.chan.R, pc = ch => n ? Math.round(s.chan[ch] / n * 100) : 0;
+    const r = this.chanRatios(i), best = ['L', 'C', 'R'].sort((a, b) => r[b] - r[a])[0];
+    return {heat: s.heat, n, pct: {L: pc('L'), C: pc('C'), R: pc('R')}, sh: s.chanSh, g: s.chanG, ratio: r, best, focus: s.focus};
+  }
   // One minute of football. Returns the events of that minute.
   step() {
     if (this.done || this.pending) return [];
@@ -180,13 +228,17 @@ class Match {
     const tempo = (STYLES[A.style].tempo + STYLES[D.style].tempo) / 2;
     // tiredness
     S.forEach(s => s.on.forEach(id => { if (id == null) return; const p = P(id); s.fit[id] = Math.max(5, s.fit[id] - .2 * STYLES[s.style].fat * (p.tr === 'engine' ? .5 : 1) * (.7 + R() * .6) * (p.age > 31 ? 1.2 : 1)); }));
+    this.heatPoss(at);
     if (R() < .5 * tempo) {
-      const r = pw[at].att / (pw[at].att + pw[df].def * .52);
+      // which channel the move goes down (left, centre, right), and how well that suits us
+      const ch = this.pickChannel(at); A.chan[ch]++; this.heatAdd(A, .78 + Math.random() * .2, CH_Y[ch] + (Math.random() - .5) * .3, 2);
+      const r = pw[at].att / (pw[at].att + pw[df].def * .52) * this.chanMod(at, ch); this.lastCh = ch;
       if (R() < clamp(.36 + (r - .5) * .9, .1, .7)) {
         const x = R();
         if (x < .028) out.push(this.setPiece(at, 'pen'));
         else if (x < .075) out.push(this.setPiece(at, 'fk'));
         else out.push(this.shot(at, r));
+        A.chanSh[this.lastCh]++; const e = out[out.length - 1]; if (e && e.t === 'goal') { A.chanG[this.lastCh]++; e.ch = this.lastCh; }
       } else if (R() < .25) {
         const p = this.pickOther(A), q = this.pickOther(A, p);
         if (p && q) out.push(this.ev({t: 'build', s: at, pid: p, txt: say('build', {p: pname(P(p)), q: pname(P(q))})}));
