@@ -626,34 +626,41 @@ function signDeal() {
 
 // ---------- CLUB
 function clubHTML() {
-  const c = me(), wages = c.squad.reduce((s, id) => s + P(id).wage, 0), t = W.training, b = best();
-  const drillDone = W.drillWeek === W.week + W.season * 100;
-  return `<button class="btn savequit wide" data-a="saveQuit">💾 Save &amp; quit to menu</button><div class="panel"><h2>The board</h2>${bar(W.board.conf, 100, W.board.conf > 60 ? 'g' : W.board.conf > 30 ? 'y' : 'r')}<p>${confWord(W.board.conf)}. Season target: <b class="c-y">${esc(W.board.txt)}</b>. You're ${ordinal(posIn(c.id))}.</p></div>
-  <div class="panel"><h2>Training</h2><div class="chips">${Object.keys(TRAINING).map(k => `<button class="chip ${t.focus === k ? 'on' : ''}" data-a="train" data-k="${k}">${TRAINING[k].n}</button>`).join('')}</div>
-    <p class="note">${TRAINING[t.focus].d} Young players improve fastest. Players who reach their potential stop improving.</p>
-    <div class="chips small">${INTENSITY.map((n, i) => `<button class="chip ${t.int === i ? 'on' : ''}" data-a="intensity" data-i="${i}">${n}</button>`).join('')}</div>
-    <p class="note">${['Light: fewer knocks, slower progress, fresher legs.', 'Normal: a sensible week.', 'Hard: faster progress, but tired legs and more injuries.'][t.int]}</p>
-    <h3 class="divh">Drill of the week</h3>
-    ${drillDone ? `<p class="c-g">Done this week! Training bonus +${Math.round((W.drill || 0) * 100)}%.</p>` : `<p class="note">Run a drill with the lads for a training bonus this week.</p><div class="acts"><button class="btn" data-a="drill" data-k="keepy">⚽ Keepy-uppy</button><button class="btn" data-a="drill" data-k="fk">🎯 Free-kick practice</button></div>`}
-  </div>
-  <div class="panel"><h2>Finances</h2><div class="kv"><span>Bank</span><b class="${c.cash < 0 ? 'c-r' : 'c-g'}">${money(c.cash)}</b><span>Wages</span><b>${money(wages)}/wk</b><span>TV money</span><b>${money(TV[c.div])}/wk</b><span>Last gate</span><b>${W.lastGate ? money(W.lastGate.gate) + ' (' + W.lastGate.att.toLocaleString() + ' fans)' : '-'}</b></div>
+  const c = me(), wages = c.squad.reduce((s, id) => s + P(id).wage, 0), t = W.training;
+  const drillDone = W.drillWeek === W.week + W.season * 100, ct = UI.ct || 'train';
+  const tabs = `<div class="subtabs three"><button class="${ct === 'train' ? 'on' : ''}" data-a="ct" data-k="train">Training</button><button class="${ct === 'money' ? 'on' : ''}" data-a="ct" data-k="money">Money</button><button class="${ct === 'hist' ? 'on' : ''}" data-a="ct" data-k="hist">History</button><button class="gear" data-a="settings" aria-label="Settings">⚙</button></div>`;
+  let body;
+  if (ct === 'money') body = `<div class="panel"><h2>Finances</h2><div class="kv"><span>Bank</span><b class="${c.cash < 0 ? 'c-r' : 'c-g'}">${money(c.cash)}</b><span>Wages</span><b>${money(wages)}/wk</b><span>TV money</span><b>${money(TV[c.div])}/wk</b><span>Last gate</span><b>${W.lastGate ? money(W.lastGate.gate) + ' (' + W.lastGate.att.toLocaleString() + ' fans)' : '-'}</b></div>
     <div class="offer small"><span>Ticket price</span><button class="btn small" data-a="ticket" data-d="-1">−</button><b>£${c.ticket}</b><button class="btn small" data-a="ticket" data-d="1">+</button></div>
     <p class="note">Cheaper tickets fill the ground, dearer ones earn more per fan. League average is £${BASE_TICKET[c.div]}.</p></div>
-  ${stadiumHTML(c)}
+  ${stadiumHTML(c)}`;
+  else if (ct === 'hist') body = `<div class="panel"><h2>The board</h2><p>Target: <b class="c-y">${esc(W.board.txt)}</b> · ${confWord(W.board.conf)} · you're ${ordinal(posIn(c.id))}</p></div>
   ${rivalHTML(c)}
   <div class="panel"><h2>Trophy cabinet</h2>${W.career.trophies.length ? W.career.trophies.map(t => `<div>🏆 ${esc(t)}</div>`).join('') : '<p class="note">Empty... for now.</p>'}
     <h3 class="divh">Career</h3><p>${esc(W.name)} · ${W.career.seasons} season${W.career.seasons === 1 ? '' : 's'} · <b class="c-y">${W.career.pts}</b> manager points</p>
-    ${W.history.length ? `<table class="tbl"><tbody>${W.history.map(h => `<tr><td>${seasonLabel(h.s)}</td><td>${badgeImg(C(h.club), 14)} ${C(h.club).short}</td><td>${DIVS[h.div]}</td><td>${ordinal(h.pos)}</td><td>${h.pts} pts</td></tr>`).join('')}</tbody></table>` : ''}</div>
-  <div class="panel"><h2>Achievements</h2>${achHTML()}</div>
-  <div class="panel"><h2>Settings</h2>
+    ${W.history.length ? `<table class="tbl"><tbody>${W.history.map(h => `<tr><td>${seasonLabel(h.s)}</td><td>${badgeImg(C(h.club), 14)} ${C(h.club).short}</td><td>${DIVS[h.div]}</td><td>${ordinal(h.pos)}</td><td>${h.pts} pts</td></tr>`).join('')}</tbody></table>` : ''}
+    <button class="btn small" data-a="achs">🏆 Achievements</button></div>`;
+  else body = `<div class="panel"><h2>Training focus</h2><div class="chips">${Object.keys(TRAINING).map(k => `<button class="chip ${t.focus === k ? 'on' : ''}" data-a="train" data-k="${k}">${TRAINING[k].n}</button>`).join('')}</div>
+    <p class="note">${TRAINING[t.focus].d}</p>
+    <h3 class="divh">Intensity</h3><div class="chips">${INTENSITY.map((n, i) => `<button class="chip ${t.int === i ? 'on' : ''}" data-a="intensity" data-i="${i}">${n}</button>`).join('')}</div>
+    <p class="note">${['Light: fewer knocks, slower progress, fresher legs.', 'Normal: a sensible week.', 'Hard: faster progress, but tired legs and more injuries.'][t.int]}</p></div>
+  <div class="panel"><h2>Drill of the week</h2>
+    ${drillDone ? `<p class="c-g">Done this week! Training bonus +${Math.round((W.drill || 0) * 100)}%.</p>` : `<p class="note">Run one for a training bonus this week.</p><div class="acts"><button class="btn" data-a="drill" data-k="keepy">⚽ Keepy-uppy</button><button class="btn" data-a="drill" data-k="fk">🎯 Free-kick practice</button></div>`}</div>`;
+  return tabs + body;
+}
+// settings, saving and resigning live behind the gear button on the Club tab
+function settingsModal() {
+  const b = best();
+  modal(`<h3>⚙ Settings</h3>
+    <button class="btn savequit wide" data-a="saveQuit">💾 Save &amp; quit to menu</button>
     <label class="tog"><input type="checkbox" data-a="set" data-k="mini" ${W.settings.mini ? 'checked' : ''}> Play penalties and free kicks yourself in matches</label>
     <label class="tog"><input type="checkbox" data-a="set" data-k="sound" ${W.settings.sound ? 'checked' : ''}> Sound</label>
     <label class="tog"><input type="checkbox" data-a="set" data-k="zoom" ${W.settings.zoom !== false ? 'checked' : ''}> Close-up match camera (off = whole pitch)</label>
     <div class="chips small">Match speed: ${['Slow', 'Normal', 'Fast'].map((n, i) => `<button class="chip ${W.settings.speed === i + 1 ? 'on' : ''}" data-a="speed" data-s="${i + 1}">${n}</button>`).join('')}</div>
     <label class="tog"><input type="checkbox" data-a="musicSet" ${MUSIC.on ? 'checked' : ''}> Music on the title and season screens</label>
     <div class="acts"><button class="btn small" data-a="backup">💾 Back up this career</button><button class="btn small" data-a="slots">Saved careers</button><button class="btn small" data-a="tour">Replay the tour</button></div>
-    <div class="acts"><button class="btn small bad" data-a="resign">Resign</button></div>
-    <p class="note">Best: keepy-uppy ${b.keepy} · free-kick challenge ${b.fk}/10</p></div>`;
+    <p class="note">Best: keepy-uppy ${b.keepy} · free-kick challenge ${b.fk}/10</p>
+    <div class="acts"><button class="btn small bad" data-a="resign">Resign</button><button class="btn go" data-a="close" style="margin-left:auto">Done</button></div>`);
 }
 
 // ---------- NEWS (inbox)
@@ -1071,7 +1078,7 @@ const ACT = {
   achs() { modal(`<h3>🏆 Achievements</h3>${achHTML()}<button class="btn go" data-a="close">Close</button>`); },
   musicToggle() { MUSIC.on = !MUSIC.on; if (MUSIC.on) MUSIC.want('title'); rerender(); },
   musicSet(d, el) { MUSIC.on = el.checked; },
-  tour() { startTour(); },
+  tour() { closeModal(); startTour(); },
   tourNext() { UI.tour++; showTour(); },
   tourEnd() { endTour(); },
   scout(d) { const c = me(), cost = scoutCost(); if (c.cash < cost) return toast("You can't afford the scout."); c.cash -= cost; scoutPlayers([+d.id]); save(); toast('Your scout has seen him play. Full report ready!'); playerModal(+d.id); },
@@ -1145,7 +1152,9 @@ const ACT = {
   drill(d) { drill(d.k); },
   ticket(d) { const c = me(), base = BASE_TICKET[c.div]; c.ticket = clamp(c.ticket + +d.d, Math.ceil(base * .5), base * 2); save(); rerender(); },
   set(d, el) { W.settings[d.k] = el.checked; save(); },
-  speed(d) { W.settings.speed = +d.s; save(); rerender(); },
+  speed(d) { W.settings.speed = +d.s; save(); if (UI.modal && UI.modal.querySelector('[data-a=speed]')) settingsModal(); else rerender(); },
+  ct(d) { UI.ct = d.k; render(); },
+  settings() { settingsModal(); },
   resign() { if (!confirm('Resign and look for a new job?')) return; UI.season = null; const offers = jobOffers(true); modal(`<h3>Job centre</h3><p>Who's hiring?</p>${(offers.length ? offers : [pick(W.clubs.filter(x => x.div === 3 && x.id !== W.clubId)).id]).map(id => `<button class="clubpick wide" data-a="takeJob" data-id="${id}">${badgeImg(C(id), 22)}<span>${esc(C(id).name)} <small>(${DIVS[C(id).div]})</small></span></button>`).join('')}<button class="btn ghost small" data-a="close">Changed my mind</button>`); },
   openMsg(d) { const m = W.inbox.find(x => x.id === d.id); if (m) m.read = true; UI.open = UI.open === d.id ? null : d.id; save(); rerender(); },
   bidYes(d) { answerBid(d.id, true); },
