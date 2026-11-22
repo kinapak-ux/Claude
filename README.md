@@ -174,3 +174,9 @@ Turns a photo into a 3D model: **https://kinapak-ux.github.io/Claude/photo-3d/**
 - **Save:** GLB (with colours: opens in Blender, Windows 3D Viewer and most AR viewers), STL (for 3D printing, with the size in mm you choose), OBJ (shape plus a material and a JPG of the photo; keep the three files together), PLY (coloured), a picture of the view, or the depth map as a PNG.
 - One photo only shows one side of things, so you get a raised relief of what the camera saw, not the back of the object.
 - If the AI can't run (an old browser, or no internet the first time), the page uses a **Quick guess** instead: a rough shape from brightness and position. You can also pick Quick guess yourself.
+
+## Claude plugins
+
+This repository is also a Claude Code plugin marketplace.
+
+- **Retro Amp** (`plugins/retro-amp`): a late-90s MP3 player skin for Claude's desktop and mobile apps. Install with `/plugin install retro-amp --marketplace kinapak-ux/Claude`. See [its README](plugins/retro-amp/README.md).
