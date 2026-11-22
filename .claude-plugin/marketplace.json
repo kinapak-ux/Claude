@@ -1,0 +1,11 @@
+{
+  "name": "kinapak-ux-claude",
+  "owner": { "name": "kinapak-ux" },
+  "plugins": [
+    {
+      "name": "retro-amp",
+      "source": "./plugins/retro-amp",
+      "description": "A late-90s MP3 player skin for Claude: gunmetal panels, green LED text, a spectrum analyzer backdrop and chiptune cues."
+    }
+  ]
+}
