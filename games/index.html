@@ -193,6 +193,13 @@ main{position:relative;z-index:1;max-width:1040px;margin:0 auto;padding:12px 16p
 .pg-net{animation:pgnet 3s steps(1) infinite}
 @keyframes pgnet{0%,60%{transform:none}61%,70%{transform:translateX(2px)}}
 
+/* ---- PIXTEXT Gaffer ---- */
+.pt-flash{animation:ptflash 1s steps(1) infinite}
+@keyframes ptflash{50%{opacity:0}}
+.pt-score{animation:ptscore 4s steps(1) infinite}
+@keyframes ptscore{0%,49%{opacity:1}50%,100%{opacity:0}}
+.pt-score2{animation:ptscore 4s steps(1) infinite reverse}
+
 /* ---- Moth Synth ---- */
 .ms-wave{animation:wave 1.2s linear infinite}
 .ms-bar{transform-origin:50% 100%;animation:eq .6s ease-in-out infinite alternate}
@@ -451,6 +458,23 @@ footer a{color:var(--gold);text-decoration:none}
         <g class="pg-goal"><rect x="44" y="34" width="72" height="18" fill="#000"/><text x="80" y="47" text-anchor="middle" font-family="monospace" font-weight="bold" font-size="12" fill="#ffee00">GOAL!!!</text></g>
       </svg></div>
       <div class="info"><h2>Pixel Gaffer '96</h2><p>90s-style football management with penalty and free-kick mini-games.</p><div class="meta"><span>1 player</span><span>career</span></div></div>
+    </a>
+
+    <!-- PIXTEXT Gaffer -->
+    <a class="tile" href="../pixtext/" style="--c:#ffff20;--sb:#000" data-f="solo">
+      <div class="scene" aria-hidden="true"><svg viewBox="0 0 160 100" shape-rendering="crispEdges" font-family="monospace" font-weight="bold">
+        <text x="4" y="9" font-size="8" fill="#fff">P100</text><rect x="28" y="2" width="44" height="9" fill="#2028ff"/><text x="30" y="9" font-size="8" fill="#ffff20">PIXTEXT</text><text x="118" y="9" font-size="8" fill="#ffff20">15:04</text>
+        <rect x="0" y="14" width="160" height="14" fill="#2028ff"/><text x="6" y="25" font-size="11" fill="#ffff20">FULL TIME</text>
+        <g class="pt-score"><text x="84" y="25" font-size="10" fill="#fff">DFR 2-1 SHI</text></g>
+        <g class="pt-score2"><text x="84" y="25" font-size="10" fill="#fff">KET 0-0 ASH</text></g>
+        <text x="6" y="40" font-size="8" fill="#20ffff">#</text><text x="16" y="40" font-size="8" fill="#20ffff">TEAM</text><text x="132" y="40" font-size="8" fill="#20ffff">PTS</text>
+        <g font-size="8"><text x="6" y="50" fill="#20ff20">1 Dunford Rovers</text><text x="138" y="50" fill="#ffff20">31</text>
+        <rect x="0" y="53" width="160" height="9" fill="#2028ff"/><text x="6" y="60" fill="#ffff20">2 Shingle Bay</text><text x="138" y="60" fill="#ffff20">28</text>
+        <text x="6" y="70" fill="#fff">3 Quarry Lane</text><text x="138" y="70" fill="#ffff20">27</text></g>
+        <g class="pt-flash"><text x="60" y="82" font-size="9" fill="#20ff20">G O A L !</text></g>
+        <g font-size="8"><text x="4" y="96" fill="#ff2020">PLAY</text><text x="44" y="96" fill="#20ff20">INBOX</text><text x="86" y="96" fill="#ffff20">TABLE</text><text x="124" y="96" fill="#20ffff">SQUAD</text></g>
+      </svg></div>
+      <div class="info"><h2>PIXTEXT Gaffer</h2><p>Pixel Gaffer as a 90s teletext service. Type a page number to go anywhere.</p><div class="meta"><span>1 player</span><span>career</span></div></div>
     </a>
 
     <!-- Moth Synth -->
