@@ -283,6 +283,9 @@ position. Then the style matters: each style gets a 6% boost against the two sty
 
 ## Working on it
 
+- **`../pixtext/` (the teletext version) loads `data.js`, `engine.js` and `scenarios.js` from this folder.**
+  A change to those three files changes PIXTEXT too. After editing them, open `/pixtext/` and play a week.
+
 - No build: edit a file and reload the page. Serve the repo root (not this folder) so
   `../scores.js` loads, e.g. `python3 -m http.server` from the repo root.
 - If you add or rename a script, add it to the list in `sw.js` and bump the version
