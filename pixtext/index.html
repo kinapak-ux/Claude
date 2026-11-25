@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PIXTEXT Gaffer</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PIXTEXT">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
+<style>
+:root{--lh:16px;--fs:17px;--sx:1;--tvw:400px;--tvh:400px}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#111;color:#fff;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;overflow:hidden}
+body{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:12px;padding:calc(8px + env(safe-area-inset-top)) 8px calc(8px + env(safe-area-inset-bottom));font-family:'VT323',monospace}
+body.wide{flex-direction:row;justify-content:center;align-items:center}
+/* the telly */
+#set{background:#2a2a2a;border-radius:14px;padding:8px;box-shadow:0 0 0 2px #3a3a3a,0 10px 30px #000}
+#tv{width:var(--tvw);height:var(--tvh);background:#000;overflow:hidden;position:relative;border-radius:6px}
+#tv::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px)}
+.row{height:var(--lh);line-height:var(--lh);font-size:var(--fs);white-space:pre;transform:scaleX(var(--sx));transform-origin:0 0;width:max-content;font-family:'VT323',monospace}
+.row span{display:inline-block;height:var(--lh);vertical-align:top}
+.row.dh{height:calc(var(--lh) * 2)}
+.row.dh .dhi{display:inline-block;transform:scaleY(2);transform-origin:0 0;height:var(--lh)}
+.row.act,.row [data-link],.fk{cursor:pointer}
+.row.act:active,.row [data-link]:active{filter:brightness(1.6)}
+.row.cur{box-shadow:inset 0 0 0 2px #fff}
+.fl{animation:fl 1s steps(1) infinite}
+@keyframes fl{50%{color:transparent!important}}
+/* the remote control */
+#remote{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;width:min(100%,420px);background:#1c1c1c;border-radius:16px;padding:10px;box-shadow:0 0 0 2px #2c2c2c}
+body.wide #remote{width:300px}
+#remote button{font:inherit;font-size:22px;height:44px;border:0;border-radius:9px;background:#3a3a3a;color:#eee;box-shadow:0 3px 0 #000;touch-action:manipulation}
+#remote button:active{transform:translateY(2px);box-shadow:0 1px 0 #000}
+#remote .fb{font-size:15px;line-height:1;padding:0 2px;color:#000;font-weight:bold;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#remote .fb:disabled{opacity:.35}
+#remote .fr{background:#e22}#remote .fg{background:#2c2}#remote .fy{background:#ee2}#remote .fc{background:#2cc}
+#remote .digits{grid-column:1/-1;display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+#remote .wide2{grid-column:span 2}
+@media (max-height:640px){#remote button{height:36px;font-size:19px}#remote{gap:5px;padding:7px}#remote .digits{gap:5px}}
+</style>
+</head>
+<body>
+<div id="set"><div id="tv"></div></div>
+<div id="remote">
+  <button class="fb fr" data-k="f0"></button><button class="fb fg" data-k="f1"></button><button class="fb fy" data-k="f2"></button><button class="fb fc" data-k="f3"></button>
+  <div class="digits">
+    <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button><button data-k="4">4</button><button data-k="5">5</button>
+    <button data-k="6">6</button><button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button><button data-k="0">0</button>
+  </div>
+  <button data-k="back">BACK</button><button data-k="prev">&lt;</button><button data-k="next">&gt;</button><button data-k="index">100</button>
+</div>
+<!-- The rules, players, clubs and dilemmas come from Pixel Gaffer itself -->
+<script src="../pixel-gaffer/data.js"></script>
+<script src="../pixel-gaffer/engine.js"></script>
+<script src="../pixel-gaffer/scenarios.js"></script>
+<script src="screen.js"></script>
+<script src="rules.js"></script>
+<script src="pages.js"></script>
+<script>
+boot();
+if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+</script>
+</body>
+</html>

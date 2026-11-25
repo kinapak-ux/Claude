@@ -93,6 +93,7 @@ All thirteen games, plus Moth Synth, are published with the tracker and can be i
 | Times Table Blaster | https://kinapak-ux.github.io/Claude/times-tables/ |
 | Blow Out the Pumpkin | https://kinapak-ux.github.io/Claude/pumpkin/ |
 | Pixel Gaffer '96 | https://kinapak-ux.github.io/Claude/pixel-gaffer/ |
+| PIXTEXT Gaffer (teletext version) | https://kinapak-ux.github.io/Claude/pixtext/ |
 | Moth Synth | https://kinapak-ux.github.io/Claude/synth/ |
 | Overhead (satellite tracker) | https://kinapak-ux.github.io/Claude/satellites/ |
 | Photo to 3D | https://kinapak-ux.github.io/Claude/photo-3d/ |
@@ -151,6 +152,8 @@ Pixel Gaffer '96 is a 90s-style football management game with pixel graphics. Pi
 - **Extras:** goal celebrations, a "Watch the goals" replay after each match, a trophy-lift scene when you win something, chiptune music on the title and season screens, a season calendar with how hard each game looks, a Stats section (top scorers, assists, ratings, star men, clean sheets, discipline, form, home and away tables, best attack and defence, and your own squad's season), three save slots with backup files (CLUB › Settings › Back up this career), and 25 achievements that also go to the family leaderboard.
 - **Arcade** (from the title screen) has keepy-uppy, a ten-kick free-kick challenge and a penalty shoot-out on their own.
 - The career saves on the phone after every week. Manager points (sent at the end of each season), keepy-uppy and free-kick scores go to the family leaderboard.
+
+**PIXTEXT Gaffer** is the same game as an old teletext service. Every screen is a numbered page (100 is the index, 110 match day, 200 squad, 301 to 304 the tables, 400 transfers and so on). Type the number on the on-screen remote, or tap any page number you see. The four coloured buttons do what the coloured words at the bottom of the page say, and **red** nearly always carries on to the next game. Matches are text commentary with a half-time team talk and subs. It has the league and the Old Tin Cup only (no midweek cups or Europe), and leaves out the pixel graphics, mini-games, music, deadline day, the stadium, loans, scouting and achievements. Its career is saved separately from Pixel Gaffer's and doesn't send scores to the leaderboard.
 
 ## Family leaderboard
 
