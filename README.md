@@ -129,7 +129,9 @@ Blow Out the Pumpkin: tap **Light the candle**, allow the microphone, then blow 
 - **Cars:** walk up to any car and press **CAR** (E or Enter); drivers get dragged out. Sedans, vans, taxis, sports cars and police cruisers drive differently; **SLIDE** (Space) is a handbrake. Damaged cars smoke, burn and explode, with you inside if you don't get out.
 - **Weapons:** fists, pistol, Uzi, shotgun and rocket launcher from weapon crates, plus health and armour. **X** / Ctrl / ✹ fires (also out of a car's windscreen), **Q** / GUN switches. You start with a pistol.
 - **Heat:** crimes earn ★ stars, up to five. At one star officers try to cuff you; from two stars they shoot. Stop next to a police car and you're **busted** (a fine). Lose all your health and you're **wasted** (hospital bill, guns gone). Lose the cops or use the pink **paint shop** ($300) to wipe your stars.
-- Keys: ↑ gas / walk, ↓ brake / reverse, ← → steer, Space slide, E car, X fire, Q weapon, H horn, P pause, M sound. Best stash and fastest $25k are saved on that phone. It doesn't send scores to the leaderboard.
+- **Rampage mode** (second button on the title screen): you start with every gun, armour and a sports car, and have 2 minutes to cause as much damage as you can. Wrecked cars (police ones score double), kills and smashed-up cars score points; keep the chaos going for a combo of up to x5, and every wreck adds 3 seconds. Getting wasted or busted ends the run. Your best rampage score is kept on that phone.
+- **On a phone:** the **joypad** bottom-left moves you whichever way you push it, so there's no turning on the spot first. In a car, push it the way you want to go and the car steers round and drives; if you're stuck nose-first against a wall it backs off by itself. ◼ brakes and reverses.
+- Keys: on foot the arrows / WASD run in that direction; in a car ↑ gas, ↓ brake / reverse, ← → steer. Space slide, E car, X fire, Q weapon, H horn, P pause, M sound. Best stash, fastest $25k and best rampage are saved on that phone. It doesn't send scores to the leaderboard.
 
 Moth Synth is a synthesizer with a loop recorder and a drum machine.
 

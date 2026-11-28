@@ -59,7 +59,11 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 .pb{width:70px;height:70px;border-radius:50%;background:rgba(18,8,32,.55);border:3px solid rgba(255,207,90,.8);font-family:'Press Start 2P';font-size:16px;display:grid;place-items:center;color:#fff}
 .pb.small{width:54px;height:54px;font-size:9px}
 .pb.on{background:rgba(255,207,90,.55)}
-#bGas{background:rgba(60,200,100,.45)} #bBrake{background:rgba(220,60,80,.45)}
+#bBrake{background:rgba(220,60,80,.45)}
+#stick{position:relative;width:136px;height:136px;border-radius:50%;background:radial-gradient(circle,rgba(255,207,90,.12),rgba(18,8,32,.5) 70%);border:3px solid rgba(255,207,90,.75);pointer-events:auto;touch-action:none}
+#stick::before{content:'';position:absolute;inset:16px;border-radius:50%;border:2px dashed rgba(255,207,90,.25)}
+#knob{position:absolute;left:50%;top:50%;width:60px;height:60px;margin:-30px 0 0 -30px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#ffe9a8,#ffcf5a 45%,#b8801a);border:3px solid #2a1400;box-shadow:0 4px 0 rgba(0,0,0,.45);pointer-events:none}
+#stick.on #knob{box-shadow:0 1px 0 rgba(0,0,0,.45)}
 .mid{display:flex;flex-direction:column;gap:10px}
 
 .screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:calc(12px + var(--st)) calc(12px + var(--sr)) calc(12px + var(--sb)) calc(12px + var(--sl));background:radial-gradient(ellipse at 50% 35%,rgba(30,10,50,.35),rgba(5,0,15,.82));overflow:auto}
@@ -76,7 +80,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 .best{text-align:center;color:var(--good);font-size:22px;margin-top:8px}
 #errBox{position:fixed;left:8px;bottom:calc(100px + var(--sb));max-width:80vw;padding:4px 6px;background:rgba(80,0,0,.85);color:#fff;font:12px monospace;z-index:50;pointer-events:none;white-space:pre-wrap}
 @media (hover:hover) and (pointer:fine){ #pad{display:none} }
-@media (max-width:560px){ #job{max-width:58vw;font-size:18px} .pb{width:62px;height:62px} .pb.small{width:48px;height:48px} }
+@media (max-width:560px){ #job{max-width:58vw;font-size:18px} .pb{width:62px;height:62px} .pb.small{width:48px;height:48px} #stick{width:124px;height:124px} #knob{width:54px;height:54px;margin:-27px 0 0 -27px} }
 </style>
 </head>
 <body>
@@ -89,9 +93,9 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
   <div id="topBtns"><button id="bMute">SND</button><button id="bPause">II</button></div>
 </div>
 <div id="pad" hidden>
-  <div class="grp"><button class="pb" id="bL">◀</button><button class="pb" id="bR">▶</button></div>
+  <div class="grp"><div id="stick"><div id="knob"></div></div></div>
   <div class="grp"><div class="mid"><button class="pb small" id="bEnter">CAR</button><button class="pb small" id="bWpn">GUN</button></div>
-    <div class="mid"><button class="pb small" id="bHand">SLIDE</button><button class="pb" id="bBrake">◼</button></div><div class="mid"><button class="pb" id="bFire" style="background:rgba(255,60,60,.5)">✹</button><button class="pb" id="bGas">▲</button></div></div>
+    <div class="mid"><button class="pb small" id="bHand">SLIDE</button><button class="pb" id="bBrake">◼</button></div><div class="mid"><button class="pb" id="bFire" style="background:rgba(255,60,60,.5);width:84px;height:84px;font-size:22px">✹</button></div></div>
 </div>
 <div id="hurt"></div>
 <div id="toast"><div class="a" id="toastA"></div><div class="b" id="toastB"></div></div>
@@ -104,12 +108,15 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
     <div class="rating"><b>18+</b> Strong violence, blood, crime and coarse language. Adults only.</div>
     <div class="best" id="bestTxt"></div>
     <button class="go" id="startBtn">I'M 18+ · HIT THE STREETS ▶</button>
+    <button class="go" id="rampBtn" style="background:linear-gradient(180deg,#ffa53a,#c04400);border-color:#ffe0b0">RAMPAGE · 2 MINUTES OF CHAOS ▶</button>
     <div class="help">
+      <b>Rampage:</b> loaded with every gun, you've got 2 minutes to cause as much damage as you can. Wrecks, kills and smashed cars score points, chain them for up to <b>x5</b>, and every wreck adds 3 seconds.<br>
       <b>Goal:</b> make <b>$25,000</b> any way you can. Ringing <b>payphones</b> (green arrow) hand out work: boosts, hits, getaways, kill frenzies.<br>
       <b>Cars:</b> walk up to any car and press <b>CAR</b> (E or Enter). If someone's driving, they're getting dragged out.<br>
       <b>Guns:</b> grab weapon crates (Pistol, Uzi, Shotgun, Rockets), plus health and armour. <b>X</b> or Ctrl fires, <b>Q</b> switches. You can shoot out of a car window too.<br>
       <b>Heat:</b> every crime earns ★ stars. From two stars the cops shoot to kill. Lose them, or drive into the <b>paint shop</b> ($300). Get stopped next to a cop car and you're <b>busted</b>; run out of health and you're <b>wasted</b>.<br>
-      <b>Keys:</b> ↑ gas / walk, ↓ brake / reverse, ← → steer, Space slide, E car, X fire, Q weapon, H horn, P pause, M sound.
+      <b>Phone:</b> push the <b>joypad</b> the way you want to go and you run that way. In a car, push it towards where you want to drive and the car turns and goes; ◼ brakes and reverses.<br>
+      <b>Keys:</b> on foot the arrows / WASD run in that direction. In a car: ↑ gas, ↓ brake / reverse, ← → steer. Space slide, E car, X fire, Q weapon, H horn, P pause, M sound.
     </div>
   </div>
 </div>
@@ -119,7 +126,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
     <button class="go" id="quitBtn" style="background:linear-gradient(180deg,#6a5a8a,#3a2a5a)">QUIT TO TITLE</button></div>
 </div>
 <div id="winScr" class="screen" hidden>
-  <div class="card"><div class="logo"><div class="a" style="font-size:clamp(22px,6vw,36px)">YOU MADE IT!</div><div class="b" id="winTxt"></div></div>
+  <div class="card"><div class="logo"><div class="a" id="winHead" style="font-size:clamp(22px,6vw,36px)">YOU MADE IT!</div><div class="b" id="winTxt"></div></div>
     <button class="go" id="keepBtn">KEEP CRUISING ▶</button>
     <button class="go" id="winQuit" style="background:linear-gradient(180deg,#6a5a8a,#3a2a5a)">TITLE SCREEN</button></div>
 </div>
@@ -288,6 +295,7 @@ function crash(c, impact, other) {
   const dmg = Math.max(0, impact - 2.5) * 2.2 / TYPES[c.type].mass;
   if (dmg <= 0) return;
   c.health -= dmg;
+  if (c !== me.car && c.ai !== 'wreck' && (c.blamed || other === me.car)) rampScore(dmg * 3, c.x, c.y);
   const now = performance.now();
   if (now - c.lastHit > 180) { c.lastHit = now; if (c === me.car || other === me.car) sfx('crash', Math.min(1, impact / 12)); for (let i = 0; i < 4; i++) spark(c.x, c.y); }
   if (c.health <= 0 && c.ai !== 'wreck') explode(c);
@@ -474,7 +482,7 @@ function knock(p, c) {
   if (sp > 6 || p.hp <= 45) return killPed(p, by, c.vx * 0.6, c.vy * 0.6, true);
   p.hp -= 45; p.state = 'down'; p.t = 3.5; p.vx = c.vx * 0.7; p.vy = c.vy * 0.7;
   sfx('bonk');
-  if (by === 'me') { addHeat(p.cop ? 3 : 1); if (Math.random() < 0.6) say(p, pick(Math.random, ['Asshole!', 'Watch it, jackass!', 'What the hell?!', 'My leg!', 'You son of a—'])); }
+  if (by === 'me') { rampScore(25, p.x, p.y); addHeat(p.cop ? 3 : 1); if (Math.random() < 0.6) say(p, pick(Math.random, ['Asshole!', 'Watch it, jackass!', 'What the hell?!', 'My leg!', 'You son of a—'])); }
 }
 // a person dies: body stays, blood pools, nearby people panic
 function killPed(p, by, vx, vy, splat) {
@@ -488,6 +496,7 @@ function killPed(p, by, vx, vy, splat) {
   for (const o of peds) if (o !== p && o.state !== 'dead' && !o.cop && Math.hypot(o.x - p.x, o.y - p.y) < 7) { o.state = 'flee'; o.t = 3 + Math.random() * 2; o.a = Math.atan2(o.y - p.y, o.x - p.x) + (Math.random() - 0.5); if (Math.random() < 0.15) say(o, pick(Math.random, ['Oh my god!', 'He\'s dead!', 'Run!', 'Call the cops!'])); }
   if (by === 'me') {
     me.kills++;
+    if (G.rp) { G.rp.kills++; rampScore(p.cop ? 300 : 100, p.x, p.y); }
     addHeat(p.cop ? 5 : 2);
     if (!p.cop && Math.random() < 0.55) crates.push({ x: p.x + 0.3, y: p.y + 0.2, v: 10 + Math.floor(Math.random() * 6) * 10, small: true });
     if (p.cop && Math.random() < 0.5) picks.push({ x: p.x - 0.3, y: p.y, kind: 'pistol' });
@@ -503,18 +512,27 @@ const STAR_AT = [1, 4, 8, 13, 19];
 function addHeat(n) { me.heat = Math.min(26, me.heat + n); me.unseen = 0; }
 function copNear(r) { return cars.some(c => c.type === 'cop' && c.ai !== 'wreck' && Math.hypot(c.x - me.x, c.y - me.y) < r) || peds.some(p => p.cop && Math.hypot(p.x - me.x, p.y - me.y) < r); }
 function earn(n, why) {
+  if (G.mode === 'rampage') return;
   me.money = Math.max(0, me.money + n);
   floats.push({ x: me.x, y: me.y - 0.5, t: 1.6, txt: (n >= 0 ? '+$' : '-$') + Math.abs(n), col: n >= 0 ? '#64ff8a' : '#ff5a6a' });
   if (n > 0) sfx('cash');
   const best = parseInt(store.get('cityheat-best') || '0', 10); if (me.money > best) store.set('cityheat-best', String(me.money));
   if (!me.won && me.money >= 25000) win();
 }
+// joypad (phones): x, y from -1 to 1, screen directions
+const stick = { x: 0, y: 0, on: false };
 function playerInput() {
-  return {
+  const inp = {
     throttle: (keys.up ? 1 : 0) - (keys.down ? 1 : 0),
     steer: (keys.right ? 1 : 0) - (keys.left ? 1 : 0),
     hand: !!keys.hand,
+    // which way to move on foot: the joypad, or the arrow keys as 8 directions
+    mx: stick.on ? stick.x : (keys.right ? 1 : 0) - (keys.left ? 1 : 0),
+    my: stick.on ? stick.y : (keys.down ? 1 : 0) - (keys.up ? 1 : 0),
+    stick: stick.on,
   };
+  const m = Math.hypot(inp.mx, inp.my); if (m > 1) { inp.mx /= m; inp.my /= m; }
+  return inp;
 }
 function enterExit() {
   if (me.dizzy > 0 || me.deadT > 0 || G.state !== 'play') return;
@@ -544,6 +562,7 @@ function enterExit() {
 }
 function busted() {
   if (G.state !== 'play') return;
+  if (G.mode === 'rampage') { sfx('busted'); return endRampage('BUSTED!'); }
   const fine = Math.min(me.money, Math.max(250, Math.round(me.money * 0.15)));
   toast('BUSTED!', fine ? `Fined $${fine}` : 'Let off with a warning', 2600);
   sfx('busted');
@@ -560,12 +579,14 @@ function resetHeat() {
   peds = peds.filter(p => !p.cop);
 }
 function explode(c) {
+  const wasPlayer = c.ai === 'player';
   c.ai = 'wreck'; c.health = 0; c.driver = false;
   sfx('boom');
+  if (c.blamed && !wasPlayer && G.rp) { G.rp.wrecks++; G.rp.time += 3; rampScore(c.type === 'cop' ? 1000 : 500, c.x, c.y, ' +3s'); }
   for (let i = 0; i < 26; i++) { const a = Math.random() * TAU, s = 1 + Math.random() * 5; parts.push({ x: c.x, y: c.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: 0.5 + Math.random() * 0.5, max: 1, kind: 'fire', r: 0.25 + Math.random() * 0.25 }); }
   for (let i = 0; i < 14; i++) parts.push({ x: c.x, y: c.y, vx: (Math.random() - 0.5) * 1.5, vy: (Math.random() - 0.5) * 1.5, t: 1.2 + Math.random(), max: 2.2, kind: 'smoke', r: 0.4 });
   shake = 0.5;
-  for (const o of cars) if (o !== c && o.ai !== 'wreck') { const d = Math.hypot(o.x - c.x, o.y - c.y); if (d < 2.2) { o.health -= 40 * (1 - d / 2.2); o.vx += (o.x - c.x) / d * 4; o.vy += (o.y - c.y) / d * 4; if (o.health <= 0) setTimeout(() => explode(o), 150); } }
+  for (const o of cars) if (o !== c && o.ai !== 'wreck') { const d = Math.hypot(o.x - c.x, o.y - c.y); if (d < 2.2) { if (c.blamed) o.blamed = true; o.health -= 40 * (1 - d / 2.2); o.vx += (o.x - c.x) / d * 4; o.vy += (o.y - c.y) / d * 4; if (o.health <= 0) setTimeout(() => explode(o), 150); } }
   blastPeople(c.x, c.y, 2.3, c.blamed ? 'me' : 'car');
   if (c === me.car) {
     me.car = null; me.onFoot = true; me.x = c.x; me.y = c.y; engine(false);
@@ -585,7 +606,7 @@ function blast(x, y, r, by) {
   sfx('boom'); shake = 0.45;
   for (let i = 0; i < 22; i++) { const a = Math.random() * TAU, s = 1 + Math.random() * 5; parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: 0.5 + Math.random() * 0.4, max: 0.9, kind: 'fire', r: 0.22 + Math.random() * 0.25 }); }
   for (let i = 0; i < 10; i++) parts.push({ x, y, vx: (Math.random() - 0.5) * 1.4, vy: (Math.random() - 0.5) * 1.4, t: 1 + Math.random(), max: 2, kind: 'smoke', r: 0.4 });
-  for (const o of cars) if (o.ai !== 'wreck') { const d = Math.hypot(o.x - x, o.y - y); if (d < r) { o.health -= 90 * (1 - d / r) + 20; o.vx += (o.x - x) / (d || 1) * 5; o.vy += (o.y - y) / (d || 1) * 5; if (by === 'me') o.blamed = true; if (o.health <= 0) setTimeout(() => o.ai !== 'wreck' && explode(o), 120); if (by === 'me' && o.type === 'cop') addHeat(3); } }
+  for (const o of cars) if (o.ai !== 'wreck') { const d = Math.hypot(o.x - x, o.y - y); if (d < r) { o.health -= 90 * (1 - d / r) + 20; if (by === 'me' && o !== me.car) rampScore(60, o.x, o.y); o.vx += (o.x - x) / (d || 1) * 5; o.vy += (o.y - y) / (d || 1) * 5; if (by === 'me') o.blamed = true; if (o.health <= 0) setTimeout(() => o.ai !== 'wreck' && explode(o), 120); if (by === 'me' && o.type === 'cop') addHeat(3); } }
   blastPeople(x, y, r, by);
 }
 
@@ -653,7 +674,7 @@ function updateShots(dt) {
         if (Math.hypot(c.x - b.x, c.y - b.y) < 0.5) {
           b.t = 0;
           if (b.rocket) { blast(b.x, b.y, 2.4, b.owner); break; }
-          spark(b.x, b.y); if (c.ai !== 'wreck') { c.health -= b.dmg * 0.25; if (b.owner === 'me') { c.blamed = true; if (c.type === 'cop') addHeat(0.6); } if (c.health <= 0) explode(c); }
+          spark(b.x, b.y); if (c.ai !== 'wreck') { c.health -= b.dmg * 0.25; if (b.owner === 'me') { c.blamed = true; rampScore(b.dmg * 0.75, c.x, c.y); if (c.type === 'cop') addHeat(0.6); } if (c.health <= 0) explode(c); }
           if (c === me.car) sfx('ping');
           break;
         }
@@ -679,6 +700,7 @@ function wasted(why) {
   toast('WASTED', why || '', 3000); sfx('wasted');
 }
 function respawn() {
+  if (G.mode === 'rampage') return endRampage('WASTED');
   const bill = Math.min(me.money, Math.round(me.money * 0.1) + 200);
   if (bill) earn(-bill);
   failJob(true); resetHeat();
@@ -805,10 +827,37 @@ function updateJob(dt) {
   }
 }
 function updateJobUI() {
+  if (G.rp) { $('job').hidden = false; $('jobT').textContent = 'RAMPAGE'; return; }
   const j = G.job;
   $('job').hidden = !j;
   if (!j) return;
   $('jobT').textContent = j.title; $('jobD').textContent = j.desc;
+}
+
+// ---------- rampage: 2 minutes, score for damage, chain it for a multiplier ----------
+function rampScore(pts, x, y, extra) {
+  const r = G.rp; if (!r || G.state !== 'play' || pts <= 0) return;
+  if (pts >= 50) { r.chain = r.chainT > 0 ? r.chain + 1 : 1; r.chainT = 2.5; }
+  else if (r.chainT > 0) r.chainT = Math.max(r.chainT, 1);
+  const mult = Math.min(5, 1 + Math.floor((r.chain - 1) / 3));
+  const got = Math.round(pts * (r.chainT > 0 ? mult : 1)); r.score += got;
+  if (pts >= 50) floats.push({ x, y: y - 0.5, t: 1.3, txt: '+' + got + (mult > 1 ? ' x' + mult : '') + (extra || ''), col: mult > 1 ? '#ff6a3d' : '#ffa53a' });
+}
+function updateRampage(dt) {
+  const r = G.rp;
+  r.time -= dt; r.chainT -= dt;
+  if (r.chainT <= 0) r.chain = 0;
+  if (r.time <= 0) { r.time = 0; endRampage('TIME UP!'); }
+}
+function endRampage(why) {
+  const r = G.rp; if (!r || (G.state !== 'play' && G.state !== 'pause')) return;
+  G.state = 'win'; engine(false); sirenOn(false); $('pauseScr').hidden = true;
+  const best = parseInt(store.get('cityheat-rampage') || '0', 10), nb = r.score > best;
+  if (nb) store.set('cityheat-rampage', String(r.score));
+  $('winHead').textContent = why;
+  $('winTxt').textContent = `Damage score ${r.score.toLocaleString('en-US')} · ${r.wrecks} wreck${r.wrecks === 1 ? '' : 's'} · ${r.kills} kill${r.kills === 1 ? '' : 's'} · ` + (nb ? 'NEW BEST!' : `Best ${best.toLocaleString('en-US')}`);
+  $('keepBtn').textContent = 'GO AGAIN ▶';
+  $('winScr').hidden = false; sfx(nb ? 'win' : 'fail');
 }
 
 // ---------- camera ----------
@@ -885,17 +934,36 @@ function update(dt) {
   if (G.state !== 'play') return;
   me.dizzy = Math.max(0, me.dizzy - dt); me.hurtT = Math.max(0, me.hurtT - dt);
   if (me.deadT > 0) { me.deadT -= dt; simWorld(dt, false); updateCam(dt); updateHUD(); if (me.deadT <= 0) respawn(); return; }
-  const inp = me.dizzy > 0 ? { throttle: 0, steer: 0 } : playerInput();
+  const inp = me.dizzy > 0 ? { throttle: 0, steer: 0, mx: 0, my: 0 } : playerInput();
   playerFire(dt);
   if (me.onFoot) {
-    me.a = wrapA(me.a + inp.steer * 4.2 * dt);
-    const sp = inp.throttle > 0 ? 4.6 : inp.throttle < 0 ? -2 : 0;
-    const nx = me.x + Math.cos(me.a) * sp * dt, ny = me.y + Math.sin(me.a) * sp * dt;
-    if (!solid(nx, me.y)) me.x = nx; if (!solid(me.x, ny)) me.y = ny;
-    if (sp) me.step += Math.abs(sp) * dt * 6;
+    // run straight in the direction pushed, facing that way (no turning on the spot first)
+    const m = Math.hypot(inp.mx, inp.my);
+    if (m > 0.18) {
+      me.a = Math.atan2(inp.my, inp.mx);
+      const sp = 4.6 * Math.min(1, m * 1.3);
+      const nx = me.x + Math.cos(me.a) * sp * dt, ny = me.y + Math.sin(me.a) * sp * dt;
+      if (!solid(nx, me.y)) me.x = nx; if (!solid(me.x, ny)) me.y = ny;
+      me.step += sp * dt * 6;
+    }
     me.vx = me.vy = 0;
   } else {
     const c = me.car;
+    // joypad in a car: point where you want to go; the car steers round to it and drives
+    if (inp.stick) {
+      const m = Math.hypot(inp.mx, inp.my);
+      if (m > 0.25) {
+        const diff = wrapA(Math.atan2(inp.my, inp.mx) - c.a);
+        inp.steer = keys.down ? 0 : clamp(diff * 2.4, -1, 1);
+        inp.throttle = keys.down ? -1 : Math.min(1, m * 1.2) * (Math.abs(diff) > 2 && carSpeed(c) > 6 ? 0.4 : 1);
+        // nose stuck against a wall: back up a little, turning, then carry on
+        if (!keys.down) {
+          if (G.backT > 0) { G.backT -= dt; inp.throttle = -1; inp.steer = -Math.sign(diff || 1); }
+          else if (carSpeed(c) < 0.8 && Math.abs(diff) > 0.35) { G.stuckT = (G.stuckT || 0) + dt; if (G.stuckT > 0.45) { G.stuckT = 0; G.backT = 0.8; } }
+          else G.stuckT = 0;
+        }
+      } else { inp.steer = 0; inp.throttle = keys.down ? -1 : 0; G.backT = 0; }
+    }
     driveCar(c, inp, dt);
     me.x = c.x; me.y = c.y; me.a = c.a; me.vx = c.vx; me.vy = c.vy;
     if (eng) { const sp = carSpeed(c); eng.o.frequency.value = 45 + sp * 9 + (inp.throttle > 0 ? 15 : 0); eng.o2.frequency.value = (45 + sp * 9) * 0.5; eng.g.gain.value = 0.035 + Math.min(0.04, sp * 0.004); }
@@ -933,6 +1001,7 @@ function update(dt) {
     floats.push({ x: k.x, y: k.y - 0.4, t: 1.2, txt: k.kind === 'health' ? '+HEALTH' : k.kind === 'armor' ? '+ARMOUR' : '+' + WEAPONS.find(w => w.id === k.kind).name, col: '#ffd23d' });
     sfx('ding'); picks.splice(i, 1);
   }
+  if (G.mode === 'rampage') { updateRampage(dt); updateCam(dt); updateHUD(); return; }
   // crates
   G.crateT -= dt;
   if (G.crateT <= 0 && crates.length < 6) { G.crateT = 8; const p = randomWalkPoint(8, 30); crates.push({ x: p.x, y: p.y, v: [100, 150, 250, 500][Math.floor(Math.random() * 4)] }); }
@@ -1326,6 +1395,7 @@ function drawPlayerOnFoot(t) {
 // arrow around the player pointing at the current goal (or the nearest ringing phone)
 function drawPointer(t) {
   let tgt = null, col = '#ffd23d';
+  if (G.rp) return;
   if (G.job) { tgt = G.job.target; if (!tgt) return; }
   else { let bd = 1e9; for (const p of phones) { const d = Math.hypot(p.x - me.x, p.y - me.y); if (d < bd) { bd = d; tgt = p; } } col = '#64ff8a'; }
   if (!tgt) return;
@@ -1343,8 +1413,14 @@ function drawPointer(t) {
 // ---------- HUD ----------
 let shownMoney = -1;
 function updateHUD() {
+  if (G.rp) {
+    const r = G.rp, mult = r.chainT > 0 ? Math.min(5, 1 + Math.floor((r.chain - 1) / 3)) : 1;
+    $('money').textContent = r.score.toLocaleString('en-US'); shownMoney = -1;
+    $('jobD').textContent = mult > 1 ? `x${mult} COMBO! Keep it going` : 'Smash it, crash it, blow it up.';
+    const s = Math.max(0, Math.ceil(r.time)); $('jobC').textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  }
   const m = Math.round(me.money);
-  if (m !== shownMoney) { shownMoney = m; $('money').textContent = '$' + m.toLocaleString('en-US'); }
+  if (!G.rp && m !== shownMoney) { shownMoney = m; $('money').textContent = '$' + m.toLocaleString('en-US'); }
   const st = $('stars');
   const html = [0, 1, 2, 3, 4].map(i => `<span class="${i < me.stars ? 'on' : 'off'}">★</span>`).join('');
   if (st.innerHTML !== html) st.innerHTML = html;
@@ -1364,7 +1440,9 @@ let errN = 0;
 function reportErr(e) { console.error(e); if (errN++) return; const el = $('errBox'); el.textContent = 'Error: ' + (e && e.message || e); el.hidden = false; }
 
 // ---------- flow ----------
-function newGame() {
+function newGame(mode) {
+  G.mode = mode || 'story'; G.rp = null;
+  $('winScr').hidden = true; $('pauseScr').hidden = true;
   cars = []; peds = []; parts = []; crates = []; floats = []; blood = []; shots = []; picks = []; scorch = []; G.job = null; G.jobN = Math.floor(Math.random() * JOBS.length);
   Object.assign(me, { x: special.home.x, y: special.home.y, a: Math.PI / 2, onFoot: true, car: null, money: 0, heat: 0, stars: 0, dizzy: 0, unseen: 0, won: false, startT: performance.now(), hp: 100, armor: 0, ammo: { pistol: 24 }, weap: 1, kills: 0, deadT: 0, hurtT: 0, fireT: 0 });
   // a car waiting outside home
@@ -1373,11 +1451,20 @@ function newGame() {
   for (let i = 0; i < 40; i++) spawnPedNear(false);
   snapCam(); G.area = -1;
   G.state = 'play'; $('title').hidden = true; $('hud').hidden = false; $('pad').hidden = false;
+  if (G.mode === 'rampage') {
+    G.rp = { score: 0, chain: 0, chainT: 0, time: 120, wrecks: 0, kills: 0 };
+    Object.assign(me, { ammo: { pistol: 120, smg: 500, shotgun: 60, rocket: 16 }, weap: 2, armor: 100 });
+    makeCar('sports', special.home.x + 1.8, special.home.y + 0.9, 0, { ai: 'parked', color: 0xff2a4a });
+    updateJobUI();
+    toast('RAMPAGE!', '2 minutes. Wreck everything. Wrecks add time.', 2600);
+    return;
+  }
   updateJobUI();
   toast('CITY HEAT', 'Payphones have work. Follow the green arrow.', 2600);
 }
 function win() {
   me.won = true; G.state = 'win';
+  $('winHead').textContent = 'YOU MADE IT!'; $('keepBtn').textContent = 'KEEP CRUISING ▶';
   const mins = (performance.now() - me.startT) / 60000;
   $('winTxt').textContent = `$25,000 in ${mins.toFixed(1)} minutes. Time to retire somewhere sunny... or keep going?`;
   const best = parseFloat(store.get('cityheat-besttime') || '0');
@@ -1387,20 +1474,22 @@ function win() {
 function goTitle() {
   G.state = 'title'; engine(false); sirenOn(false);
   $('hud').hidden = true; $('pad').hidden = true; $('pauseScr').hidden = true; $('winScr').hidden = true; $('title').hidden = false;
-  cars = []; peds = []; parts = []; crates = []; floats = []; blood = []; shots = []; picks = []; scorch = []; G.job = null;
+  cars = []; peds = []; parts = []; crates = []; floats = []; blood = []; shots = []; picks = []; scorch = []; G.job = null; G.rp = null; G.mode = 'story';
   me.deadT = 0; me.hp = 100;
   me.x = 41; me.y = 41; me.onFoot = true; me.car = null; me.stars = 0; me.heat = 0;
   for (let i = 0; i < 30; i++) spawnTraffic(false);
   for (let i = 0; i < 50; i++) spawnPedNear(false);
   const best = store.get('cityheat-best'), bt = store.get('cityheat-besttime');
-  $('bestTxt').textContent = (best ? `Best stash: $${parseInt(best, 10).toLocaleString('en-US')}` : '') + (bt ? ` · Fastest $25k: ${bt} min` : '');
+  const rb = store.get('cityheat-rampage');
+  $('bestTxt').textContent = [best ? `Best stash: $${parseInt(best, 10).toLocaleString('en-US')}` : '', bt ? `Fastest $25k: ${bt} min` : '', rb ? `Rampage best: ${parseInt(rb, 10).toLocaleString('en-US')}` : ''].filter(Boolean).join(' · ');
 }
 function setPause(on) { if (G.state !== 'play' && G.state !== 'pause') return; G.state = on ? 'pause' : 'play'; $('pauseScr').hidden = !on; if (on) { engine(false); sirenOn(false); } else if (!me.onFoot) engine(true); }
-$('startBtn').onclick = () => { audio(); sfx('win'); newGame(); };
+$('startBtn').onclick = () => { audio(); sfx('win'); newGame('story'); };
+$('rampBtn').onclick = () => { audio(); sfx('win'); newGame('rampage'); };
 $('bPause').onclick = () => setPause(true);
 $('resumeBtn').onclick = () => setPause(false);
 $('quitBtn').onclick = () => goTitle();
-$('keepBtn').onclick = () => { $('winScr').hidden = true; G.state = 'play'; if (!me.onFoot) engine(true); };
+$('keepBtn').onclick = () => { if (G.mode === 'rampage') { audio(); newGame('rampage'); return; } $('winScr').hidden = true; G.state = 'play'; if (!me.onFoot) engine(true); };
 $('winQuit').onclick = () => goTitle();
 function setSound() { $('bMute').textContent = soundOn ? 'SND' : 'MUTE'; }
 $('bMute').onclick = () => { soundOn = !soundOn; store.set('cityheat-sound', soundOn ? '1' : '0'); setSound(); if (!soundOn) { engine(false); sirenOn(false); } else if (!me.onFoot) engine(true); };
@@ -1426,9 +1515,23 @@ function hold(id, key) {
   const off = () => { keys[key] = false; el.classList.remove('on'); };
   el.addEventListener('pointerdown', on); el.addEventListener('pointerup', off); el.addEventListener('pointercancel', off); el.addEventListener('pointerleave', off);
 }
-hold('bL', 'left'); hold('bR', 'right'); hold('bGas', 'up'); hold('bBrake', 'down'); hold('bHand', 'hand'); hold('bFire', 'fire');
+hold('bBrake', 'down'); hold('bHand', 'hand'); hold('bFire', 'fire');
 $('bWpn').addEventListener('pointerdown', e => { e.preventDefault(); audio(); cycleWeapon(); });
 $('bEnter').addEventListener('pointerdown', e => { e.preventDefault(); audio(); enterExit(); });
+(function joypad() {
+  const el = $('stick'), kn = $('knob'); let id = null;
+  const set = e => {
+    const r = el.getBoundingClientRect(), R = r.width / 2, lim = R * 0.62;
+    let dx = e.clientX - r.left - R, dy = e.clientY - r.top - R; const d = Math.hypot(dx, dy);
+    if (d > lim) { dx *= lim / d; dy *= lim / d; }
+    stick.x = dx / lim; stick.y = dy / lim;
+    kn.style.transform = `translate(${dx}px,${dy}px)`;
+  };
+  const end = e => { if (e.pointerId !== id) return; id = null; stick.on = false; stick.x = stick.y = 0; kn.style.transform = ''; el.classList.remove('on'); };
+  el.addEventListener('pointerdown', e => { e.preventDefault(); audio(); id = e.pointerId; try { el.setPointerCapture(id); } catch (x) {} stick.on = true; el.classList.add('on'); set(e); });
+  el.addEventListener('pointermove', e => { if (e.pointerId === id) set(e); });
+  el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end); el.addEventListener('lostpointercapture', end);
+})();
 addEventListener('contextmenu', e => e.preventDefault());
 addEventListener('resize', resize);
 document.addEventListener('visibilitychange', () => { if (document.hidden && G.state === 'play') setPause(true); });
