@@ -34,7 +34,9 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;overflow:hidden;background:#000;color:var(--ink);font-family:'VT323',monospace;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
-canvas#view{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;image-rendering:pixelated;image-rendering:crisp-edges;display:block}
+#errBox{position:fixed;left:8px;bottom:calc(150px + var(--safe-b));max-width:80vw;padding:4px 6px;background:rgba(80,0,0,.85);color:#fff;font:12px monospace;z-index:50;pointer-events:none;white-space:pre-wrap}
+canvas#sprites{pointer-events:none}
+canvas#view,canvas#sprites{position:fixed;left:0;top:0;image-rendering:pixelated;image-rendering:crisp-edges;display:block}
 .pix{font-family:'Press Start 2P',monospace;letter-spacing:0}
 .panel{background:var(--panel);border:2px solid var(--edge);border-radius:4px;box-shadow:0 0 0 2px #050a26,4px 4px 0 rgba(0,0,0,.45)}
 button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
@@ -150,6 +152,8 @@ table.sc td.lab{font-family:'Press Start 2P';font-size:9px;color:var(--dim);text
 </head>
 <body>
 <canvas id="view"></canvas>
+<canvas id="sprites"></canvas>
+<div id="errBox" hidden></div>
 
 <div id="hud" hidden>
   <div id="holeInfo" class="panel">
@@ -323,16 +327,27 @@ const PAL = {
 // ---------- render setup ----------
 const view = $('view');
 const ctx = view.getContext('2d', { alpha: false });
+const spritesC = $('sprites'), fctx = spritesC.getContext('2d');
+let errShown = 0;
+function reportErr(e) {
+  console.error(e);
+  if (errShown++ > 0) return;
+  const el = $('errBox'); el.textContent = 'Drawing error: ' + (e && e.message || e) + (e && e.stack ? '\n' + String(e.stack).split('\n').slice(1, 3).join('\n') : ''); el.hidden = false;
+}
 let PORTRAIT = false, W = 320, H = 240, F = 276, HZ = 86, frame = null, fbuf = null, sky = null, skyW = 1, skyCanvas = null;
 function resize() {
-  const aw = innerWidth, ah = innerHeight, asp = aw / ah;
-  if (asp >= 1) { H = 240; W = Math.round(clamp(240 * asp, 240, 520)); }
-  else { W = 240; H = Math.round(clamp(240 / asp, 240, 540)); }
+  // Every game pixel is a whole number of screen pixels, so nothing wobbles as it moves.
+  const dpr = window.devicePixelRatio || 1, aw = innerWidth, ah = innerHeight, asp = aw / ah;
+  const dw = Math.round(aw * dpr), dh = Math.round(ah * dpr);
+  const k = Math.max(1, Math.floor((asp >= 1 ? dh : dw) / 240));
+  W = Math.ceil(dw / k); H = Math.ceil(dh / k);
+  view.style.width = spritesC.style.width = (W * k / dpr) + 'px'; view.style.height = spritesC.style.height = (H * k / dpr) + 'px';
+  if (frame && view.width === W && view.height === H) return;
   F = Math.min(H * 1.15, W * 1.0);
   HZ = Math.round(H * (asp >= 1 ? 0.36 : 0.42));
   PORTRAIT = asp < 1;
-  view.width = W; view.height = H;
-  ctx.imageSmoothingEnabled = false;
+  view.width = W; view.height = H; spritesC.width = W; spritesC.height = H;
+  ctx.imageSmoothingEnabled = false; fctx.imageSmoothingEnabled = false;
   frame = ctx.createImageData(W, H);
   fbuf = new Uint32Array(frame.data.buffer);
   buildSky();
@@ -483,9 +498,9 @@ function buildHole(ci, hi) {
       if (x < 4 || x > 196 || y < 2 || y > spec.g[1] + 64) l = (spec.sea && x > 100) ? L.WATER : L.OB;
       lie[i] = l;
       // ---- paint ----
-      const d = bayer(ix, iy), jit = (hash2(ix, iy) - 0.5) * 0.06;
+      const d = bayer(ix, iy), jit = (hash2(ix, iy) - 0.5) * 0.02;
       let col;
-      const pick = (p, t) => p[(t + d > 1) ? 1 : 0];
+      const pick = (p, t) => mix(p[0], p[1], clamp(t + (d - 0.5) * 0.6, 0, 1));
       switch (l) {
         case L.FAIR: { const band = Math.floor((y + x * 0.15) / 11) & 1; col = pick(band ? pal.fairA : pal.fairB, n2 * 0.9); break; }
         case L.GREEN: { const band = Math.floor((y - x * 0.3) / 3.2) & 1; col = pick(band ? pal.greenA : pal.greenB, n2 * 0.9); break; }
@@ -572,6 +587,19 @@ function buildHole(ci, hi) {
       if (lie[i] === L.ROUGH || lie[i] === L.FAIR) lie[i] = p.kind === 3 ? L.DEEP : lie[i];
     }
   }
+  // smaller, pre-averaged copies of the ground for distant rows (stops far grass shimmering)
+  const mips = [tex];
+  for (let l = 1, pw = TW, ph = TH, src = tex; l <= 5; l++) {
+    const w = pw >> 1, h = ph >> 1, m = new Uint32Array(w * h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i0 = (y * 2) * pw + x * 2, a = src[i0], b2 = src[i0 + 1], c = src[i0 + pw], d = src[i0 + pw + 1];
+      const r = ((a & 255) + (b2 & 255) + (c & 255) + (d & 255)) >> 2;
+      const g = (((a >> 8) & 255) + ((b2 >> 8) & 255) + ((c >> 8) & 255) + ((d >> 8) & 255)) >> 2;
+      const bb = (((a >> 16) & 255) + ((b2 >> 16) & 255) + ((c >> 16) & 255) + ((d >> 16) & 255)) >> 2;
+      m[y * w + x] = (0xFF000000 | (bb << 16) | (g << 8) | r) >>> 0;
+    }
+    mips.push(m); src = m; pw = w; ph = h;
+  }
   // minimap canvas
   const mc = document.createElement('canvas'); mc.width = TW; mc.height = TH;
   const mg = mc.getContext('2d'); const mi = mg.createImageData(TW, TH); new Uint32Array(mi.data.buffer).set(tex); mg.putImageData(mi, 0, 0);
@@ -580,7 +608,7 @@ function buildHole(ci, hi) {
   const yards = Math.round(len);
   const windMph = links ? 6 + R() * 16 : R() * 9;
   const windDir = R() * TAU;
-  return { ci, hi, spec, pts, seg, len, TW, TH, lie, tex, props, pin, slope, mini: mc, yards, par: spec.par, tee: tee.slice(), wind: [Math.sin(windDir) * windMph, Math.cos(windDir) * windMph], windMph, pal, links };
+  return { ci, hi, spec, pts, seg, len, TW, TH, lie, tex, mips, props, pin, slope, mini: mc, yards, par: spec.par, tee: tee.slice(), wind: [Math.sin(windDir) * windMph, Math.cos(windDir) * windMph], windMph, pal, links };
 }
 function alongPath(pts, seg, s) {
   for (let i = 0; i < seg.length; i++) {
@@ -1101,7 +1129,7 @@ let last = performance.now(), keys = {};
 function tick(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   requestAnimationFrame(tick);
-  try { update(dt); render(now / 1000); } catch (e) { console.error(e); }
+  try { update(dt); render(now / 1000); } catch (e) { reportErr(e); }
 }
 function update(dt) {
   if (G.state === 'title') { cam.head += dt * 0.08; const r = 90; cam.x = 100 + Math.sin(cam.head + Math.PI) * 30; cam.y = 140 - Math.cos(cam.head) * r * 0.2; cam.h = 22; return; }
@@ -1153,7 +1181,7 @@ function render(t) {
     hole = buildHole(0, 0); G.ball = { x: hole.tee[0], y: hole.tee[1], z: 0 };
   }
   const fx = Math.sin(cam.head), fy = Math.cos(cam.head), rx = Math.cos(cam.head), ry = -Math.sin(cam.head);
-  const cx = W / 2, tex = hole.tex, TW = hole.TW, TH = hole.TH, obA = abgr(pal.ob[0]), obB = abgr(pal.ob[1]);
+  const cx = W / 2, tex = hole.tex, TW = hole.TW, TH = hole.TH, obA = abgr(mix(pal.ob[0], pal.ob[1], 0.5));
   const sea = hole.spec.sea, waterA = abgr(pal.water[0]);
   const haze = pal.haze, hr = (haze >> 16) & 255, hg = (haze >> 8) & 255, hb = haze & 255;
   // sky
@@ -1168,22 +1196,26 @@ function render(t) {
     let wx = cam.x + fx * d - rx * cx * d / F, wy = cam.y + fy * d - ry * cx * d / F;
     const sx = rx * d / F, sy = ry * d / F;
     const fog = clamp((d - 160) / 520, 0, 0.82), fi = 1 - fog;
-    const near = d < 30;
+    // pick a texture detail level from how many texels this row's pixels cover
+    const hf = d / F * TPY, vf = d * d / (cam.h * F) * TPY;
+    const lvl = clamp(Math.floor(Math.log2(Math.max(1, hf, vf * 0.8))), 0, hole.mips.length - 1);
+    const mt = hole.mips[lvl], mw = TW >> lvl, mh = TH >> lvl, ts = TPY / (1 << lvl);
     const row = y * W;
     for (let x = 0; x < W; x++, wx += sx, wy += sy) {
-      const u = (wx * TPY) | 0, v = (wy * TPY) | 0;
+      const u = (wx * ts) | 0, v = (wy * ts) | 0;
       let c;
-      if (u >= 0 && v >= 0 && u < TW && v < TH && wx >= 0 && wy >= 0) c = tex[v * TW + u];
-      else c = (sea && wx > 100) ? waterA : (((u >> 2) + (v >> 2)) & 1 ? obA : obB);
+      if (u >= 0 && v >= 0 && u < mw && v < mh && wx >= 0 && wy >= 0) c = mt[v * mw + u];
+      else c = (sea && wx > 100) ? waterA : obA;
       let r = c & 255, g = (c >> 8) & 255, b = (c >> 16) & 255;
-      if (near) { const n = hash2((wx * 7) | 0, (wy * 7) | 0); const k = 0.9 + n * 0.18; r *= k; g *= k; b *= k; }
       if (fog > 0) { r = r * fi + hr * fog; g = g * fi + hg * fog; b = b * fi + hb * fog; }
       fbuf[row + x] = 0xFF000000 | (b << 16) | (g << 8) | r;
     }
   }
   ctx.putImageData(frame, 0, 0);
 
-  // ---- sprites ----
+  // ---- sprites: drawn on their own transparent layer above the ground ----
+  const sctx = fctx;
+  sctx.clearRect(0, 0, W, H);
   const list = [];
   const proj = (x, y, z) => {
     const dx = x - cam.x, dy = y - cam.y, d = dx * fx + dy * fy;
@@ -1196,9 +1228,11 @@ function render(t) {
     const w = p.w * q.s, h = p.h * q.s;
     if (q.x + w < 0 || q.x - w > W) continue;
     list.push({ d: q.d, f: () => {
-      if (w < 1.5) { ctx.fillStyle = p.kind === 2 ? '#a44a1c' : p.kind >= 3 ? '#4a5a2a' : '#1f4a18'; ctx.fillRect(q.x | 0, (q.y - h) | 0, 1, Math.max(1, h) | 0); return; }
+      if (w < 1.5) { sctx.fillStyle = p.kind === 2 ? '#a44a1c' : p.kind >= 3 ? '#4a5a2a' : '#1f4a18'; sctx.fillRect(q.x | 0, (q.y - h) | 0, 1, Math.max(1, h) | 0); return; }
       const img = SPR[p.kind][p.v % SPR[p.kind].length];
-      ctx.drawImage(img, Math.round(q.x - w / 2), Math.round(q.y - h), Math.max(1, Math.round(w)), Math.max(1, Math.round(h)));
+      sctx.imageSmoothingEnabled = h < img.height;
+      sctx.drawImage(img, Math.round(q.x - w / 2), Math.round(q.y - h), Math.max(1, Math.round(w)), Math.max(1, Math.round(h)));
+      sctx.imageSmoothingEnabled = false;
     } });
   }
   // aiming marker
@@ -1209,16 +1243,16 @@ function render(t) {
     const q = proj(mx, my, 0);
     if (q && G.club !== PUTTER) list.push({ d: q.d + 0.5, f: () => {
       const r = Math.max(3, 5 * q.s), ry2 = Math.max(1.5, r * cam.h / q.d);
-      ctx.strokeStyle = (Math.floor(t * 4) & 1) ? '#ffd23d' : '#ffffff'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.ellipse(q.x | 0, q.y | 0, r, ry2, 0, 0, TAU); ctx.stroke();
-      ctx.fillStyle = '#ffd23d'; ctx.fillRect((q.x | 0) - 1, (q.y | 0) - 1, 3, 3);
+      sctx.strokeStyle = '#ffd23d'; sctx.lineWidth = 1;
+      sctx.beginPath(); sctx.ellipse(q.x | 0, q.y | 0, r, ry2, 0, 0, TAU); sctx.stroke();
+      sctx.fillStyle = '#ffd23d'; sctx.fillRect((q.x | 0) - 1, (q.y | 0) - 1, 3, 3);
     } });
     // putt preview (casual)
     if (G.club === PUTTER && G.diff === 'casual') {
       const pts = previewPutt();
       for (let i = 0; i < pts.length; i += 2) {
         const p = pts[i], q2 = proj(p[0], p[1], 0); if (!q2) continue;
-        list.push({ d: q2.d + 0.4, f: () => { ctx.fillStyle = i % 4 ? '#ffffff' : '#ffd23d'; const sz = q2.s > 60 ? 2 : 1; ctx.fillRect(q2.x | 0, q2.y | 0, sz, sz); } });
+        list.push({ d: q2.d + 0.4, f: () => { sctx.fillStyle = i % 4 ? '#ffffff' : '#ffd23d'; const sz = q2.s > 60 ? 2 : 1; sctx.fillRect(q2.x | 0, q2.y | 0, sz, sz); } });
       }
     }
   }
@@ -1228,15 +1262,15 @@ function render(t) {
     if (q) list.push({ d: q.d, f: () => {
       const pw = Math.max(1, Math.round(0.035 * q.s)), ph = 2.4 * q.s;
       const cw = Math.max(1, 0.12 * q.s), ch = Math.max(1, cw * cam.h / q.d * 1.2);
-      ctx.fillStyle = '#101010'; ctx.beginPath(); ctx.ellipse(q.x, q.y, cw, ch, 0, 0, TAU); ctx.fill();
+      sctx.fillStyle = '#101010'; sctx.beginPath(); sctx.ellipse(q.x, q.y, cw, ch, 0, 0, TAU); sctx.fill();
       if (!(G.club === PUTTER && distTo([G.ball.x, G.ball.y], hole.pin) < 4 && G.state !== 'holed')) {
-        ctx.fillStyle = '#f0f0f0'; ctx.fillRect(Math.round(q.x - pw / 2), Math.round(q.y - ph), pw, Math.round(ph));
+        sctx.fillStyle = '#f0f0f0'; sctx.fillRect(Math.round(q.x - pw / 2), Math.round(q.y - ph), pw, Math.round(ph));
         // the flag flaps in the wind
         const wl = Math.max(2, 0.7 * q.s), wh = Math.max(2, 0.45 * q.s);
         const wsx = hole.wind[0] * rx + hole.wind[1] * ry; const dirF = wsx >= 0 ? 1 : -1;
-        const fl = Math.floor(t * 6) & 1;
-        ctx.fillStyle = '#e02828';
-        ctx.beginPath(); ctx.moveTo(q.x, q.y - ph); ctx.lineTo(q.x + dirF * wl, q.y - ph + wh * (fl ? 0.4 : 0.6)); ctx.lineTo(q.x, q.y - ph + wh); ctx.fill();
+        const fl = Math.floor(t * 2) & 1;
+        sctx.fillStyle = '#e02828';
+        sctx.beginPath(); sctx.moveTo(q.x, q.y - ph); sctx.lineTo(q.x + dirF * wl, q.y - ph + wh * (fl ? 0.4 : 0.6)); sctx.lineTo(q.x, q.y - ph + wh); sctx.fill();
       }
     } });
   }
@@ -1248,28 +1282,28 @@ function render(t) {
     if (q) list.push({ d: q.d - 0.05, f: () => {
       drawGolfer(G.phi, G.cock);
       const h = 2.4 * q.s, w = h * GW / GH;
-      ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(q.x, q.y - 1, w * 0.34, Math.max(1, w * 0.06), 0, 0, TAU); ctx.fill();
-      ctx.drawImage(gCan, Math.round(q.x - w * 24 / GW), Math.round(q.y - h), Math.round(w), Math.round(h));
+      sctx.fillStyle = 'rgba(0,0,0,.35)'; sctx.beginPath(); sctx.ellipse(q.x, q.y - 1, w * 0.34, Math.max(1, w * 0.06), 0, 0, TAU); sctx.fill();
+      sctx.drawImage(gCan, Math.round(q.x - w * 24 / GW), Math.round(q.y - h), Math.round(w), Math.round(h));
     } });
   }
   // ball + shadow + tracer
   if (G.ball && G.state !== 'title' && !(G.state === 'holed' && G.holeOut)) {
     const b = G.ball;
     const qs = proj(b.x, b.y, 0), qb = proj(b.x, b.y, Math.max(0, b.z) + 0.03);
-    if (qs) list.push({ d: qs.d + 0.2, f: () => { ctx.fillStyle = 'rgba(0,0,0,.45)'; const s = Math.max(1, 0.06 * qs.s); ctx.fillRect(Math.round(qs.x - s / 2), Math.round(qs.y - s / 4), Math.ceil(s), Math.max(1, Math.ceil(s / 2))); } });
+    if (qs) list.push({ d: qs.d + 0.2, f: () => { sctx.fillStyle = 'rgba(0,0,0,.45)'; const s = Math.max(1, 0.06 * qs.s); sctx.fillRect(Math.round(qs.x - s / 2), Math.round(qs.y - s / 4), Math.ceil(s), Math.max(1, Math.ceil(s / 2))); } });
     if (qb) list.push({ d: qb.d - 0.1, f: () => {
       const s = clamp(0.06 * qb.s, 1, 6);
-      if (s >= 2) { ctx.fillStyle = '#20242c'; ctx.fillRect(Math.round(qb.x - s / 2) - 1, Math.round(qb.y - s) - 1, Math.ceil(s) + 2, Math.ceil(s) + 2); }
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(qb.x - s / 2), Math.round(qb.y - s), Math.ceil(s), Math.ceil(s));
+      if (s >= 2) { sctx.fillStyle = '#20242c'; sctx.fillRect(Math.round(qb.x - s / 2) - 1, Math.round(qb.y - s) - 1, Math.ceil(s) + 2, Math.ceil(s) + 2); }
+      sctx.fillStyle = '#ffffff'; sctx.fillRect(Math.round(qb.x - s / 2), Math.round(qb.y - s), Math.ceil(s), Math.ceil(s));
     } });
   }
   list.sort((a, b) => b.d - a.d);
-  for (const s of list) s.f();
+  for (const s of list) { try { s.f(); } catch (e) { reportErr(e); } }
   // tracer line (drawn last so it reads over trees, like TV coverage)
   if (G.trail.length > 1 && (G.state === 'flight' || G.state === 'settle') && G.club !== PUTTER) {
-    ctx.strokeStyle = 'rgba(255,240,120,.8)'; ctx.lineWidth = 1; ctx.beginPath(); let started = false;
-    for (const p of G.trail) { if (p[2] <= 0.05) continue; const q = proj(p[0], p[1], p[2]); if (!q) { started = false; continue; } if (!started) { ctx.moveTo(q.x, q.y); started = true; } else ctx.lineTo(q.x, q.y); }
-    ctx.stroke();
+    sctx.strokeStyle = 'rgba(255,240,120,.8)'; sctx.lineWidth = 1; sctx.beginPath(); let started = false;
+    for (const p of G.trail) { if (p[2] <= 0.05) continue; const q = proj(p[0], p[1], p[2]); if (!q) { started = false; continue; } if (!started) { sctx.moveTo(q.x, q.y); started = true; } else sctx.lineTo(q.x, q.y); }
+    sctx.stroke();
   }
   if (G.state !== 'title') drawMap();
 }
