@@ -94,6 +94,7 @@ All thirteen games, plus Moth Synth, are published with the tracker and can be i
 | Blow Out the Pumpkin | https://kinapak-ux.github.io/Claude/pumpkin/ |
 | Tee Time '99 (golf) | https://kinapak-ux.github.io/Claude/tee-time/ |
 | City Heat '99 (18+, top-down crime) | https://kinapak-ux.github.io/Claude/city-heat/ |
+| Turbo Cross (3D racing) | https://kinapak-ux.github.io/Claude/turbo-cross/ |
 | Pixel Gaffer '96 | https://kinapak-ux.github.io/Claude/pixel-gaffer/ |
 | PIXTEXT Gaffer (teletext version) | https://kinapak-ux.github.io/Claude/pixtext/ |
 | Moth Synth | https://kinapak-ux.github.io/Claude/synth/ |
@@ -133,6 +134,17 @@ Blow Out the Pumpkin: tap **Light the candle**, allow the microphone, then blow 
 - **On a phone:** the **joypad** bottom-left moves you whichever way you push it, so there's no turning on the spot first. In a car, push it the way you want to go and the car steers round and drives; if you're stuck nose-first against a wall it backs off by itself. ◼ brakes and reverses.
 - **Graphics:** the streets, buildings, trees and lamps use Kenney's *Tiny City* tiles (`city-heat/tiny-city.png`), and the people are Kenney's *Mini Characters* 3D models rendered into 8-direction walking sprites (`city-heat/people.png`). Both packs are CC0 (free for any use), from kenney.nl. Cars and effects are still drawn by the game.
 - Keys: on foot the arrows / WASD run in that direction; in a car ↑ gas, ↓ brake / reverse, ← → steer. Space slide, E car, X fire, Q weapon, H horn, P pause, M sound. Best stash, fastest $25k and best rampage are saved on that phone. It doesn't send scores to the leaderboard.
+
+**Turbo Cross** is a 3D racing game with three modes: tarmac circuits, off-road cross tracks, and Pile-Up crash junctions.
+
+- **Track Racing:** *Harbour Island GP* (flat and fast, by the sea, with grandstands, pits, kerbs and tyre walls) and *Hillside Ring* (climbs, dips and crests).
+- **Off-Road Cross:** *Dust Bowl* (desert, big kicker jumps, a table-top and whoops) and *Pine Ridge Cross* (forest hills, mud pits and jumps). Dirt is looser than tarmac, mud slows everyone down, and rocks, logs and cacti beside the track are solid.
+- **Pile-Up (crash mode):** each scenario is a run-up road into a busy junction. Smash into the traffic: every vehicle you wreck scores its value (a sedan $1,500 up to a fire engine $7,500), times the **chain**. Each new wreck within 3 seconds of the last raises the chain by one (×2, ×3… up to ×10); 3 seconds with no new wreck resets it. Wrecked cars tumble, crumple, smoke and catch fire, and traffic close to the junction keeps ploughing into them. Steer your wreck with ←/→ to hit more (aftertouch). Once 4 vehicles are wrecked, **BLAST** (Space, or the 💥 button) blows your car up and throws everything nearby. A gold **×2** token on the run-up doubles your final total, and green **$** tokens add $2,500. Scenarios: *Downtown Crossroads* (traffic lights), *Highway T-Bone* (six lanes of trucks), *Ramp Rampage* (jump into the junction) and *Gridlock Avenue* (long queues, three lanes each way). Bronze, silver and gold targets, and your best score for each junction is saved on the phone.
+- **Cars:** 9 to pick from, each with its own top speed, acceleration, grip and off-road rating. Race cars are fastest on tarmac; SUVs and the *Mud Bull* pickup are quickest on dirt and mud. Most can be repainted.
+- **Race settings:** 2, 3 or 5 laps; 0, 3 or 5 computer rivals (0 is a time trial); Easy, Normal or Hard. Rivals get a little faster when you're well ahead, and a little slower when you're well behind, so races stay close.
+- **Controls:** ↑/W gas, ↓/S brake and reverse, ←/→ steer, Space handbrake (for drifting), C changes camera (chase, far chase, bumper), R puts you back on the track, P pauses, M sound. On a phone: ◀ ▶ bottom-left, GAS / BRAKE / DRIFT bottom-right. Gamepads work too (left stick, triggers, A gas, B handbrake, Y camera, Start pause).
+- Best lap and best race times are saved on that phone. It works with no signal after being opened once. It doesn't send scores to the leaderboard.
+- **3D models:** Kenney's *Car Kit*, *Racing Kit* and *Nature Kit* (all CC0, free for any use, from kenney.nl), in `turbo-cross/models/`. The 3D engine is three.js, stored in `turbo-cross/lib/`. The terrain, road, sounds and dust are made by the game. Details in `turbo-cross/CREDITS.txt`.
 
 Moth Synth is a synthesizer with a loop recorder and a drum machine.
 

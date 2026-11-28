@@ -1,0 +1,10 @@
+Turbo Cross uses these free assets:
+
+3D models (models/*.glb) by Kenney (www.kenney.nl), all CC0 / public domain:
+  - Car Kit: race, raceFuture, sedan, sedanSports, hatchbackSports, police, taxi, suv, suvLuxury, truck, van, delivery, truckFlat, ambulance, firetruck
+  - Racing Kit: barriers, fences, flags, banner towers, grandstands, start gantry, pit garages, tents, light posts, billboards, trees
+  - Nature Kit: rocks, stones, cacti, pine/oak/palm trees, bushes, logs, grass, wooden fence
+  License: Creative Commons Zero, http://creativecommons.org/publicdomain/zero/1.0/
+
+3D engine: three.js r170 (lib/), MIT licence, see lib/THREE-LICENSE.txt.
+Sound effects are synthesised in the browser; terrain, road and textures are generated in code.
