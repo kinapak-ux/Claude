@@ -35,8 +35,7 @@
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;overflow:hidden;background:#000;color:var(--ink);font-family:'VT323',monospace;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 #errBox{position:fixed;left:8px;bottom:calc(150px + var(--safe-b));max-width:80vw;padding:4px 6px;background:rgba(80,0,0,.85);color:#fff;font:12px monospace;z-index:50;pointer-events:none;white-space:pre-wrap}
-canvas#sprites{pointer-events:none}
-canvas#view,canvas#sprites{position:fixed;left:0;top:0;image-rendering:pixelated;image-rendering:crisp-edges;display:block}
+canvas#view{position:fixed;left:0;top:0;image-rendering:pixelated;image-rendering:crisp-edges;display:block}
 .pix{font-family:'Press Start 2P',monospace;letter-spacing:0}
 .panel{background:var(--panel);border:2px solid var(--edge);border-radius:4px;box-shadow:0 0 0 2px #050a26,4px 4px 0 rgba(0,0,0,.45)}
 button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
@@ -152,7 +151,6 @@ table.sc td.lab{font-family:'Press Start 2P';font-size:9px;color:var(--dim);text
 </head>
 <body>
 <canvas id="view"></canvas>
-<canvas id="sprites"></canvas>
 <div id="errBox" hidden></div>
 
 <div id="hud" hidden>
@@ -327,7 +325,6 @@ const PAL = {
 // ---------- render setup ----------
 const view = $('view');
 const ctx = view.getContext('2d', { alpha: false });
-const spritesC = $('sprites'), fctx = spritesC.getContext('2d');
 let errShown = 0;
 function reportErr(e) {
   console.error(e);
@@ -341,13 +338,12 @@ function resize() {
   const dw = Math.round(aw * dpr), dh = Math.round(ah * dpr);
   const k = Math.max(1, Math.floor((asp >= 1 ? dh : dw) / 240));
   W = Math.ceil(dw / k); H = Math.ceil(dh / k);
-  view.style.width = spritesC.style.width = (W * k / dpr) + 'px'; view.style.height = spritesC.style.height = (H * k / dpr) + 'px';
+  view.style.width = (W * k / dpr) + 'px'; view.style.height = (H * k / dpr) + 'px';
   if (frame && view.width === W && view.height === H) return;
   F = Math.min(H * 1.15, W * 1.0);
   HZ = Math.round(H * (asp >= 1 ? 0.36 : 0.42));
   PORTRAIT = asp < 1;
-  view.width = W; view.height = H; spritesC.width = W; spritesC.height = H;
-  ctx.imageSmoothingEnabled = false; fctx.imageSmoothingEnabled = false;
+  view.width = W; view.height = H;
   frame = ctx.createImageData(W, H);
   fbuf = new Uint32Array(frame.data.buffer);
   buildSky();
@@ -600,15 +596,11 @@ function buildHole(ci, hi) {
     }
     mips.push(m); src = m; pw = w; ph = h;
   }
-  // minimap canvas
-  const mc = document.createElement('canvas'); mc.width = TW; mc.height = TH;
-  const mg = mc.getContext('2d'); const mi = mg.createImageData(TW, TH); new Uint32Array(mi.data.buffer).set(tex); mg.putImageData(mi, 0, 0);
-  for (const p of props) { if (p.kind === 4) continue; mg.fillStyle = p.kind === 3 ? '#3d5a24' : p.kind === 2 ? '#b8501e' : '#1d4a16'; mg.beginPath(); mg.arc(p.x * TPY, p.y * TPY, Math.max(2, p.w * 0.45 * TPY), 0, TAU); mg.fill(); }
   // yardage = path length to the green centre
   const yards = Math.round(len);
   const windMph = links ? 6 + R() * 16 : R() * 9;
   const windDir = R() * TAU;
-  return { ci, hi, spec, pts, seg, len, TW, TH, lie, tex, mips, props, pin, slope, mini: mc, yards, par: spec.par, tee: tee.slice(), wind: [Math.sin(windDir) * windMph, Math.cos(windDir) * windMph], windMph, pal, links };
+  return { ci, hi, spec, pts, seg, len, TW, TH, lie, tex, mips, props, pin, slope, miniCache: {}, yards, par: spec.par, tee: tee.slice(), wind: [Math.sin(windDir) * windMph, Math.cos(windDir) * windMph], windMph, pal, links };
 }
 function alongPath(pts, seg, s) {
   for (let i = 0; i < seg.length; i++) {
@@ -628,11 +620,21 @@ function lieAt(x, y) {
 }
 
 // ---------- sprites (pixel-art, generated) ----------
+// Sprites are plain pixel buffers (never canvases), with half-size copies for when they're drawn small.
 function makeSprite(w, h, fn) {
-  const c = document.createElement('canvas'); c.width = w; c.height = h;
-  const g = c.getContext('2d'), img = g.createImageData(w, h), b = new Uint32Array(img.data.buffer);
-  fn((x, y, col) => { x |= 0; y |= 0; if (x >= 0 && y >= 0 && x < w && y < h) b[y * w + x] = abgr(col); }, w, h);
-  g.putImageData(img, 0, 0); return c;
+  const buf = new Uint32Array(w * h);
+  fn((x, y, col) => { x |= 0; y |= 0; if (x >= 0 && y >= 0 && x < w && y < h) buf[y * w + x] = abgr(col); }, w, h);
+  const levels = [{ w, h, buf }];
+  for (let l = levels[0]; l.w >= 4 && l.h >= 4; l = levels[levels.length - 1]) {
+    const nw = l.w >> 1, nh = l.h >> 1, nb = new Uint32Array(nw * nh);
+    for (let y = 0; y < nh; y++) for (let x = 0; x < nw; x++) {
+      let r = 0, g = 0, bb = 0, n = 0;
+      for (const [ox, oy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) { const c = l.buf[(y * 2 + oy) * l.w + x * 2 + ox]; if (c >>> 24) { r += c & 255; g += (c >> 8) & 255; bb += (c >> 16) & 255; n++; } }
+      if (n >= 2) nb[y * nw + x] = (0xFF000000 | (((bb / n) | 0) << 16) | (((g / n) | 0) << 8) | ((r / n) | 0)) >>> 0;
+    }
+    levels.push({ w: nw, h: nh, buf: nb });
+  }
+  return { w, h, levels };
 }
 function treeSprites() {
   const out = [[], [], [], [], []];
@@ -692,8 +694,7 @@ const SPR = treeSprites();
 
 // ---------- golfer (drawn each frame into a tiny pixel canvas) ----------
 const GW = 48, GH = 60;
-const gCan = document.createElement('canvas'); gCan.width = GW; gCan.height = GH;
-const gCtx = gCan.getContext('2d'); const gImg = gCtx.createImageData(GW, GH); const gBuf = new Uint32Array(gImg.data.buffer);
+const gBuf = new Uint32Array(GW * GH), GOLFER_SPR = { w: GW, h: GH, levels: [{ w: GW, h: GH, buf: gBuf }] };
 const GOLFER = { shirt: 0x2f5fd8, shirtD: 0x1d3e96, pants: 0xcdb98a, pantsD: 0x9e8c62, skin: 0xe8b48a, skinD: 0xb8845a, cap: 0xffffff, capD: 0xc8c8d8, hair: 0x4a2c18, shoe: 0xf2f2f2, glove: 0xffffff };
 function gpx(x, y, c) { x = Math.round(x); y = Math.round(y); if (x >= 0 && y >= 0 && x < GW && y < GH) gBuf[y * GW + x] = abgr(c); }
 function grect(x, y, w, h, c) { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) gpx(x + i, y + j, c); }
@@ -706,14 +707,6 @@ function drawGolfer(phi, cock) {
   gBuf.fill(0);
   const rot = clamp(phi / 150, -1, 1);            // shoulder turn
   const cx = 24, sx = cx + rot * 2, hipX = cx - rot * 1;
-  // legs: knees flexed, the right heel comes up on the follow through
-  const lift = phi < -60 ? clamp((-phi - 60) / 80, 0, 1) : 0;
-  gline(hipX - 4, 39, cx - 7, 48, GOLFER.pants, 5);
-  gline(cx - 7, 48, cx - 8, 56, GOLFER.pants, 5);
-  gline(hipX + 4, 39, cx + 7 - lift * 2, 48, GOLFER.pantsD, 5);
-  gline(cx + 7 - lift * 2, 48, cx + 7 - lift * 4, 56 - lift * 2, GOLFER.pantsD, 5);
-  grect(cx - 11, 57, 6, 2, GOLFER.shoe);
-  grect(cx + 4 - lift * 4, 57 - lift * 2, 6, 2 - (lift > 0.5 ? 1 : 0), 0xd8d8d8);
   // arms and club
   const R = 13, py = 27;
   const hx = sx + Math.sin(phi * Math.PI / 180) * R, hy = py + Math.cos(phi * Math.PI / 180) * R;
@@ -731,9 +724,15 @@ function drawGolfer(phi, cock) {
     gline(hx, hy, ch[0], ch[1], 0xb8bcc8, 1);
     gline(ch[0] - Math.cos(psi) * 1.5, ch[1] + Math.sin(psi) * 1.5, ch[0] + Math.cos(psi) * 1.5, ch[1] - Math.sin(psi) * 1.5, 0x303040, 2);
   };
-  // near address the hands are in front of the body, so the torso hides them
+  // near address the hands and club are in front of the golfer, hidden behind legs and body
   const inFront = Math.abs(phi) > 55;
   if (!inFront) { drawClub(); drawArms(); }
+  // legs together, straight under the hips; the right heel comes up on the follow through
+  const lift = phi < -60 ? clamp((-phi - 60) / 80, 0, 1) : 0;
+  gline(hipX - 2, 39, cx - 2, 56, GOLFER.pants, 5);
+  gline(hipX + 3, 39, cx + 3 - lift * 2, 56 - lift * 2, GOLFER.pantsD, 5);
+  grect(cx - 6, 57, 6, 2, GOLFER.shoe);
+  grect(cx + 1 - lift * 2, 57 - lift * 2, 6, 2 - (lift > 0.5 ? 1 : 0), 0xd8d8d8);
   // torso: back of the polo, darker down the right side, a seam down the middle
   for (let y = 23; y < 40; y++) {
     const t = (y - 23) / 17, half = lerp(9, 6.5, t), mx = lerp(sx, hipX, t);
@@ -755,7 +754,6 @@ function drawGolfer(phi, cock) {
   grect(hdx - 1, 12, 3, 2, GOLFER.hair); // gap in the cap strap
   grect(hdx - 4, 14, 9, 1, 0xd02a2a);
   if (inFront) { drawArms(); drawClub(); }
-  gCtx.putImageData(gImg, 0, 0);
 }
 
 // ---------- audio (tiny synth) ----------
@@ -866,7 +864,7 @@ function setPutRange() {
 // ---------- camera ----------
 function aimCamTarget() {
   const b = G.ball, putt = G.club === PUTTER;
-  const D = putt ? 4.2 : PORTRAIT ? 6.2 : 8.5, hgt = putt ? 1.7 : 2.9, side = putt ? 0 : PORTRAIT ? -0.45 : -0.75;
+  const D = putt ? 4.2 : PORTRAIT ? 6.2 : 8.5, hgt = putt ? 1.7 : 2.9, side = 0;
   const fx = Math.sin(G.heading), fy = Math.cos(G.heading), rx = Math.cos(G.heading), ry = -Math.sin(G.heading);
   camT.x = b.x - fx * D - rx * side; camT.y = b.y - fy * D - ry * side; camT.h = hgt; camT.head = G.heading;
 }
@@ -1211,11 +1209,8 @@ function render(t) {
       fbuf[row + x] = 0xFF000000 | (b << 16) | (g << 8) | r;
     }
   }
-  ctx.putImageData(frame, 0, 0);
 
-  // ---- sprites: drawn on their own transparent layer above the ground ----
-  const sctx = fctx;
-  sctx.clearRect(0, 0, W, H);
+  // ---- sprites: drawn straight into the same pixel buffer, nearest first wins by painting far-to-near ----
   const list = [];
   const proj = (x, y, z) => {
     const dx = x - cam.x, dy = y - cam.y, d = dx * fx + dy * fy;
@@ -1223,36 +1218,32 @@ function render(t) {
     const lat = dx * rx + dy * ry, s = F / d;
     return { x: cx + lat * s, y: HZ + (cam.h - z) * s, s, d };
   };
+  const C = { tree: abgr(0x1f4a18), maple: abgr(0xa44a1c), bush: abgr(0x4a5a2a), gold: abgr(0xffd23d), white: abgr(0xffffff), pole: abgr(0xf0f0f0), flag: abgr(0xe02828), cup: abgr(0x101010), ballEdge: abgr(0x20242c), trace: abgr(0xfff078) };
   for (const p of hole.props) {
     const q = proj(p.x, p.y, 0); if (!q || q.d > 700) continue;
     const w = p.w * q.s, h = p.h * q.s;
     if (q.x + w < 0 || q.x - w > W) continue;
     list.push({ d: q.d, f: () => {
-      if (w < 1.5) { sctx.fillStyle = p.kind === 2 ? '#a44a1c' : p.kind >= 3 ? '#4a5a2a' : '#1f4a18'; sctx.fillRect(q.x | 0, (q.y - h) | 0, 1, Math.max(1, h) | 0); return; }
-      const img = SPR[p.kind][p.v % SPR[p.kind].length];
-      sctx.imageSmoothingEnabled = h < img.height;
-      sctx.drawImage(img, Math.round(q.x - w / 2), Math.round(q.y - h), Math.max(1, Math.round(w)), Math.max(1, Math.round(h)));
-      sctx.imageSmoothingEnabled = false;
+      if (w < 1.5) { rectF(q.x, q.y - h, 1, Math.max(1, h), p.kind === 2 ? C.maple : p.kind >= 3 ? C.bush : C.tree); return; }
+      const spr = SPR[p.kind][p.v % SPR[p.kind].length];
+      blit(spr, q.x - w / 2, q.y - h, w, h);
     } });
   }
   // aiming marker
   if (G.state === 'aim' || G.state === 'swing') {
     const b = G.ball, lie = lieAt(b.x, b.y);
-    let md = G.club === PUTTER ? distTo([b.x, b.y], hole.pin) : clubReach(G.club, lie);
-    const mx = b.x + Math.sin(G.heading) * md, my = b.y + Math.cos(G.heading) * md;
-    const q = proj(mx, my, 0);
+    const md = G.club === PUTTER ? distTo([b.x, b.y], hole.pin) : clubReach(G.club, lie);
+    const q = proj(b.x + Math.sin(G.heading) * md, b.y + Math.cos(G.heading) * md, 0);
     if (q && G.club !== PUTTER) list.push({ d: q.d + 0.5, f: () => {
       const r = Math.max(3, 5 * q.s), ry2 = Math.max(1.5, r * cam.h / q.d);
-      sctx.strokeStyle = '#ffd23d'; sctx.lineWidth = 1;
-      sctx.beginPath(); sctx.ellipse(q.x | 0, q.y | 0, r, ry2, 0, 0, TAU); sctx.stroke();
-      sctx.fillStyle = '#ffd23d'; sctx.fillRect((q.x | 0) - 1, (q.y | 0) - 1, 3, 3);
+      ellipseRing(q.x, q.y, r, ry2, C.gold);
+      rectF(Math.round(q.x) - 1, Math.round(q.y) - 1, 3, 3, C.gold);
     } });
-    // putt preview (casual)
     if (G.club === PUTTER && G.diff === 'casual') {
       const pts = previewPutt();
       for (let i = 0; i < pts.length; i += 2) {
-        const p = pts[i], q2 = proj(p[0], p[1], 0); if (!q2) continue;
-        list.push({ d: q2.d + 0.4, f: () => { sctx.fillStyle = i % 4 ? '#ffffff' : '#ffd23d'; const sz = q2.s > 60 ? 2 : 1; sctx.fillRect(q2.x | 0, q2.y | 0, sz, sz); } });
+        const q2 = proj(pts[i][0], pts[i][1], 0); if (!q2) continue;
+        list.push({ d: q2.d + 0.4, f: () => { const sz = q2.s > 60 ? 2 : 1; rectF(Math.round(q2.x), Math.round(q2.y), sz, sz, i % 4 ? C.white : C.gold); } });
       }
     }
   }
@@ -1262,50 +1253,93 @@ function render(t) {
     if (q) list.push({ d: q.d, f: () => {
       const pw = Math.max(1, Math.round(0.035 * q.s)), ph = 2.4 * q.s;
       const cw = Math.max(1, 0.12 * q.s), ch = Math.max(1, cw * cam.h / q.d * 1.2);
-      sctx.fillStyle = '#101010'; sctx.beginPath(); sctx.ellipse(q.x, q.y, cw, ch, 0, 0, TAU); sctx.fill();
+      ellipseF(q.x, q.y, cw, ch, C.cup);
       if (!(G.club === PUTTER && distTo([G.ball.x, G.ball.y], hole.pin) < 4 && G.state !== 'holed')) {
-        sctx.fillStyle = '#f0f0f0'; sctx.fillRect(Math.round(q.x - pw / 2), Math.round(q.y - ph), pw, Math.round(ph));
-        // the flag flaps in the wind
+        rectF(Math.round(q.x - pw / 2), Math.round(q.y - ph), pw, Math.round(ph), C.pole);
         const wl = Math.max(2, 0.7 * q.s), wh = Math.max(2, 0.45 * q.s);
-        const wsx = hole.wind[0] * rx + hole.wind[1] * ry; const dirF = wsx >= 0 ? 1 : -1;
-        const fl = Math.floor(t * 2) & 1;
-        sctx.fillStyle = '#e02828';
-        sctx.beginPath(); sctx.moveTo(q.x, q.y - ph); sctx.lineTo(q.x + dirF * wl, q.y - ph + wh * (fl ? 0.4 : 0.6)); sctx.lineTo(q.x, q.y - ph + wh); sctx.fill();
+        const dirF = (hole.wind[0] * rx + hole.wind[1] * ry) >= 0 ? 1 : -1, fl = Math.floor(t * 2) & 1;
+        triF(q.x, q.y - ph, q.x + dirF * wl, q.y - ph + wh * (fl ? 0.4 : 0.6), q.x, q.y - ph + wh, C.flag);
       }
     } });
   }
-  // golfer
+  // golfer (not while putting, so the line to the hole is clear)
   if (G.golferAt && G.state !== 'intro' && G.state !== 'title' && G.club !== PUTTER) {
     const head = (G.state === 'aim' || G.state === 'swing') ? G.heading : G.golferHead;
-    const gx = G.golferAt[0] - Math.sin(head) * 0.45, gy = G.golferAt[1] - Math.cos(head) * 0.45;
-    const q = proj(gx, gy, 0);
+    const q = proj(G.golferAt[0] - Math.sin(head) * 0.45, G.golferAt[1] - Math.cos(head) * 0.45, 0);
     if (q) list.push({ d: q.d - 0.05, f: () => {
       drawGolfer(G.phi, G.cock);
       const h = 2.4 * q.s, w = h * GW / GH;
-      sctx.fillStyle = 'rgba(0,0,0,.35)'; sctx.beginPath(); sctx.ellipse(q.x, q.y - 1, w * 0.34, Math.max(1, w * 0.06), 0, 0, TAU); sctx.fill();
-      sctx.drawImage(gCan, Math.round(q.x - w * 24 / GW), Math.round(q.y - h), Math.round(w), Math.round(h));
+      ellipseF(q.x, q.y - 1, w * 0.3, Math.max(1, w * 0.06), 0, 0.62);
+      blit(GOLFER_SPR, q.x - w * 24 / GW, q.y - h, w, h);
     } });
   }
-  // ball + shadow + tracer
+  // ball + shadow
   if (G.ball && G.state !== 'title' && !(G.state === 'holed' && G.holeOut)) {
     const b = G.ball;
     const qs = proj(b.x, b.y, 0), qb = proj(b.x, b.y, Math.max(0, b.z) + 0.03);
-    if (qs) list.push({ d: qs.d + 0.2, f: () => { sctx.fillStyle = 'rgba(0,0,0,.45)'; const s = Math.max(1, 0.06 * qs.s); sctx.fillRect(Math.round(qs.x - s / 2), Math.round(qs.y - s / 4), Math.ceil(s), Math.max(1, Math.ceil(s / 2))); } });
+    if (qs) list.push({ d: qs.d + 0.2, f: () => { const sz = Math.max(1, 0.06 * qs.s); shadeRect(qs.x - sz / 2, qs.y - sz / 4, Math.ceil(sz), Math.max(1, Math.ceil(sz / 2)), 0.55); } });
     if (qb) list.push({ d: qb.d - 0.1, f: () => {
-      const s = clamp(0.06 * qb.s, 1, 6);
-      if (s >= 2) { sctx.fillStyle = '#20242c'; sctx.fillRect(Math.round(qb.x - s / 2) - 1, Math.round(qb.y - s) - 1, Math.ceil(s) + 2, Math.ceil(s) + 2); }
-      sctx.fillStyle = '#ffffff'; sctx.fillRect(Math.round(qb.x - s / 2), Math.round(qb.y - s), Math.ceil(s), Math.ceil(s));
+      const sz = clamp(0.06 * qb.s, 1, 6);
+      if (sz >= 2) rectF(Math.round(qb.x - sz / 2) - 1, Math.round(qb.y - sz) - 1, Math.ceil(sz) + 2, Math.ceil(sz) + 2, C.ballEdge);
+      rectF(Math.round(qb.x - sz / 2), Math.round(qb.y - sz), Math.ceil(sz), Math.ceil(sz), C.white);
     } });
   }
   list.sort((a, b) => b.d - a.d);
-  for (const s of list) { try { s.f(); } catch (e) { reportErr(e); } }
-  // tracer line (drawn last so it reads over trees, like TV coverage)
+  for (const sp of list) { try { sp.f(); } catch (e) { reportErr(e); } }
+  // tracer line, over everything like TV coverage
   if (G.trail.length > 1 && (G.state === 'flight' || G.state === 'settle') && G.club !== PUTTER) {
-    sctx.strokeStyle = 'rgba(255,240,120,.8)'; sctx.lineWidth = 1; sctx.beginPath(); let started = false;
-    for (const p of G.trail) { if (p[2] <= 0.05) continue; const q = proj(p[0], p[1], p[2]); if (!q) { started = false; continue; } if (!started) { sctx.moveTo(q.x, q.y); started = true; } else sctx.lineTo(q.x, q.y); }
-    sctx.stroke();
+    let prev = null;
+    for (const p of G.trail) { if (p[2] <= 0.05) { prev = null; continue; } const q = proj(p[0], p[1], p[2]); if (q && prev) lineP(prev.x, prev.y, q.x, q.y, C.trace); prev = q; }
   }
+  // one finished image goes to the screen per frame
+  ctx.putImageData(frame, 0, 0);
   if (G.state !== 'title') drawMap();
+}
+
+// ---------- software drawing helpers (all write into the frame buffer) ----------
+function rectF(x, y, w, h, c) {
+  const x0 = Math.max(0, Math.round(x)), y0 = Math.max(0, Math.round(y)), x1 = Math.min(W, Math.round(x + w)), y1 = Math.min(H, Math.round(y + h));
+  for (let j = y0; j < y1; j++) { const r = j * W; for (let i = x0; i < x1; i++) fbuf[r + i] = c; }
+}
+function darkenPx(i, k) { const c = fbuf[i]; fbuf[i] = (0xFF000000 | ((((c >> 16) & 255) * k) << 16) | ((((c >> 8) & 255) * k) << 8) | ((c & 255) * k)) >>> 0; }
+function shadeRect(x, y, w, h, k) {
+  const x0 = Math.max(0, Math.round(x)), y0 = Math.max(0, Math.round(y)), x1 = Math.min(W, Math.round(x + w)), y1 = Math.min(H, Math.round(y + h));
+  for (let j = y0; j < y1; j++) for (let i = x0; i < x1; i++) darkenPx(j * W + i, k);
+}
+// filled ellipse; with k set it darkens what's underneath instead (shadows)
+function ellipseF(cx, cy, rx, ry, c, k) {
+  for (let j = Math.max(0, Math.floor(cy - ry)); j <= Math.min(H - 1, Math.ceil(cy + ry)); j++) {
+    const dy = (j + 0.5 - cy) / ry; if (dy * dy > 1) continue;
+    const half = rx * Math.sqrt(1 - dy * dy), x0 = Math.max(0, Math.round(cx - half)), x1 = Math.min(W, Math.round(cx + half));
+    for (let i = x0; i < x1; i++) { if (k) darkenPx(j * W + i, k); else fbuf[j * W + i] = c; }
+  }
+}
+function pset(x, y, c) { x = Math.round(x); y = Math.round(y); if (x >= 0 && y >= 0 && x < W && y < H) fbuf[y * W + x] = c; }
+function ellipseRing(cx, cy, rx, ry, c) { const n = Math.max(16, Math.ceil((rx + ry) * 4)); for (let k = 0; k < n; k++) { const a = k / n * TAU; pset(cx + Math.cos(a) * rx, cy + Math.sin(a) * ry, c); } }
+function lineP(x0, y0, x1, y1, c) { const n = Math.min(2000, Math.ceil(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)))); for (let i = 0; i <= n; i++) pset(lerp(x0, x1, n ? i / n : 0), lerp(y0, y1, n ? i / n : 0), c); }
+function triF(ax, ay, bx, by, qx, qy, c) {
+  const x0 = Math.max(0, Math.floor(Math.min(ax, bx, qx))), x1 = Math.min(W - 1, Math.ceil(Math.max(ax, bx, qx)));
+  const y0 = Math.max(0, Math.floor(Math.min(ay, by, qy))), y1 = Math.min(H - 1, Math.ceil(Math.max(ay, by, qy)));
+  const e = (px, py, ux, uy, vx, vy) => (vx - ux) * (py - uy) - (vy - uy) * (px - ux);
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    const px = x + 0.5, py = y + 0.5, w0 = e(px, py, bx, by, qx, qy), w1 = e(px, py, qx, qy, ax, ay), w2 = e(px, py, ax, ay, bx, by);
+    if ((w0 >= 0 && w1 >= 0 && w2 >= 0) || (w0 <= 0 && w1 <= 0 && w2 <= 0)) fbuf[y * W + x] = c;
+  }
+}
+// scaled sprite copy with see-through pixels; picks the half-size copy closest to the drawn size
+function blit(spr, dx, dy, dw, dh) {
+  let lv = spr.levels[0];
+  for (let i = spr.levels.length - 1; i >= 0; i--) if (spr.levels[i].w >= dw * 0.95) { lv = spr.levels[i]; break; }
+  const x0 = Math.round(dx), x1 = Math.round(dx + dw), y0 = Math.round(dy), y1 = Math.round(dy + dh);
+  if (x1 <= x0 || y1 <= y0) return;
+  const sxk = lv.w / (x1 - x0), syk = lv.h / (y1 - y0), src = lv.buf, lw = lv.w;
+  for (let y = Math.max(0, y0); y < Math.min(H, y1); y++) {
+    const sy = Math.min(lv.h - 1, ((y - y0 + 0.5) * syk) | 0), srow = sy * lw, row = y * W;
+    for (let x = Math.max(0, x0); x < Math.min(W, x1); x++) {
+      const c = src[srow + Math.min(lw - 1, ((x - x0 + 0.5) * sxk) | 0)];
+      if (c >>> 24) fbuf[row + x] = c;
+    }
+  }
 }
 function previewPutt() {
   const b = G.ball, d = distTo([b.x, b.y], hole.pin), pts = [];
@@ -1321,15 +1355,32 @@ function previewPutt() {
 }
 
 // ---------- minimap ----------
+// Top-down picture of the hole, painted pixel by pixel from the ground texture (cached per size).
+function miniImage(h, g, mw, mh, s, ox, oy, bg) {
+  const key = mw + 'x' + mh;
+  if (h.miniCache[key]) return h.miniCache[key];
+  const img = g.createImageData(mw, mh), b = new Uint32Array(img.data.buffer), bgc = abgr(bg);
+  const lvl = clamp(Math.floor(Math.log2(Math.max(1, TPY / s))), 0, h.mips.length - 1), mt = h.mips[lvl], tw = h.TW >> lvl, th = h.TH >> lvl, k = TPY / (1 << lvl);
+  for (let y = 0; y < mh; y++) for (let x = 0; x < mw; x++) {
+    const wx = (x + 0.5 - ox) / s, wy = (oy - y - 0.5) / s, u = (wx * k) | 0, v = (wy * k) | 0;
+    b[y * mw + x] = (wx >= 0 && wy >= 0 && u < tw && v < th) ? mt[v * tw + u] : bgc;
+  }
+  for (const p of h.props) {
+    if (p.kind === 4) continue;
+    const c = abgr(p.kind === 3 ? 0x3d5a24 : p.kind === 2 ? 0xb8501e : 0x1d4a16), r = Math.max(0.8, p.w * 0.45 * s);
+    const px = ox + p.x * s, py = oy - p.y * s;
+    for (let y = Math.floor(py - r); y <= py + r; y++) for (let x = Math.floor(px - r); x <= px + r; x++)
+      if (x >= 0 && y >= 0 && x < mw && y < mh && (x + 0.5 - px) ** 2 + (y + 0.5 - py) ** 2 <= r * r) b[y * mw + x] = c;
+  }
+  return (h.miniCache[key] = img);
+}
 const mapC = $('map'), mapG = mapC.getContext('2d');
 function drawMap() {
   const mw = mapC.width, mh = mapC.height;
-  mapG.imageSmoothingEnabled = true;
-  mapG.fillStyle = '#0a1238'; mapG.fillRect(0, 0, mw, mh);
   const ymax = hole.spec.g[1] + 30, s = Math.min((mh - 6) / ymax, (mw - 4) / 150);
   const ox = mw / 2 - 100 * s, oy = mh - 3;
   const M = (x, y) => [ox + x * s, oy - y * s];
-  mapG.save(); mapG.translate(ox, oy); mapG.scale(s / TPY, -s / TPY); mapG.drawImage(hole.mini, 0, 0); mapG.restore();
+  mapG.putImageData(miniImage(hole, mapG, mw, mh, s, ox, oy, 0x0a1238), 0, 0);
   // pin
   const p = M(hole.pin[0], hole.pin[1]);
   mapG.fillStyle = '#fff'; mapG.fillRect(p[0] | 0, (p[1] - 5) | 0, 1, 5); mapG.fillStyle = '#f22'; mapG.fillRect((p[0] | 0) + 1, (p[1] - 5) | 0, 3, 2);
@@ -1461,9 +1512,8 @@ function renderCourseList() {
     // little preview of hole 1
     const cv = bt.querySelector('canvas'), g = cv.getContext('2d');
     const hh = i === G.ci ? hole : buildHolePreviewCache(i);
-    g.fillStyle = '#000'; g.fillRect(0, 0, 44, 92);
     const s = Math.min(90 / (hh.spec.g[1] + 30), 44 / 150);
-    g.save(); g.translate(22 - 100 * s, 91); g.scale(s / TPY, -s / TPY); g.drawImage(hh.mini, 0, 0); g.restore();
+    g.putImageData(miniImage(hh, g, 44, 92, s, 22 - 100 * s, 91, 0x000000), 0, 0);
   });
 }
 const previewCache = {};
