@@ -1,7 +1,7 @@
 Turbo Cross uses these free assets:
 
 3D models (models/*.glb) by Kenney (www.kenney.nl), all CC0 / public domain:
-  - Car Kit: race, raceFuture, sedanSports, hatchbackSports, police, taxi, suv, suvLuxury, truck
+  - Car Kit: race, raceFuture, sedan, sedanSports, hatchbackSports, police, taxi, suv, suvLuxury, truck, van, delivery, truckFlat, ambulance, firetruck
   - Racing Kit: barriers, fences, flags, banner towers, grandstands, start gantry, pit garages, tents, light posts, billboards, trees
   - Nature Kit: rocks, stones, cacti, pine/oak/palm trees, bushes, logs, grass, wooden fence
   License: Creative Commons Zero, http://creativecommons.org/publicdomain/zero/1.0/
