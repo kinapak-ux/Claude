@@ -92,6 +92,7 @@ All thirteen games, plus Moth Synth, are published with the tracker and can be i
 | Snap Race | https://kinapak-ux.github.io/Claude/snap-race/ |
 | Times Table Blaster | https://kinapak-ux.github.io/Claude/times-tables/ |
 | Blow Out the Pumpkin | https://kinapak-ux.github.io/Claude/pumpkin/ |
+| Tee Time '99 (golf) | https://kinapak-ux.github.io/Claude/tee-time/ |
 | Pixel Gaffer '96 | https://kinapak-ux.github.io/Claude/pixel-gaffer/ |
 | PIXTEXT Gaffer (teletext version) | https://kinapak-ux.github.io/Claude/pixtext/ |
 | Moth Synth | https://kinapak-ux.github.io/Claude/synth/ |
@@ -112,6 +113,14 @@ Blow Out the Pumpkin: tap **Light the candle**, allow the microphone, then blow 
 - **Go:** 9 lessons (stones, liberties, capturing, escaping atari, ladders, suicide, ko, eyes, scoring). Then a full game on 9×9 or 13×13 against the computer or a friend. Stones in atari get a red ring, **Hint** shows a suggested move, and when both players pass, the owl marks stones it thinks are dead (tap a group to change it) and counts the score (area scoring, 6.5 komi).
 - It works with no signal after being opened just once, including the lessons and games against the computer. Scores earned offline are sent the next time the phone is online.
 - Finished lessons get a tick, saved on that phone. Games against the computer (won or lost) and the number of lessons finished go to the family leaderboard; games against a friend don't.
+
+**Tee Time '99** is a casual golf game in the style of late-90s console golf: chunky pixel sprites, a 3D course and a TV-style ball tracer.
+
+- **Two 9-hole courses:** Maple Ridge CC (parkland: tree-lined fairways, autumn maples, ponds and a creek, soft greens, light wind) and Gullwing Dunes Links (seaside: firm fairways that run, pot bunkers, golden fescue, gorse bushes, the sea down the right and much stronger wind).
+- **Swinging:** the classic three-click meter. Tap **SWING** to start the backswing, tap again to set power (past 100% goes further but less straight), then tap as the marker crosses the white **SNAP** line. Early hooks left, late slices right. Keyboard: ← → aim (hold Shift for fine aim), ↑ ↓ club, Space to swing, M for the big map, C for the scorecard.
+- **Aiming:** the game picks a club and aims down the fairway for you; change either with ◀ ▶ (or drag the course) and ▲ ▼. The ring on the ground shows where a full swing lands without wind. Watch the wind arrow (up = behind you) and the lie: rough, fescue and bunkers cut distance.
+- **Putting:** the gold line on the meter is the hole's distance; the green's slope is shown as **Break** with an arrow. Fast putts lip out.
+- **Casual** has a slower meter, a wider snap zone, a putt preview line and gimmes inside 2 ft. **Pro** is faster and you hole everything. Best rounds for each course and mode are saved on that phone. It doesn't send scores to the leaderboard.
 
 Moth Synth is a synthesizer with a loop recorder and a drum machine.
 
