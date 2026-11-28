@@ -693,67 +693,86 @@ function treeSprites() {
 const SPR = treeSprites();
 
 // ---------- golfer (drawn each frame into a tiny pixel canvas) ----------
-const GW = 48, GH = 60;
+const GW = 64, GH = 80, G_YPX = 0.04;     // golfer art grid; each art pixel is 0.04 yards
+const G_BALL = [41, 78];                    // where the ball sits in the art grid (the sprite is anchored here)
 const gBuf = new Uint32Array(GW * GH), GOLFER_SPR = { w: GW, h: GH, levels: [{ w: GW, h: GH, buf: gBuf }] };
-const GOLFER = { shirt: 0x2f5fd8, shirtD: 0x1d3e96, pants: 0xcdb98a, pantsD: 0x9e8c62, skin: 0xe8b48a, skinD: 0xb8845a, cap: 0xffffff, capD: 0xc8c8d8, hair: 0x4a2c18, shoe: 0xf2f2f2, glove: 0xffffff };
+const GOLFER = { shirt: 0x3a6fe0, shirtD: 0x24479e, shirtL: 0x6a94f0, pants: 0x8a3a5a, pantsD: 0x5e2440, skin: 0xe8b48a, skinD: 0xb8845a, cap: 0x2a2a3a, capL: 0x4a4a5a, hair: 0x4a2c18, shoe: 0x1a1a1a, glove: 0xffffff, belt: 0x141414, shaft: 0xc8ccd8, head: 0xd8dce6 };
 function gpx(x, y, c) { x = Math.round(x); y = Math.round(y); if (x >= 0 && y >= 0 && x < GW && y < GH) gBuf[y * GW + x] = abgr(c); }
 function grect(x, y, w, h, c) { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) gpx(x + i, y + j, c); }
 function gline(x0, y0, x1, y1, c, t) { const n = Math.ceil(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0))) + 1; for (let i = 0; i <= n; i++) { const x = lerp(x0, x1, i / n), y = lerp(y0, y1, i / n); for (let a = 0; a < t; a++) for (let b = 0; b < t; b++) gpx(x + a - (t >> 1), y + b - (t >> 1), c); } }
-function gdisc(cx, cy, r, c, cd) { for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) if (x * x + y * y <= r * r + r * 0.6) gpx(cx + x, cy + y, (cd && x > r * 0.2) ? cd : c); }
-// The golfer is seen from behind, standing over the ball, facing down the target line.
-// phi: arm angle (0 = hands hanging at address, + = backswing up over the right shoulder, - = follow through over the left)
-// cock: extra club angle at the wrists
-function drawGolfer(phi, cock) {
-  gBuf.fill(0);
-  const rot = clamp(phi / 150, -1, 1);            // shoulder turn
-  const cx = 24, sx = cx + rot * 2, hipX = cx - rot * 1;
-  // arms and club
-  const R = 13, py = 27;
-  const hx = sx + Math.sin(phi * Math.PI / 180) * R, hy = py + Math.cos(phi * Math.PI / 180) * R;
-  const psi = (phi + cock) * Math.PI / 180;
-  const CL = lerp(15, 21, clamp(Math.abs(phi) / 80, 0, 1)); // the shaft is foreshortened at address
-  const ch = [hx + Math.sin(psi) * CL, hy + Math.cos(psi) * CL];
-  const drawArms = () => {
-    gline(sx - 7, py - 1, hx, hy, GOLFER.shirt, 3);
-    gline(sx + 7, py - 1, hx, hy, GOLFER.shirtD, 3);
-    gline(lerp(sx - 7, hx, 0.45), lerp(py, hy, 0.45), hx, hy, GOLFER.skin, 2);
-    gline(lerp(sx + 7, hx, 0.45), lerp(py, hy, 0.45), hx, hy, GOLFER.skinD, 2);
-    grect(hx - 1, hy - 1, 3, 3, GOLFER.glove);
-  };
-  const drawClub = () => {
-    gline(hx, hy, ch[0], ch[1], 0xb8bcc8, 1);
-    gline(ch[0] - Math.cos(psi) * 1.5, ch[1] + Math.sin(psi) * 1.5, ch[0] + Math.cos(psi) * 1.5, ch[1] - Math.sin(psi) * 1.5, 0x303040, 2);
-  };
-  // near address the hands and club are in front of the golfer, hidden behind legs and body
-  const inFront = Math.abs(phi) > 55;
-  if (!inFront) { drawClub(); drawArms(); }
-  // legs together, straight under the hips; the right heel comes up on the follow through
-  const lift = phi < -60 ? clamp((-phi - 60) / 80, 0, 1) : 0;
-  gline(hipX - 2, 39, cx - 2, 56, GOLFER.pants, 5);
-  gline(hipX + 3, 39, cx + 3 - lift * 2, 56 - lift * 2, GOLFER.pantsD, 5);
-  grect(cx - 6, 57, 6, 2, GOLFER.shoe);
-  grect(cx + 1 - lift * 2, 57 - lift * 2, 6, 2 - (lift > 0.5 ? 1 : 0), 0xd8d8d8);
-  // torso: back of the polo, darker down the right side, a seam down the middle
-  for (let y = 23; y < 40; y++) {
-    const t = (y - 23) / 17, half = lerp(9, 6.5, t), mx = lerp(sx, hipX, t);
-    for (let x = Math.round(mx - half); x <= mx + half; x++) {
-      const rel = (x - mx) / half;
-      let c = rel > 0.35 ? GOLFER.shirtD : GOLFER.shirt;
-      if (rel < -0.55 && bayer(x, y) > 0.5) c = 0x4a78ea;
-      if (Math.abs(x - mx) < 0.6 && y > 25) c = GOLFER.shirtD;
-      gpx(x, y, c);
+function gdisc(cx, cy, r, fn) { for (let y = -Math.ceil(r); y <= r; y++) for (let x = -Math.ceil(r); x <= r; x++) if (x * x + y * y <= r * r + 0.5) gpx(cx + x, cy + y, fn(x, y)); }
+// convex polygon fill
+function gpoly(pts, fn) {
+  const ys = pts.map(p => p[1]), y0 = Math.floor(Math.min(...ys)), y1 = Math.ceil(Math.max(...ys));
+  for (let y = y0; y <= y1; y++) {
+    let lo = 1e9, hi = -1e9;
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i], b = pts[(i + 1) % pts.length];
+      if ((y + 0.5 - a[1]) * (y + 0.5 - b[1]) > 0 || a[1] === b[1]) continue;
+      const x = a[0] + (b[0] - a[0]) * (y + 0.5 - a[1]) / (b[1] - a[1]); lo = Math.min(lo, x); hi = Math.max(hi, x);
     }
+    for (let x = Math.round(lo); x <= Math.round(hi); x++) gpx(x, y, fn(x, y));
   }
-  grect(Math.round(sx) - 4, 23, 9, 1, 0xe8eefc); // collar
-  grect(Math.round(hipX) - 7, 38, 15, 2, 0x3a2a1a); // belt
-  // head, tilted down at the ball: neck, back of the head, cap from behind
-  const hdx = Math.round(cx + rot * 1);
-  grect(hdx - 2, 19, 5, 4, GOLFER.skinD);
-  gdisc(hdx, 15, 4, GOLFER.hair, 0x3a2010);
-  for (let x = -5; x <= 5; x++) for (let y = -5; y <= 0; y++) if (x * x + (y + 1) * (y + 1) * 1.4 <= 26) gpx(hdx + x, 14 + y, x > 2 ? GOLFER.capD : GOLFER.cap);
-  grect(hdx - 1, 12, 3, 2, GOLFER.hair); // gap in the cap strap
-  grect(hdx - 4, 14, 9, 1, 0xd02a2a);
-  if (inFront) { drawArms(); drawClub(); }
+}
+// Swing keyframes, seen "down the line" (camera behind the ball looking at the target, golfer side-on, facing the ball).
+// s: -1 = top of the backswing, 0 = address / impact, +1 = finish.
+const SW_K = [-1, -0.66, -0.33, 0, 0.33, 0.66, 1];
+const SW_HX = [21, 17, 22, 30.5, 38, 37, 27];      // hands
+const SW_HY = [28, 42, 55, 58, 57, 38, 27];
+const SW_PSI = [-145, -115, -62, 30, 62, 150, 285]; // shaft direction (0 = straight down, + = towards the ball side)
+const SW_CL = [17, 20, 22, 22, 22, 20, 18];         // shaft length on screen (shorter when it points into the screen)
+function swingAt(arr, s) {
+  s = clamp(s, -1, 1);
+  for (let i = 0; i < SW_K.length - 1; i++) if (s <= SW_K[i + 1]) { const t = (s - SW_K[i]) / (SW_K[i + 1] - SW_K[i]); return lerp(arr[i], arr[i + 1], t * t * (3 - 2 * t)); }
+  return arr[arr.length - 1];
+}
+function drawGolfer(s) {
+  gBuf.fill(0);
+  const fin = clamp((s - 0.45) / 0.55, 0, 1);       // standing up into the finish
+  const back = clamp(-s, 0, 1);                       // shoulder turn on the backswing
+  const hip = [18 + fin * 3, 54 - fin * 3];
+  const sh = [lerp(28, 25, fin) - back * 2, lerp(41, 34, fin) - back * 1];
+  const hd = [lerp(31.5, 27.5, fin) - back * 0.5, lerp(34, 27, fin)];
+  const H = [swingAt(SW_HX, s), swingAt(SW_HY, s)];
+  const psi = swingAt(SW_PSI, s) * Math.PI / 180, CL = swingAt(SW_CL, s);
+  const C = [H[0] + Math.sin(psi) * CL, H[1] + Math.cos(psi) * CL];
+  const lift = fin;                                   // trail heel comes up at the finish
+  const club = () => {
+    gline(H[0], H[1], C[0], C[1], GOLFER.shaft, 1);
+    const px = Math.cos(psi), py = -Math.sin(psi);
+    gline(C[0] - px * 1, C[1] - py * 1, C[0] + px * 2.5, C[1] + py * 2.5, GOLFER.head, 2);
+  };
+  const clubBehind = s < -0.5 || s > 0.75;
+  // legs: knees flexed, far leg first
+  gline(hip[0] + 2, hip[1], 24 + fin * 1, 65, GOLFER.pantsD, 5); gline(24 + fin * 1, 65, 22, 76, GOLFER.pantsD, 5);
+  grect(20, 76, 8, 2, GOLFER.shoe);
+  if (clubBehind) club();
+  // far arm
+  gline(sh[0] + 2, sh[1] - 1, H[0], H[1], GOLFER.shirtD, 3);
+  gline(lerp(sh[0] + 2, H[0], 0.4), lerp(sh[1] - 1, H[1], 0.4), H[0], H[1], GOLFER.skinD, 3);
+  // near leg (heel lifts and knee kicks in at the finish)
+  gline(hip[0] - 1, hip[1] + 1, 21 + lift * 4, 66 - lift * 1, GOLFER.pants, 5);
+  gline(21 + lift * 4, 66 - lift, 17 + lift * 5, 77 - lift * 3, GOLFER.pants, 5);
+  if (lift > 0.5) grect(19 + lift * 4, 75, 4, 3, GOLFER.shoe); else grect(14, 77, 9, 2, GOLFER.shoe);
+  // torso: bent forward from the hips towards the ball; back of the shirt lit, front in shade
+  const tq = [[hip[0] - 5, hip[1] + 1], [sh[0] - 5, sh[1] - 3], [sh[0] + 4, sh[1] + 2], [hip[0] + 5, hip[1] + 1]];
+  gpoly(tq, (x, y) => {
+    const t = (x - lerp(hip[0], sh[0], (hip[1] - y) / Math.max(1, hip[1] - sh[1])));
+    return t < -3 ? (bayer(x, y) > 0.5 ? GOLFER.shirtL : GOLFER.shirt) : t > 2 ? GOLFER.shirtD : GOLFER.shirt;
+  });
+  grect(hip[0] - 5, hip[1] - 1, 10, 2, GOLFER.belt);
+  // neck + head, looking down at the ball (back of the head and an ear towards us)
+  gline(sh[0], sh[1] - 2, hd[0] - 1, hd[1] + 3, GOLFER.skinD, 3);
+  gdisc(hd[0], hd[1], 4.5, (x, y) => (x > 1.5 && y > -1) ? GOLFER.skin : (x > 2 && y > -2) ? GOLFER.skinD : GOLFER.hair);
+  gpx(hd[0] + 0.5, hd[1] + 0.5, GOLFER.skinD); gpx(hd[0] + 0.5, hd[1] + 1.5, GOLFER.skinD); // ear
+  // cap with the brim pointing at the ball
+  gdisc(hd[0] - 0.5, hd[1] - 2, 4.5, (x, y) => y > 1 ? 0 : (x < -1 ? GOLFER.capL : GOLFER.cap));
+  gline(hd[0] + 3, hd[1] - 1, hd[0] + 7, hd[1] + 1, GOLFER.cap, 2);
+  // near arm on top
+  gline(sh[0] - 1, sh[1] + 1, H[0], H[1], GOLFER.shirt, 3);
+  gline(lerp(sh[0] - 1, H[0], 0.4), lerp(sh[1] + 1, H[1], 0.4), H[0], H[1], GOLFER.skin, 3);
+  grect(H[0] - 1, H[1] - 1, 3, 3, GOLFER.glove);
+  if (!clubBehind) club();
 }
 
 // ---------- audio (tiny synth) ----------
@@ -814,7 +833,7 @@ function startHole(hi) {
     hole = buildHole(G.ci, hi);
     G.strokes = 0; G.holeOut = false;
     G.ball = { x: hole.tee[0], y: hole.tee[1], z: 0, vx: 0, vy: 0, vz: 0, mode: 'stop' };
-    G.shotFrom = null; G.trail = []; G.path = []; G.golferAt = [G.ball.x, G.ball.y]; G.phi = 0; G.cock = 0;
+    G.shotFrom = null; G.trail = []; G.path = []; G.golferAt = [G.ball.x, G.ball.y]; G.phi = 0;
     autoAim(true);
     snapCam();
     G.state = 'intro'; G.introT = 0;
@@ -864,7 +883,7 @@ function setPutRange() {
 // ---------- camera ----------
 function aimCamTarget() {
   const b = G.ball, putt = G.club === PUTTER;
-  const D = putt ? 4.2 : PORTRAIT ? 6.2 : 8.5, hgt = putt ? 1.7 : 2.9, side = 0;
+  const D = putt ? 4.2 : PORTRAIT ? 6.2 : 8.5, hgt = putt ? 1.7 : 2.9, side = putt ? 0 : 0.45;
   const fx = Math.sin(G.heading), fy = Math.cos(G.heading), rx = Math.cos(G.heading), ry = -Math.sin(G.heading);
   camT.x = b.x - fx * D - rx * side; camT.y = b.y - fy * D - ry * side; camT.h = hgt; camT.head = G.heading;
 }
@@ -896,12 +915,12 @@ function updateMeter(dt) {
   if (m.phase === 1) {
     m.pos += sp * dt;
     if (m.pos >= METER_MAX) { m.pos = METER_MAX; m.power = METER_MAX; m.phase = 2; }
-    G.phi = clamp(m.pos, 0, 1) * 150; G.cock = clamp(m.pos, 0, 1) * 90;
+    G.phi = -clamp(m.pos, 0, 1);
   } else if (m.phase === 2) {
     m.pos -= sp * 1.35 * dt;
     const t = clamp(m.pos / m.power, 0, 1);
     const top = clamp(m.power, 0, 1) * 150;
-    G.phi = top * t; G.cock = 90 * clamp(m.power, 0, 1) * Math.pow(t, 0.5);
+    G.phi = -clamp(m.power, 0, 1) * t;
     if (m.pos <= METER_MIN) { m.pos = METER_MIN; m.acc = METER_MIN; m.phase = 3; strike(); }
   }
 }
@@ -1103,7 +1122,7 @@ function settleBall() {
   if (G.strokes >= cap) { G.strokes = cap; return finishHole('pickup'); }
   autoAim();
   aimCamTarget(); camT.rate = 2.6;
-  G.state = 'aim'; G.phi = 0; G.cock = 0;
+  G.state = 'aim'; G.phi = 0;
   updateHUD();
   const lie = lieAt(b.x, b.y);
   if (lie === L.SAND) comment('In the bunker...'); else if (lie === L.GREEN && pd > 0) comment(`${Math.round(pd * 3)} feet for ${['albatross', 'eagle', 'birdie', 'par', 'bogey', 'double'][clamp(G.strokes + 1 - hole.par + 3, 0, 5)]}`);
@@ -1144,7 +1163,7 @@ function update(dt) {
     G.followT += dt;
     const putt = G.club === PUTTER;
     const f = clamp(G.followT / (putt ? 0.5 : 0.45), 0, 1);
-    G.phi = lerp(0, -150, Math.pow(f, 0.6)); G.cock = lerp(0, -90, f);
+    G.phi = Math.pow(f, 0.6);
   }
   if (G.state === 'flight') {
     const steps = 4, sdt = dt * (G.club === PUTTER ? 1 : 1.25) / steps;
@@ -1265,12 +1284,13 @@ function render(t) {
   // golfer (not while putting, so the line to the hole is clear)
   if (G.golferAt && G.state !== 'intro' && G.state !== 'title' && G.club !== PUTTER) {
     const head = (G.state === 'aim' || G.state === 'swing') ? G.heading : G.golferHead;
-    const q = proj(G.golferAt[0] - Math.sin(head) * 0.45, G.golferAt[1] - Math.cos(head) * 0.45, 0);
-    if (q) list.push({ d: q.d - 0.05, f: () => {
-      drawGolfer(G.phi, G.cock);
-      const h = 2.4 * q.s, w = h * GW / GH;
-      ellipseF(q.x, q.y - 1, w * 0.3, Math.max(1, w * 0.06), 0, 0.62);
-      blit(GOLFER_SPR, q.x - w * 24 / GW, q.y - h, w, h);
+    // side-on, standing to the left of the ball and facing it; the sprite is anchored on the ball
+    const q = proj(G.golferAt[0], G.golferAt[1], 0);
+    if (q) list.push({ d: q.d + 0.05, f: () => {
+      drawGolfer(G.phi);
+      const px = G_YPX * q.s, w = GW * px, h = GH * px;
+      ellipseF(q.x - 19 * px, q.y - 0.5, 12 * px, Math.max(1, 2.2 * px), 0, 0.62);
+      blit(GOLFER_SPR, q.x - G_BALL[0] * px, q.y - G_BALL[1] * px, w, h);
     } });
   }
   // ball + shadow
