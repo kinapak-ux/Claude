@@ -1112,7 +1112,9 @@ function finishHole(how) {
   updateHUD();
 }
 function settleBall() {
-  const b = G.ball;
+  const b = G.ball, penalty = !!(G.settle && G.settle.place);
+  // how far the shot went (from where it was hit to where it stopped)
+  const shotLen = G.shotFrom ? distTo([G.shotFrom.x, G.shotFrom.y], [b.x, b.y]) : 0, shotLie = lieAt(b.x, b.y), wasPutt = G.club === PUTTER;
   if (G.settle && G.settle.place) { b.x = G.settle.place[0]; b.y = G.settle.place[1]; }
   G.settle = null; b.z = 0; b.mode = 'stop'; b.vx = b.vy = b.vz = 0; G.lipped = false;
   G.golferAt = [b.x, b.y];
@@ -1120,13 +1122,16 @@ function settleBall() {
   const cap = G.diff === 'casual' ? hole.par + 5 : 12;
   if (G.diff === 'casual' && lieAt(b.x, b.y) === L.GREEN && pd < 0.7) { G.strokes++; b.x = hole.pin[0]; b.y = hole.pin[1]; return finishHole('gimme'); }
   if (G.strokes >= cap) { G.strokes = cap; return finishHole('pickup'); }
+  if (!penalty && G.shotFrom) {
+    if (wasPutt) toast(`${Math.max(1, Math.round(shotLen * 3))} FEET`, `Putt · ${Math.round(pd * 3)} ft left`, 1500);
+    else toast(`${Math.round(shotLen)} YARDS`, `${CLUBS[G.club].n} · ${LIE_NAME[shotLie]}`, 1800);
+  }
   autoAim();
   aimCamTarget(); camT.rate = 2.6;
   G.state = 'aim'; G.phi = 0;
   updateHUD();
   const lie = lieAt(b.x, b.y);
   if (lie === L.SAND) comment('In the bunker...'); else if (lie === L.GREEN && pd > 0) comment(`${Math.round(pd * 3)} feet for ${['albatross', 'eagle', 'birdie', 'par', 'bogey', 'double'][clamp(G.strokes + 1 - hole.par + 3, 0, 5)]}`);
-  else if (lie === L.FAIR && G.strokes === 1 && hole.par > 3) comment(`Fairway · ${Math.round(distTo([G.shotFrom.x, G.shotFrom.y], [b.x, b.y]))} yd drive`);
 }
 
 // ---------- intro flyover ----------

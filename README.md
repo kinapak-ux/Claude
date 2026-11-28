@@ -93,7 +93,7 @@ All thirteen games, plus Moth Synth, are published with the tracker and can be i
 | Times Table Blaster | https://kinapak-ux.github.io/Claude/times-tables/ |
 | Blow Out the Pumpkin | https://kinapak-ux.github.io/Claude/pumpkin/ |
 | Tee Time '99 (golf) | https://kinapak-ux.github.io/Claude/tee-time/ |
-| City Heat '99 (top-down driving) | https://kinapak-ux.github.io/Claude/city-heat/ |
+| City Heat '99 (18+, top-down crime) | https://kinapak-ux.github.io/Claude/city-heat/ |
 | Pixel Gaffer '96 | https://kinapak-ux.github.io/Claude/pixel-gaffer/ |
 | PIXTEXT Gaffer (teletext version) | https://kinapak-ux.github.io/Claude/pixtext/ |
 | Moth Synth | https://kinapak-ux.github.io/Claude/synth/ |
@@ -123,12 +123,13 @@ Blow Out the Pumpkin: tap **Light the candle**, allow the microphone, then blow 
 - **Putting:** the gold line on the meter is the hole's distance; the green's slope is shown as **Break** with an arrow. Fast putts lip out.
 - **Casual** has a slower meter, a wider snap zone, a putt preview line and gimmes inside 2 ft. **Pro** is faster and you hole everything. Best rounds for each course and mode are saved on that phone. It doesn't send scores to the leaderboard.
 
-**City Heat '99** is a top-down city driving game in the style of late-90s open-city games: chunky leaning buildings, a camera that pulls back as you speed up, traffic, people and police. It's cartoon crime-lite: no weapons, people who get bumped fall over dizzy and get back up, and cops bust you rather than anything worse.
+**City Heat '99 (18+)** is a top-down crime sandbox in the style of late-90s open-city games: chunky leaning buildings, a camera that pulls back as you speed up, traffic, pedestrians and police. **It's for adults:** strong violence, blood, crime and coarse language, with an 18+ confirmation on its title screen. It isn't one for the kids.
 
-- **Goal:** make $25,000. Ringing **payphones** (follow the green arrow) give jobs: *Car Boost* (steal the gold car and deliver it to the docks garage; dents cost you), *Express Dash* (6 checkpoints against the clock), *Getaway* (lose 3 stars of heat) and *Taxi Fare* (pick up the passenger in blue; faster = bigger tip). **$ crates** appear around the city too.
-- **Cars:** walk up to any car and press **CAR** (E or Enter). Traffic drivers jump out and complain. Sedans, vans, taxis, sports cars and police cruisers all drive differently; **SLIDE** (Space) is a handbrake for drifting. Cars that take too much damage smoke, catch fire and blow up (you crawl out singed).
-- **Heat:** bumping people or cars and stealing in front of police earns ★ stars, up to five. More stars, more police cars, and on foot an officer will run you down. Stop next to a police car and you're **busted** (a fine, and you start again at the police station). Lose them, or drive into the pink **paint shop** ($300) to wipe your stars.
-- Keys: ↑ gas / walk, ↓ brake / reverse, ← → steer, Space slide, E get in/out, H horn, P pause, M sound. Your best stash and fastest $25k are saved on that phone. It doesn't send scores to the leaderboard.
+- **Goal:** make $25,000 any way you can. Ringing **payphones** (green arrow) give jobs: *Car Boost* (steal the gold car, deliver it to the docks garage), *The Hit* (take out the man in the red jacket), *Express Dash* (6 checkpoints), *Kill Frenzy* (15 kills in 40 seconds with an Uzi), *Getaway* (lose 3 stars) and *Taxi Fare*. **$ crates** appear around the city, and some people drop cash.
+- **Cars:** walk up to any car and press **CAR** (E or Enter); drivers get dragged out. Sedans, vans, taxis, sports cars and police cruisers drive differently; **SLIDE** (Space) is a handbrake. Damaged cars smoke, burn and explode, with you inside if you don't get out.
+- **Weapons:** fists, pistol, Uzi, shotgun and rocket launcher from weapon crates, plus health and armour. **X** / Ctrl / ✹ fires (also out of a car's windscreen), **Q** / GUN switches. You start with a pistol.
+- **Heat:** crimes earn ★ stars, up to five. At one star officers try to cuff you; from two stars they shoot. Stop next to a police car and you're **busted** (a fine). Lose all your health and you're **wasted** (hospital bill, guns gone). Lose the cops or use the pink **paint shop** ($300) to wipe your stars.
+- Keys: ↑ gas / walk, ↓ brake / reverse, ← → steer, Space slide, E car, X fire, Q weapon, H horn, P pause, M sound. Best stash and fastest $25k are saved on that phone. It doesn't send scores to the leaderboard.
 
 Moth Synth is a synthesizer with a loop recorder and a drum machine.
 
