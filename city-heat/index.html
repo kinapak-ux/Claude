@@ -116,6 +116,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
       <b>Guns:</b> grab weapon crates (Pistol, Uzi, Shotgun, Rockets), plus health and armour. <b>X</b> or Ctrl fires, <b>Q</b> switches. You can shoot out of a car window too.<br>
       <b>Heat:</b> every crime earns ★ stars. From two stars the cops shoot to kill. Lose them, or drive into the <b>paint shop</b> ($300). Get stopped next to a cop car and you're <b>busted</b>; run out of health and you're <b>wasted</b>.<br>
       <b>Phone:</b> push the <b>joypad</b> the way you want to go and you run that way. In a car, push it towards where you want to drive and the car turns and goes; ◼ brakes and reverses.<br>
+      <b>Graphics:</b> Tiny City and Mini Characters by Kenney (kenney.nl).<br>
       <b>Keys:</b> on foot the arrows / WASD run in that direction. In a car: ↑ gas, ↓ brake / reverse, ← → steer. Space slide, E car, X fire, Q weapon, H horn, P pause, M sound.
     </div>
   </div>
@@ -426,6 +427,7 @@ function spawnPed(x, y, cop) {
   const p = { x, y, a: Math.random() * TAU, vx: 0, vy: 0, state: 'walk', t: 0, step: Math.random() * 10, cop: !!cop,
     shirt: cop ? 0x1a2a6a : SHIRTS[Math.floor(Math.random() * SHIRTS.length)], hair: cop ? 0x101020 : HAIRS[Math.floor(Math.random() * HAIRS.length)], skin: SKINS[Math.floor(Math.random() * SKINS.length)], speed: cop ? 4.3 : 0.9 + Math.random() * 0.5, hp: cop ? 120 : 100 };
   p.a = Math.floor(Math.random() * 4) * Math.PI / 2;
+  p.spr = SPR.peds[Math.floor(Math.random() * SPR.peds.length)];
   peds.push(p); return p;
 }
 function spawnPedNear(far) {
@@ -745,8 +747,8 @@ function startJob() {
     j.title = 'CAR BOOST'; j.desc = 'A fence wants that gold sports car. Take it, I don\'t care who\'s in it.'; j.target = j.car; j.time = 120; j.reward = 2000;
   } else if (type === 'hit') {
     const at = randomWalkPoint(16, 34);
-    j.ped = spawnPed(at.x, at.y, false); j.ped.target = true; j.ped.shirt = 0xd01818; j.ped.hp = 140;
-    j.title = 'THE HIT'; j.desc = 'Some rat in a red jacket has been talking to the cops. Shut him up. Permanently.'; j.target = j.ped; j.time = 110; j.reward = 4000;
+    j.ped = spawnPed(at.x, at.y, false); j.ped.target = true; j.ped.shirt = 0xd01818; j.ped.spr = SPR.suit; j.ped.hp = 140;
+    j.title = 'THE HIT'; j.desc = 'Some rat in a suit (the red crosshair) has been talking to the cops. Shut him up. Permanently.'; j.target = j.ped; j.time = 110; j.reward = 4000;
     if (!(me.ammo.pistol > 0)) { me.ammo.pistol = 12; me.weap = 1; }
   } else if (type === 'frenzy') {
     me.ammo.smg = (me.ammo.smg || 0) + 200; me.weap = 2;
@@ -761,7 +763,7 @@ function startJob() {
   } else {
     const at = randomWalkPoint(10, 26);
     j.ped = spawnPed(at.x, at.y, false); j.ped.state = 'wait'; j.ped.shirt = 0x3be8ff; j.ped.fare = true;
-    j.title = 'TAXI FARE'; j.desc = 'Pick up the passenger in blue. You\'ll need a car.'; j.target = j.ped; j.time = 70; j.reward = 0;
+    j.title = 'TAXI FARE'; j.desc = 'Pick up the passenger shouting TAXI. You\'ll need a car.'; j.target = j.ped; j.time = 70; j.reward = 0;
   }
   j.max = j.time;
   toast(j.title, j.desc, 2600);
@@ -939,6 +941,7 @@ function update(dt) {
   if (me.onFoot) {
     // run straight in the direction pushed, facing that way (no turning on the spot first)
     const m = Math.hypot(inp.mx, inp.my);
+    me.moving = m > 0.18;
     if (m > 0.18) {
       me.a = Math.atan2(inp.my, inp.mx);
       const sp = 4.6 * Math.min(1, m * 1.3);
@@ -1098,6 +1101,69 @@ const PERSP = 0.45; // how strongly tall things lean away from the centre
 const kAt = h => cam.z / (cam.z - (h || 0) * PERSP);
 function S(x, y, h) { const k = kAt(h); return [W / 2 + (x - cam.x) * ppu * k + shakeX, H / 2 + (y - cam.y) * ppu * k + shakeY]; }
 let shakeX = 0, shakeY = 0;
+// ---------- graphics: Kenney "Tiny City" tiles and "Mini Characters" (CC0, kenney.nl) ----------
+// tiny-city.png: 12 x 11 tiles of 16px. people.png: 14 characters, each 8 rows (facing E, SE, S, SW, W, NW, N, NE)
+// x 6 columns (stand, 4 walk frames, lying down) of 32px. Until they load, the old hand-drawn look is used.
+const IMG = {};
+for (const [k, src] of [['tiles', 'tiny-city.png'], ['people', 'people.png']]) { const im = new Image(); im.onload = () => { IMG[k] = im; }; im.src = src; }
+const TS = 16, PC = 32;
+function tileImg(i, X, Y, w, h) { ctx.drawImage(IMG.tiles, (i % 12) * TS, Math.floor(i / 12) * TS, TS, TS, X, Y, w, h); }
+const SPR = { player: 0, cop: 1, suit: 2, peds: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] };
+function drawMan(spr, x, y, a, col, scale) {
+  const [sx, sy] = S(x, y, 0.1), sz = Math.round(ppu * 1.05 * (scale || 1));
+  if (sx < -sz || sy < -sz || sx > W + sz || sy > H + sz) return;
+  const row = ((Math.round(a / (Math.PI / 4)) % 8) + 8) % 8;
+  ctx.imageSmoothingEnabled = sz < PC * 0.8;
+  if (col !== 5) { ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(sx, sy + sz * 0.22, sz * 0.24, sz * 0.1, 0, 0, TAU); ctx.fill(); }
+  ctx.drawImage(IMG.people, col * PC, (spr * 8 + row) * PC, PC, PC, Math.round(sx - sz / 2), Math.round(sy - sz * 0.6), sz, sz);
+  ctx.imageSmoothingEnabled = false;
+}
+const walkCol = (step, moving) => moving ? 1 + (Math.floor(step / (Math.PI / 2)) & 3) : 0;
+// building fronts and roofs are put together from the tiles once, then reused
+const ROOF_SET = { brown: [0, 1, 2, 12, 13, 14, 24, 25, 26, 3, 15, 27, 4, 16, 5, 17, [13, 13, 28, 29]], blue: [6, 7, 8, 18, 19, 20, 30, 31, 32, 9, 21, 33, 10, 22, 11, 23, [19, 19, 34, 35]] };
+const WALL_SET = { brick: { win: [36, 37, 38, 39, 40, 41], door: [48, 49, 50, 51, 52, 53], one: [60, 72] }, stone: { win: [42, 43, 44, 45, 46, 47], door: [54, 55, 56, 57, 58, 59], one: [66, 78] } };
+function tileCanvas(w, h, fn) {
+  const c = document.createElement('canvas'); c.width = w * TS; c.height = h * TS; const g = c.getContext('2d');
+  const put = (i, x, y) => g.drawImage(IMG.tiles, (i % 12) * TS, Math.floor(i / 12) * TS, TS, TS, x * TS, y * TS, TS, TS);
+  fn(put); return c;
+}
+function roofTex(b) {
+  if (b.roofTex !== undefined) return b.roofTex;
+  const set = { house: 'brown', tower: 'blue', police: 'blue', warehouse: 'blue', garage: 'blue' }[b.kind];
+  if (!set) return (b.roofTex = null);
+  const R = ROOF_SET[set], w = Math.round(b.x1 - b.x0), h = Math.round(b.y1 - b.y0), rr = rng(Math.floor(b.seed * 1e6) + 7);
+  return (b.roofTex = tileCanvas(w, h, put => {
+    if (w === 1 && h === 1) return put(R[15], 0, 0);
+    if (w === 1) { for (let y = 0; y < h; y++) put(y === 0 ? R[9] : y === h - 1 ? R[11] : R[10], 0, y); return; }
+    if (h === 1) { for (let x = 0; x < w; x++) put(x === 0 ? R[12] : x === w - 1 ? R[14] : R[13], x, 0); return; }
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const cx = x === 0 ? 0 : x === w - 1 ? 2 : 1, cy = y === 0 ? 0 : y === h - 1 ? 2 : 1;
+      put(cx === 1 && cy === 1 ? pick(rr, R[16]) : R[cy * 3 + cx], x, y);
+    }
+  }));
+}
+function wallTex(b, len) {
+  b.wallTex = b.wallTex || {};
+  if (b.wallTex[len]) return b.wallTex[len];
+  const st = WALL_SET[b.kind === 'house' ? 'brick' : 'stone'], rows = Math.max(2, Math.round(b.h * 1.1)), rr = rng(Math.floor(b.seed * 1e6) + len);
+  return (b.wallTex[len] = tileCanvas(len, rows, put => {
+    for (let y = 0; y < rows; y++) {
+      const door = y === rows - 1, r = door ? st.door : st.win;
+      if (len === 1) { put(st.one[door ? 1 : 0], 0, y); continue; }
+      const mid = Math.floor(len / 2);
+      for (let x = 0; x < len; x++) {
+        let i;
+        if (x === 0) i = r[0]; else if (x === len - 1) i = r[5];
+        else if (door) i = x === mid ? r[4] : (b.kind !== 'house' && len > 3 && rr() < 0.5) ? (rr() < 0.5 ? r[2] : r[3]) : r[1];
+        else i = (x % 2 === 1) ? r[4] : r[1 + Math.floor(rr() * 3)];
+        put(i, x, y);
+      }
+    }
+  }));
+}
+// street lamps on the pavement corners
+const lamps = [];
+for (let bj = 0; bj < NB; bj++) for (let bi = 0; bi < NB; bi++) { lamps.push({ x: bi * P + 2.5, y: bj * P + 2.5 }); lamps.push({ x: bi * P + 9.5, y: bj * P + 9.5 }); }
 const GROUND = [
   { road: '#3b3d46', walk: '#a3a1aa', curb: '#7a7882', park: '#4c8a3a', park2: '#447e33', lot: '#474a54', plaza: '#b7ae9c', plaza2: '#aaa18f' },
   { road: '#34363f', walk: '#9a9ca8', curb: '#6e7080', park: '#4f8f3e', park2: '#468233', lot: '#42454f', plaza: '#a8a6b4', plaza2: '#9c9aa8' },
@@ -1114,6 +1180,7 @@ function render(t) {
   const x0 = Math.max(0, Math.floor(cam.x - W / 2 / ppu) - 1), x1 = Math.min(MAP - 1, Math.ceil(cam.x + W / 2 / ppu) + 1);
   const y0 = Math.max(0, Math.floor(cam.y - H / 2 / ppu) - 1), y1 = Math.min(MAP - 1, Math.ceil(cam.y + H / 2 / ppu) + 1);
   // ground tiles
+  ctx.imageSmoothingEnabled = false;
   for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
     const tt = tiles[ty * MAP + tx], g = GROUND[districtOf(tx, ty)];
     const [sx, sy] = S(tx, ty), sz = Math.ceil(ppu) + 1, X = Math.floor(sx), Y = Math.floor(sy);
@@ -1126,6 +1193,22 @@ function render(t) {
       case T.PLAZA: col = ((tx + ty) & 1) ? g.plaza : g.plaza2; break;
       default: col = '#2a2a30';
     }
+    if (IMG.tiles) {
+      const mx = tx % P, my = ty % P;
+      if (tt === T.ROAD) {
+        if (mx < 2 && my < 2) { ctx.fillStyle = '#52607c'; ctx.fillRect(X, Y, sz, sz); }
+        else if (mx < 2) tileImg(mx === 0 ? 61 : 62, X, Y, sz, sz);
+        else tileImg(my === 0 ? 63 : 75, X, Y, sz, sz);
+      } else if (tt === T.WALK) tileImg(88, X, Y, sz, sz);
+      else if (tt === T.PLAZA) tileImg(hash2(tx, ty) > 0.8 ? 100 : 88, X, Y, sz, sz);
+      else if (tt === T.LOT) { ctx.fillStyle = '#5a6884'; ctx.fillRect(X, Y, sz, sz); ctx.fillStyle = '#c0cbdc'; ctx.fillRect(X, Y, 1, Math.ceil(ppu * 0.45)); }
+      else if (tt === T.PARK) {
+        ctx.fillStyle = '#84c669'; ctx.fillRect(X, Y, sz, sz);
+        const hv = hash2(tx * 3, ty * 7), f = Math.max(1, Math.round(ppu / 9));
+        if (hv > 0.55) { ctx.fillStyle = hv > 0.8 ? '#ffffff' : '#f6a84a'; ctx.fillRect(X + (ppu * 0.3 | 0), Y + (ppu * 0.55 | 0), f, f); ctx.fillStyle = '#ffd84a'; if (hash2(tx, ty * 5) > 0.6) ctx.fillRect(X + (ppu * 0.72 | 0), Y + (ppu * 0.2 | 0), f, f); }
+      } else { ctx.fillStyle = '#3f2631'; ctx.fillRect(X, Y, sz, sz); }
+      continue;
+    }
     ctx.fillStyle = col; ctx.fillRect(X, Y, sz, sz);
     if (tt === T.WALK) { // paving lines and the kerb
       ctx.fillStyle = g.curb;
@@ -1137,7 +1220,8 @@ function render(t) {
     else if (tt === T.LOT) { ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(X, Y, 1, Math.ceil(ppu * 0.45)); }
   }
   // road markings: dashed centre lines and zebra crossings
-  ctx.fillStyle = '#e8c84a';
+  ctx.imageSmoothingEnabled = false;
+  ctx.fillStyle = IMG.tiles ? '#c0cbdc' : '#e8c84a';
   const dash = Math.max(1, Math.round(ppu * 0.08));
   for (let i = 0; i <= NB; i++) {
     const c = roadC(i);
@@ -1147,7 +1231,7 @@ function render(t) {
       if (c >= x0 - 1 && c <= x1 + 1 && s >= y0 && s <= y1) { const [sx, sy] = S(c, s + 0.15); ctx.fillRect(Math.round(sx - dash / 2), Math.round(sy), dash, Math.round(ppu * 0.5)); }
     }
   }
-  ctx.fillStyle = 'rgba(240,240,240,.75)';
+  ctx.fillStyle = IMG.tiles ? '#8c9ab4' : 'rgba(240,240,240,.75)';
   for (let i = 0; i <= NB; i++) for (let j = 0; j <= NB; j++) {
     const cx = roadC(i), cy = roadC(j);
     if (cx < x0 - 3 || cx > x1 + 3 || cy < y0 - 3 || cy > y1 + 3) continue;
@@ -1208,7 +1292,18 @@ function render(t) {
   if (me.onFoot && G.state !== 'title') drawPlayerOnFoot(t);
   for (const c of cars) drawCar(c, t);
   // trees and buildings stand over everything at street level
-  for (const tr of trees) {
+  if (IMG.tiles) {
+    const props = [];
+    for (const tr of trees) if (!(tr.x < x0 - 2 || tr.x > x1 + 2 || tr.y < y0 - 2 || tr.y > y1 + 3)) props.push(tr);
+    for (const l of lamps) if (!(l.x < x0 - 2 || l.x > x1 + 2 || l.y < y0 - 2 || l.y > y1 + 3)) props.push(l);
+    props.sort((a, b) => a.y - b.y);
+    for (const o of props) {
+      const [gx, gy] = S(o.x, o.y), w = Math.round(ppu * (o.r ? o.r * 1.7 : 1)), top = o.r ? (hash2(o.x * 9, o.y * 9) > 0.75 ? 67 : 68) : 86;
+      ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(gx + w * 0.08, gy, w * 0.36, w * 0.14, 0, 0, TAU); ctx.fill();
+      tileImg(top, Math.round(gx - w / 2), Math.round(gy - w * 2 + w * 0.15), w, w);
+      tileImg(top + 12, Math.round(gx - w / 2), Math.round(gy - w + w * 0.15), w, w);
+    }
+  } else for (const tr of trees) {
     if (tr.x < x0 - 2 || tr.x > x1 + 2 || tr.y < y0 - 2 || tr.y > y1 + 2) continue;
     const [gx, gy] = S(tr.x + 0.35, tr.y + 0.35), [cx, cy] = S(tr.x, tr.y, 1.6), r = tr.r * ppu * kAt(1.6);
     ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.arc(gx, gy, tr.r * ppu, 0, TAU); ctx.fill();
@@ -1260,6 +1355,16 @@ function drawBuilding(b, t) {
   for (const [i, j, f] of walls) {
     ctx.fillStyle = shadeHex(wallC || 0x444444, f);
     ctx.beginPath(); ctx.moveTo(base[i][0], base[i][1]); ctx.lineTo(base[j][0], base[j][1]); ctx.lineTo(roof[j][0], roof[j][1]); ctx.lineTo(roof[i][0], roof[i][1]); ctx.closePath(); ctx.fill();
+    if (IMG.tiles && b.kind !== 'container') {
+      // brick or stone front, stretched over the wall: top edge along the roof, bottom along the street
+      const len = Math.round((i === 0 || i === 2) ? b.x1 - b.x0 : b.y1 - b.y0), tex = wallTex(b, len);
+      ctx.save(); ctx.clip();
+      ctx.setTransform((roof[j][0] - roof[i][0]) / tex.width, (roof[j][1] - roof[i][1]) / tex.width, (base[i][0] - roof[i][0]) / tex.height, (base[i][1] - roof[i][1]) / tex.height, roof[i][0], roof[i][1]);
+      ctx.drawImage(tex, 0, 0);
+      ctx.restore();
+      if (f < 1) { ctx.fillStyle = `rgba(20,10,30,${(1 - f) * 0.9})`; ctx.fill(); }
+      continue;
+    }
     // windows: rows of lit and dark panes
     if (b.kind === 'tower' || b.kind === 'police' || b.kind === 'house') {
       const floors = Math.max(1, Math.round(h / 0.55)), len = Math.hypot(base[j][0] - base[i][0], base[j][1] - base[i][1]), wide = Math.hypot(roof[j][0] - roof[i][0], roof[j][1] - roof[i][1]);
@@ -1277,6 +1382,15 @@ function drawBuilding(b, t) {
   }
   // roof
   const rx = roof[0][0], ry = roof[0][1], rw = roof[2][0] - rx, rh = roof[2][1] - ry;
+  const rt = IMG.tiles && roofTex(b);
+  if (rt) {
+    ctx.drawImage(rt, Math.round(rx), Math.round(ry), Math.round(rw), Math.round(rh));
+    const kz = ppu * kAt(h);
+    if (b.kind === 'police') { ctx.fillStyle = '#fff'; ctx.font = `bold ${Math.max(7, Math.round(kz * 0.8))}px monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('POLICE', rx + rw / 2, ry + rh / 2); ctx.fillStyle = (Math.floor(t * 3) & 1) ? '#ff3b3b' : '#3b8bff'; ctx.fillRect(rx + rw - kz * 0.6, ry + kz * 0.2, kz * 0.35, kz * 0.35); }
+    else if (b.kind === 'garage') { ctx.fillStyle = '#ffd23d'; ctx.font = `bold ${Math.max(7, Math.round(kz * 0.7))}px monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('GARAGE', rx + rw / 2, ry + rh / 2); }
+    else if (b.kind === 'tower' && b.h > 5.5 && rw > kz * 4) { ctx.strokeStyle = '#ffd23d'; ctx.lineWidth = Math.max(1, kz * 0.08); ctx.beginPath(); ctx.arc(rx + rw / 2, ry + rh / 2, kz * 1.3, 0, TAU); ctx.stroke(); ctx.fillStyle = '#ffd23d'; ctx.font = `bold ${Math.round(kz * 1.4)}px monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('H', rx + rw / 2, ry + rh / 2 + 1); }
+    return;
+  }
   ctx.fillStyle = hex(roofC); ctx.fillRect(rx, ry, rw, rh);
   const edge = Math.max(1, Math.round(ppu * kAt(h) * 0.1));
   ctx.fillStyle = shadeHex(roofC, 1.25); ctx.fillRect(rx, ry, rw, edge); ctx.fillRect(rx, ry, edge, rh);
@@ -1365,10 +1479,18 @@ function drawPersonAt(x, y, a, step, shirt, hair, skin, down, t, scale) {
   ctx.restore();
 }
 function drawPed(p, t) {
+  if (IMG.people) {
+    const spr = p.cop ? SPR.cop : p.spr;
+    if (p.state === 'dead') { drawMan(spr, p.x, p.y, p.a, 5); return; }
+    if (p.state === 'down') { drawMan(spr, p.x, p.y, p.a, 5); dizzyStars(p.x, p.y, t); }
+    else drawMan(spr, p.x, p.y, p.a, walkCol(p.step, p.state !== 'wait'));
+  } else {
   if (p.state === 'dead') { drawBody(p.x, p.y, p.a, p.shirt, p.hair, p.skin); return; }
   drawPersonAt(p.x, p.y, p.a, p.step, p.shirt, p.hair, p.skin, p.state === 'down', t);
+  }
   if (p.cop && me.stars >= 2) drawGun(p.x, p.y, p.a, 0.9);
   if (p.target && G.job && G.job.type === 'hit') { const [sx, sy] = S(p.x, p.y, 0.6); ctx.strokeStyle = '#ff3b3b'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(sx, sy, ppu * 0.45, 0, TAU); ctx.moveTo(sx - ppu * 0.6, sy); ctx.lineTo(sx + ppu * 0.6, sy); ctx.moveTo(sx, sy - ppu * 0.6); ctx.lineTo(sx, sy + ppu * 0.6); ctx.stroke(); } if (p.cop) { const [sx, sy] = S(p.x, p.y, 0.4); ctx.fillStyle = (Math.floor(t * 6) & 1) ? '#ff3b3b' : '#3b8bff'; ctx.fillRect(sx - 1, sy - ppu * 0.45, 3, 2); } if (p.fare && p.state === 'wait') { const [sx, sy] = S(p.x, p.y, 0.6); ctx.fillStyle = '#3be8ff'; ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center'; ctx.fillText('TAXI!', sx, sy - ppu * 0.5 + Math.sin(t * 6) * 2); } }
+function dizzyStars(x, y, t) { const [sx, sy] = S(x, y, 0.1), k = ppu; for (let i = 0; i < 3; i++) { const an = t * 5 + i * TAU / 3; ctx.fillStyle = '#ffe060'; ctx.fillRect(Math.round(sx + Math.cos(an) * k * 0.35), Math.round(sy - k * 0.45 + Math.sin(an) * k * 0.15), 2, 2); } }
 function drawBody(x, y, a, shirt, hair, skin) {
   const [sx, sy] = S(x, y, 0.02), k = ppu;
   if (sx < -k || sy < -k || sx > W + k || sy > H + k) return;
@@ -1388,8 +1510,14 @@ function drawGun(x, y, a, len) {
 function drawPlayerOnFoot(t) {
   const [sx, sy] = S(me.x, me.y);
   ctx.strokeStyle = `rgba(255,255,255,${0.35 + 0.25 * Math.sin(t * 6)})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(sx, sy, ppu * 0.38, 0, TAU); ctx.stroke();
+  if (IMG.people) {
+    if (me.deadT > 0) { drawMan(SPR.player, me.x, me.y, me.a, 5, 1.1); return; }
+    drawMan(SPR.player, me.x, me.y, me.a, me.dizzy > 0 ? 5 : walkCol(me.step, me.moving), 1.1);
+    if (me.dizzy > 0) dizzyStars(me.x, me.y, t);
+  } else {
   if (me.deadT > 0) { drawBody(me.x, me.y, me.a, 0xffc81a, 0x2a1a10, 0xe0a878); return; }
   drawPersonAt(me.x, me.y, me.a, me.step, 0xffc81a, 0x2a1a10, 0xe0a878, me.dizzy > 0, t, 1.15);
+  }
   const w = WEAPONS[me.weap]; if (w.id !== 'fists') drawGun(me.x, me.y, me.a, w.id === 'pistol' ? 0.8 : w.id === 'rocket' ? 1.8 : 1.3);
 }
 // arrow around the player pointing at the current goal (or the nearest ringing phone)
